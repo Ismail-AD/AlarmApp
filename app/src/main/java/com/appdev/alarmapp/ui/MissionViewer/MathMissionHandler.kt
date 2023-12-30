@@ -137,7 +137,7 @@ fun MathMissionHandler(
                             repeatProgress = singleMission.repeatProgress,
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences)
+                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -163,9 +163,13 @@ fun MathMissionHandler(
                         }
                         "Typing" -> {
                             controller.navigate(Routes.TypingPreviewScreen.route) {
-                                popUpTo(Routes.PreviewAlarm.route) {
-                                    inclusive = true
-                                }
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Photo" -> {
+                            controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }

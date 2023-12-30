@@ -137,7 +137,6 @@ fun SentenceSelection(
         mutableStateOf(false)
     }
 
-    Log.d("SLCHK", "AT LOCK EDIT SCREEN ${mainViewModel.missionDetails.selectedSentences}")
     var selectedPhrases by remember {
         mutableStateOf(
             if(convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()){

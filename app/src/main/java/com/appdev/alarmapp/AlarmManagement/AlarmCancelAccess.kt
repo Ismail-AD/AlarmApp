@@ -20,6 +20,7 @@ import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
+import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
@@ -227,6 +228,11 @@ fun AlarmNavGraph(
         }
         composable(route = Routes.StepDetectorScreen.route) {
             StepMission(mainViewModel = mainViewModel, controller){
+                alarmEnds()
+            }
+        }
+        composable(route = Routes.PhotoMissionPreviewScreen.route) {
+            PhotoMissionScreen(mainViewModel = mainViewModel, controller=controller){
                 alarmEnds()
             }
         }

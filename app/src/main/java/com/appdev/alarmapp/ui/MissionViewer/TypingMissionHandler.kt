@@ -134,7 +134,7 @@ fun TypingMissionHandler(
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
                             isSelected = singleMission.isSelected,
-                            setOfSentences = convertStringToSet(singleMission.selectedSentences)
+                            setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -165,6 +165,12 @@ fun TypingMissionHandler(
                                 launchSingleTop = true
                             }
                         }
+                        "Photo" -> {
+                            controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
 
                         else -> {
                             alarmEndHandle()
@@ -174,7 +180,6 @@ fun TypingMissionHandler(
                     alarmEndHandle()
                 }
             } else {
-
                 controller.navigate(Routes.TypeMissionScreen.route) {
                     popUpTo(controller.graph.startDestinationId)
                     launchSingleTop

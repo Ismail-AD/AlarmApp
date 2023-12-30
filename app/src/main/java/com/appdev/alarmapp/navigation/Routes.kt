@@ -28,5 +28,9 @@ sealed class Routes(val route:String){
     object MissionMenuScreen:Routes("MissionMenuScreen_Screen")
     object TypingPreviewScreen:Routes("TypingPreviewScreen_Screen")
     object StepDetectorScreen:Routes("StepDetectorScreen_Screen")
-    object DemoRoutineScreen:Routes("DemoRoutineScreen_Screen")
+    object CameraRoutineScreen:Routes("CameraRoutineScreen_Screen")
+    object PhotoClickScreen:Routes("PhotoClickScreen_Screen")
+    object PhotoMissionPreviewScreen:Routes("PhotoPreviewScreen_Screen")
+    object BarCodeDemoScreen:Routes("BarCodeDemo_Screen")
+    object BarCodeScanScreen:Routes("BarCodeScan_Screen")
 }

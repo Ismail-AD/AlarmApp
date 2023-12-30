@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.appdev.alarmapp.utils.CustomPhrase
+import com.appdev.alarmapp.utils.ImageData
+import com.appdev.alarmapp.utils.ImageStoreDao
 import com.appdev.alarmapp.utils.PhraseDao
 import com.appdev.alarmapp.utils.RecordingsDao
 import com.appdev.alarmapp.utils.Ringtone
@@ -19,7 +21,7 @@ import javax.inject.Inject
 
 
 class RingtoneRepository @Inject constructor(
-    private val recordingsDao: RecordingsDao,private val phraseDao: PhraseDao
+    private val recordingsDao: RecordingsDao,private val phraseDao: PhraseDao,private val imageStoreDao: ImageStoreDao
 ) {
     val roomRecordings: Flow<List<Ringtone>> = recordingsDao.getAllRecordings()
         .map { list ->
@@ -36,12 +38,25 @@ class RingtoneRepository @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     val listOfCustomPhrases: Flow<List<CustomPhrase>> = phraseDao.getAllPhrases()
+    val listOfClickedImages: Flow<List<ImageData>> = imageStoreDao.getAllImages()
 
-    suspend fun insertPhrase(customPhrase: CustomPhrase) {
-        phraseDao.insertPhrase(customPhrase)
+
+    suspend fun insertImage(listOfImages: List<ImageData>) {
+        imageStoreDao.insertImage(listOfImages)
+    }
+
+    suspend fun getImage(imageId: Long): ImageData? {
+        return imageStoreDao.getImageById(imageId)
+    }
+
+    suspend fun deleteImage(imageId: Long) {
+        imageStoreDao.deleteImageById(imageId)
     }
     suspend fun updatePhrase(customPhrase: CustomPhrase) {
         phraseDao.updatePhrase(customPhrase)
+    }
+    suspend fun insertPhrase(customPhrase: CustomPhrase) {
+        phraseDao.insertPhrase(customPhrase)
     }
 
     suspend fun deletePhrase(phraseId: Long) {

@@ -134,7 +134,7 @@ fun ShakeDetectionScreen(
                             repeatProgress = singleMission.repeatProgress,
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences)
+                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -160,9 +160,13 @@ fun ShakeDetectionScreen(
                         }
                         "Typing" -> {
                             controller.navigate(Routes.TypingPreviewScreen.route) {
-                                popUpTo(Routes.PreviewAlarm.route) {
-                                    inclusive = true
-                                }
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Photo" -> {
+                            controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
@@ -175,8 +179,8 @@ fun ShakeDetectionScreen(
                     alarmEndHandle()
                 }
             } else {
-                controller.navigate(Routes.Preview.route) {
-                    popUpTo(Routes.MissionShakeScreen.route)
+                controller.navigate(Routes.CommonMissionScreen.route) {
+                    popUpTo(controller.graph.startDestinationId)
                     launchSingleTop
                 }
             }

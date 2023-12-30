@@ -3,6 +3,7 @@ package com.appdev.alarmapp.Hilt
 import android.content.Context
 import androidx.room.Room
 import com.appdev.alarmapp.utils.AlarmDao
+import com.appdev.alarmapp.utils.ImageStoreDao
 import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.DatabaseName
 import com.appdev.alarmapp.utils.PhraseDao
 import com.appdev.alarmapp.utils.RecordingsDao
@@ -49,5 +50,12 @@ object RoomModule {
     fun provideDatabaseThePhraseClass(roomDatabase: RoomDB): PhraseDao {
         return roomDatabase.phraseDao()
     }
+
+    @Singleton
+    @Provides
+    fun provideDatabaseTheImageClass(roomDatabase: RoomDB): ImageStoreDao {
+        return roomDatabase.imageDao()
+    }
+
 
 }

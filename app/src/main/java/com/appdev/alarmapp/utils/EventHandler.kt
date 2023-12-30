@@ -57,12 +57,13 @@ sealed interface MissionMathDemoHandler {
 sealed interface MissionDataHandler {
     data class RepeatTimes(val repeat: Int) : MissionDataHandler
     data class MissionId(val missionId: Int) : MissionDataHandler
+    data class ImageId(val imageId: Long) : MissionDataHandler
     data class MissionLevel(val missionLevel: String) : MissionDataHandler
     data class MissionName(val missionName: String) : MissionDataHandler
     data class MissionProgress(val repeatProgress: Int) : MissionDataHandler
     data class IsSelectedMission(val isSelected: Boolean) : MissionDataHandler
     data class SelectedSentences(val setOfSentences:Set<CustomPhrase>) : MissionDataHandler
-    data class AddCompleteMission(val setOfSentences:Set<CustomPhrase>,val repeat: Int,val missionId: Int,val missionLevel: String,val missionName: String,val repeatProgress: Int,val isSelected: Boolean) : MissionDataHandler
+    data class AddCompleteMission(val setOfSentences:Set<CustomPhrase>,val repeat: Int,val missionId: Int,val missionLevel: String,val missionName: String,val repeatProgress: Int,val isSelected: Boolean,val imageId:Long) : MissionDataHandler
     data class AddList(val missionsList:List<Missions>) : MissionDataHandler
     object SubmitData : MissionDataHandler
     object ResetData : MissionDataHandler

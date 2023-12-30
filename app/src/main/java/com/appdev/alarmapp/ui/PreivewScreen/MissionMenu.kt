@@ -53,12 +53,16 @@ import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.whichMissionHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
+    if(Helper.isPlaying()){
+        Helper.stopStream()
+    }
     val context = LocalContext.current
     var showToast by remember {
         mutableStateOf(false)
@@ -205,28 +209,32 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                         iconID = Icons.Filled.DirectionsWalk,
                         title = "Step"
                     ) {
-                        if (isKitkatWithStepSensor(context)) {
-                            showToast = false
-                            mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Step"))
-                            mainViewModel.whichMissionHandle(
-                                whichMissionHandler.thisMission(
-                                    missionMemory = false,
-                                    missionMath = false,
-                                    missionShake = false,
-                                    isSteps = true
-                                )
-                            )
-                            controller.navigate(Routes.CommonMissionScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        } else {
-                            showToast = true
-                        }
+//                        if (isKitkatWithStepSensor(context)) {
+//                            showToast = false
+//                            mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Step"))
+//                            mainViewModel.whichMissionHandle(
+//                                whichMissionHandler.thisMission(
+//                                    missionMemory = false,
+//                                    missionMath = false,
+//                                    missionShake = false,
+//                                    isSteps = true
+//                                )
+//                            )
+//                            controller.navigate(Routes.CommonMissionScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
+//                        } else {
+//                            showToast = true
+//                        }
 
                     }
                     singleCard(iconID = Icons.Filled.QrCode2, title = "QR/Barcode") {
-
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "QR/Barcode"))
+                        controller.navigate(Routes.BarCodeDemoScreen.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
                     }
                     singleCard(iconID = Icons.Filled.ScreenRotation, title = "Shake") {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Shake"))
@@ -250,9 +258,12 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                         .padding(vertical = 5.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
-
                     singleCard(iconID = Icons.Filled.CameraEnhance, title = "Photo") {
-
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Photo"))
+                        controller.navigate(Routes.CameraRoutineScreen.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
                     }
                     singleCard(
                         imageId = R.drawable.strength,

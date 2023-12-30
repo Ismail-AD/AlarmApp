@@ -105,8 +105,20 @@ dependencies {
     implementation("com.github.IamCheng5:ComposeWheelPicker:1.1")
 
     implementation("com.github.Oxford-step-counter:Java-Step-Counter:-SNAPSHOT")
-
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("io.coil-kt:coil-svg:2.4.0")
     implementation("com.google.code.gson:gson:2.10.1")
+
+    implementation("androidx.camera:camera-core:1.4.0-alpha01")
+    implementation("androidx.camera:camera-camera2:1.4.0-alpha01")
+    implementation("androidx.camera:camera-lifecycle:1.4.0-alpha01")
+    implementation("androidx.camera:camera-video:1.4.0-alpha01")
+
+    implementation("androidx.camera:camera-view:1.4.0-alpha01")
+    implementation("androidx.camera:camera-extensions:1.4.0-alpha01")
+
+    implementation("com.google.mlkit:barcode-scanning:17.0.0")
+
 
 
 }

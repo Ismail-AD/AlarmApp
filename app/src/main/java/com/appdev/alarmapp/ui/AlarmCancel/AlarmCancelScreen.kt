@@ -168,7 +168,8 @@ fun AlarmCancelScreen(
                                         missionLevel = singleMission.missionLevel,
                                         missionName = singleMission.missionName,
                                         isSelected = singleMission.isSelected,
-                                        setOfSentences = convertStringToSet(singleMission.selectedSentences)
+                                        setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId =
+                                            singleMission.imageId
                                     )
                                 )
                             }
@@ -217,6 +218,14 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+                            "Photo" -> {
+                                controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
                             else -> {
                                 Helper.stopStream()
                                 alarmEndHandle()
@@ -235,7 +244,7 @@ fun AlarmCancelScreen(
                 CustomImageButton(
                     onClick = {
                         Helper.stopStream()
-                        controller.navigate(Routes.Preview.route) {
+                        controller.navigate(Routes.MissionMenuScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }

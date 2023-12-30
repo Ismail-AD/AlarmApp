@@ -152,7 +152,7 @@ fun MissionHandlerScreen(
                             repeatProgress = singleMission.repeatProgress,
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences)
+                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -178,9 +178,13 @@ fun MissionHandlerScreen(
                         }
                         "Typing" -> {
                             controller.navigate(Routes.TypingPreviewScreen.route) {
-                                popUpTo(Routes.PreviewAlarm.route) {
-                                    inclusive = true
-                                }
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Photo" -> {
+                            controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
@@ -193,7 +197,7 @@ fun MissionHandlerScreen(
                     alarmEndHandle()
                 }
             } else {
-                controller.navigate(Routes.Preview.route) {
+                controller.navigate(Routes.CommonMissionScreen.route) {
                     popUpTo(controller.graph.startDestinationId)
                     launchSingleTop
                 }

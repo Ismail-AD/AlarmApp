@@ -37,11 +37,16 @@ import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
 import com.appdev.alarmapp.ui.Analysis.AnalysisScreen
 import com.appdev.alarmapp.ui.MainScreen.MainScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.MissionDemos.BarCodeMissionDemo
+import com.appdev.alarmapp.ui.MissionDemos.CameraMissionDemo
 import com.appdev.alarmapp.ui.MissionDemos.MemoryMissionScreen
+import com.appdev.alarmapp.ui.MissionDemos.PhotoClickScreen
+import com.appdev.alarmapp.ui.MissionDemos.ScanBarCodeScreen
 import com.appdev.alarmapp.ui.MissionDemos.SentenceSelection
 import com.appdev.alarmapp.ui.MissionDemos.TypingMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
+import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
@@ -59,7 +64,6 @@ import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.isOldOrNew
 import com.appdev.alarmapp.utils.newAlarmHandler
 import java.time.LocalTime
-import kotlin.math.roundToInt
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -89,6 +93,11 @@ fun MainUiScreen(
         Routes.SentenceScreen.route,
         Routes.TypingPreviewScreen.route,
         Routes.StepDetectorScreen.route,
+        Routes.CameraRoutineScreen.route,
+        Routes.PhotoClickScreen.route,
+        Routes.PhotoMissionPreviewScreen.route,
+        Routes.BarCodeDemoScreen.route,
+        Routes.BarCodeScanScreen.route,
     )
     androidx.compose.material.Scaffold(
         floatingActionButtonPosition = androidx.compose.material.FabPosition.Center,
@@ -232,6 +241,21 @@ fun MainUiScreen(
             }
             composable(route = Routes.MissionShakeScreen.route) {
                 ShakeDetectionScreen(mainViewModel = mainViewModel, controller)
+            }
+            composable(route = Routes.CameraRoutineScreen.route) {
+                CameraMissionDemo(mainViewModel = mainViewModel, controller=controller)
+            }
+            composable(route = Routes.PhotoMissionPreviewScreen.route) {
+                PhotoMissionScreen(mainViewModel = mainViewModel, controller=controller)
+            }
+            composable(route = Routes.PhotoClickScreen.route) {
+                PhotoClickScreen(mainViewModel = mainViewModel, controller=controller)
+            }
+            composable(route = Routes.BarCodeDemoScreen.route) {
+                BarCodeMissionDemo(mainViewModel = mainViewModel, controller=controller)
+            }
+            composable(route = Routes.BarCodeScanScreen.route) {
+                ScanBarCodeScreen(mainViewModel = mainViewModel, controller=controller)
             }
             composable(route = Routes.StepDetectorScreen.route) {
                 StepMission(mainViewModel = mainViewModel, controller)

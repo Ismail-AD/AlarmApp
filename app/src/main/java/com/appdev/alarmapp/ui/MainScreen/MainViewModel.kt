@@ -1,9 +1,11 @@
 package com.appdev.alarmapp.ui.MainScreen
 
 import android.util.Log
+import androidx.camera.core.CameraSelector
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
@@ -11,6 +13,7 @@ import com.appdev.alarmapp.Repository.AlarmRepository
 import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.utils.CustomPhrase
 import com.appdev.alarmapp.utils.EventHandlerAlarm
+import com.appdev.alarmapp.utils.ImageData
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.Ringtone
@@ -27,10 +30,13 @@ import com.appdev.alarmapp.utils.whichMissionHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import javax.inject.Inject
@@ -51,8 +57,30 @@ class MainViewModel @Inject constructor(
     var missionDetails by mutableStateOf(Missions())
     var isRealAlarm by mutableStateOf(false)
     var whichMission by mutableStateOf(MissionState())
+    var selectedImage by mutableStateOf(ImageData())
+    var flashLight by mutableStateOf(false)
+    var barCodeSheetState by mutableStateOf(false)
 
     var sentencesList by mutableStateOf(setOf<CustomPhrase>())
+
+    private val _uiState: MutableStateFlow<QrScanUIState> = MutableStateFlow(QrScanUIState())
+    val uiState: StateFlow<QrScanUIState> = _uiState
+
+    fun onQrCodeDetected(result: String) {
+        _uiState.update { it.copy(detectedQR = result) }
+    }
+
+    fun onTargetPositioned(rect: Rect) {
+        _uiState.update { it.copy(targetRect = rect) }
+    }
+
+    fun updateBarCodeSheetState(value: Boolean) {
+        barCodeSheetState = value
+    }
+
+    fun updateFlash(value: Boolean) {
+        flashLight = value
+    }
 
     val alarmList: Flow<List<AlarmEntity>> = alarmRepository.roomDataFlow
         .flowOn(Dispatchers.IO)
@@ -65,6 +93,29 @@ class MainViewModel @Inject constructor(
 
     val phrasesList: Flow<List<CustomPhrase>> =
         ringtoneRepository.listOfCustomPhrases.flowOn(Dispatchers.IO)
+
+    val imagesList: Flow<List<ImageData>> =
+        ringtoneRepository.listOfClickedImages.flowOn(Dispatchers.IO)
+
+    fun insertImage(imageData: List<ImageData>) {
+        viewModelScope.launch {
+            ringtoneRepository.insertImage(imageData)
+        }
+    }
+
+    fun getImageById(imageId: Long) {
+        viewModelScope.launch {
+            ringtoneRepository.getImage(imageId)?.let {
+                selectedImage = it
+            }
+        }
+    }
+
+    fun deleteImage(id: Long) {
+        viewModelScope.launch {
+            ringtoneRepository.deleteImage(id)
+        }
+    }
 
     fun insertPhrase(customPhrase: CustomPhrase) {
         viewModelScope.launch {
@@ -122,6 +173,11 @@ class MainViewModel @Inject constructor(
     fun updateSentenceList(sentences: Set<CustomPhrase>) {
         sentencesList = sentences
     }
+
+    fun updateSelectedImage(imageData: ImageData) {
+        selectedImage = imageData
+    }
+
 
     fun getRandomSentence(): CustomPhrase {
         return if (sentencesList.isNotEmpty()) sentencesList.toList()
@@ -272,7 +328,8 @@ class MainViewModel @Inject constructor(
                 missionName = missionDataHandler.missionName,
                 repeatProgress = missionDataHandler.repeatProgress,
                 isSelected = missionDataHandler.isSelected,
-                selectedSentences = convertSetToString(missionDataHandler.setOfSentences)
+                selectedSentences = convertSetToString(missionDataHandler.setOfSentences),
+                imageId = missionDataHandler.imageId
             )
 
             MissionDataHandler.ResetData -> missionDetails = missionDetails.copy(
@@ -281,13 +338,16 @@ class MainViewModel @Inject constructor(
                 repeatProgress = 1,
                 missionLevel = "Very Easy",
                 missionName = "", selectedSentences = "",
-                isSelected = false
+                isSelected = false, imageId = 0
             )
 
             is MissionDataHandler.SelectedSentences -> {
                 missionDetails =
                     missionDetails.copy(selectedSentences = convertSetToString(missionDataHandler.setOfSentences))
             }
+
+            is MissionDataHandler.ImageId -> missionDetails =
+                missionDetails.copy(imageId = missionDataHandler.imageId)
         }
     }
 
@@ -340,5 +400,12 @@ class MainViewModel @Inject constructor(
         val missionName: String = "",
         val repeatProgress: Int = 1,
         val isSelected: Boolean = false
+    )
+
+    data class QrScanUIState(
+        val loading: Boolean = false,
+        val detectedQR: String = "",
+        val targetRect: Rect = Rect.Zero,
+        val lensFacing: Int = CameraSelector.LENS_FACING_BACK,
     )
 }

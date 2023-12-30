@@ -168,8 +168,7 @@ fun RingtoneSelection(
     }
 
     LaunchedEffect(ringtoneDeviceList) {
-        loading = ringtoneDeviceList.isEmpty()
-
+//        loading = ringtoneDeviceList.isEmpty()
         if (!loading) {
             selectedTabIndex = when (selectedRingtone) {
                 in recordingsList -> 2

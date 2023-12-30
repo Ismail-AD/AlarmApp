@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CameraEnhance
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Lock
@@ -414,6 +415,41 @@ fun PreviewScreen(
                                             )
                                         )
                                         controller.navigate(Routes.TypeMissionScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+
+                                    }
+                                    "Photo" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionLevel(
+                                                misData.missionLevel
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.ImageId(
+                                                misData.imageId
+                                            )
+                                        )
+                                        controller.navigate(Routes.CameraRoutineScreen.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
                                         }
@@ -809,6 +845,7 @@ fun singleMission(
                         "Math" -> Icons.Filled.Calculate
                         "Shake" -> Icons.Filled.ScreenRotation
                         "Typing" -> Icons.Filled.Keyboard
+                        "Photo" -> Icons.Filled.CameraEnhance
                         else -> {
                             Icons.Filled.AutoAwesomeMosaic
                         }
