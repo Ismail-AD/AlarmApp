@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import com.andyliu.compose_wheel_picker.VerticalWheelPicker
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -71,6 +72,7 @@ import com.appdev.alarmapp.ui.PreivewScreen.TopBar
 import com.appdev.alarmapp.ui.PreivewScreen.getImageForSliderValue
 import com.appdev.alarmapp.ui.PreivewScreen.getMathEqForSliderValue
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import kotlinx.coroutines.launch
@@ -81,6 +83,9 @@ fun MemoryMissionScreen(
     mainViewModel: MainViewModel,
     controller: NavHostController
 ) {
+    if (Helper.isPlaying()) {
+        Helper.stopStream()
+    }
     val itemsList by remember {
         mutableStateOf(listOf("Very Easy", "Easy", "Normal", "Hard"))
     }
@@ -351,22 +356,6 @@ fun MemoryMissionScreen(
                         CustomButton(
                             onClick = {
                                 Helper.playStream(context, R.raw.alarmsound)
-//                                if (mainViewModel.whichMission.isMemory) {
-//                                    controller.navigate(Routes.PreviewAlarm.route) {
-//                                        popUpTo(controller.graph.startDestinationId)
-//                                        launchSingleTop = true
-//                                    }
-//                                } else if (mainViewModel.whichMission.isMath) {
-//                                    controller.navigate(Routes.PreviewAlarm.route) {
-//                                        popUpTo(controller.graph.startDestinationId)
-//                                        launchSingleTop = true
-//                                    }
-//                                } else if (mainViewModel.whichMission.isShake) {
-//                                    controller.navigate(Routes.PreviewAlarm.route) {
-//                                        popUpTo(controller.graph.startDestinationId)
-//                                        launchSingleTop = true
-//                                    }
-//                                }
                                 controller.navigate(Routes.PreviewAlarm.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
@@ -381,15 +370,40 @@ fun MemoryMissionScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         CustomButton(
                             onClick = {
-                                mainViewModel.missionData(
-                                    MissionDataHandler.IsSelectedMission(
-                                        isSelected = true
+                                if (mainViewModel.managingDefault) {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            isSelected = true
+                                        )
                                     )
-                                )
-                                mainViewModel.missionData(MissionDataHandler.SubmitData)
-                                controller.navigate(Routes.MissionMenuScreen.route) {
-                                    popUpTo(controller.graph.startDestinationId)
-                                    launchSingleTop = true
+                                    mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                    mainViewModel.setDefaultSettings(
+                                        DefaultSettingsHandler.GetNewObject(
+                                            defaultSettings = DefaultSettings(
+                                                id = mainViewModel.defaultSettings.value.id,
+                                                ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                                snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
+                                                listOfMissions = mainViewModel.missionDetailsList
+                                            )
+                                        )
+                                    )
+                                    mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                                    controller.navigate(Routes.MissionMenuScreen.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+
+                                } else{
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            isSelected = true
+                                        )
+                                    )
+                                    mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                    controller.navigate(Routes.MissionMenuScreen.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
                                 }
                             },
                             text = "Complete",

@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
+import android.util.Log
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -36,7 +37,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.QrCodeAnalyzer
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.withContext
@@ -50,9 +50,7 @@ fun BarCodeCameraPreview(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-
     val lifecycleOwner = LocalLifecycleOwner.current
-
 
     val context = LocalContext.current
     val previewView = remember { PreviewView(context) }
@@ -70,6 +68,7 @@ fun BarCodeCameraPreview(
         imageAnalysis.setAnalyzer(
             Dispatchers.Default.asExecutor(),
             QrCodeAnalyzer(
+                mainViewModel = viewModel,
                 targetRect = targetRect.toAndroidRect(),
                 previewView = previewView,
             ) { result ->
@@ -105,11 +104,12 @@ fun BarCodeCameraPreview(
 
     Scaffold { paddingValues ->
         Content(
+            viewModel = viewModel,
             modifier = Modifier.padding(paddingValues),
             uiState = uiState,
             previewView = previewView,
             onTargetPositioned = viewModel::onTargetPositioned
-        ){
+        ) {
             onDetect()
         }
     }
@@ -118,10 +118,11 @@ fun BarCodeCameraPreview(
 
 @Composable
 private fun Content(
+    viewModel: MainViewModel,
     modifier: Modifier,
     previewView: PreviewView,
     uiState: MainViewModel.QrScanUIState,
-    onTargetPositioned: (Rect) -> Unit,onDetect: () -> Unit
+    onTargetPositioned: (Rect) -> Unit, onDetect: () -> Unit
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -180,69 +181,9 @@ private fun Content(
             textAlign = TextAlign.Center,
             text = "Place a QR/Barcode inside the box",
         )
-        if (uiState.detectedQR.isNotEmpty()) {
+        if (viewModel.detectedQrCodeState.qrCode.isNotEmpty() && viewModel.detectedQrCodeState.startProcess) {
+            Log.d("CURC", "STEP 0 SCAN RESULT : our code is ${viewModel.detectedQrCodeState}")
             onDetect()
         }
     }
 }
-
-
-//AndroidView(
-//factory = { AndroidViewContext ->
-//    PreviewView(AndroidViewContext).apply {
-//        this.scaleType = PreviewView.ScaleType.FILL_CENTER
-//        layoutParams = ViewGroup.LayoutParams(
-//            ViewGroup.LayoutParams.MATCH_PARENT,
-//            ViewGroup.LayoutParams.MATCH_PARENT,
-//        )
-//        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-//    }
-//},
-//modifier = Modifier
-//.fillMaxSize(),
-//update = { previewView ->
-//    val cameraSelector: CameraSelector = CameraSelector.Builder()
-//        .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-//        .build()
-//    val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-//    val cameraProviderFuture: ListenableFuture<ProcessCameraProvider> =
-//        ProcessCameraProvider.getInstance(context)
-//
-//    cameraProviderFuture.addListener({
-//        preview = Preview.Builder().build().also {
-//            it.setSurfaceProvider(previewView.surfaceProvider)
-//        }
-//        val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-//        val barcodeAnalyser = BarCodeAnalyser { barcodes ->
-//            barcodes.forEach { barcode ->
-//                barcode.rawValue?.let { barcodeValue ->
-//                    barCodeVal.value = barcodeValue
-//                    Toast.makeText(context, barcodeValue, Toast.LENGTH_SHORT).show()
-//                    onGetBarcodeValue(barcodeValue)
-//                }
-//            }
-//        }
-//        val imageAnalysis: ImageAnalysis = ImageAnalysis.Builder()
-//            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-//            .build()
-//            .also {
-//                it.setAnalyzer(cameraExecutor, barcodeAnalyser)
-//            }
-//
-//        try {
-//            cameraProvider.unbindAll()
-//            val camera = cameraProvider.bindToLifecycle(
-//                lifecycleOwner,
-//                cameraSelector,
-//                preview,
-//                imageAnalysis
-//            )
-//
-//            camera.cameraControl.enableTorch(mainViewModel.flashLight)
-//
-//        } catch (e: Exception) {
-//            Log.d("TAG", "CameraPreview: ${e.localizedMessage}")
-//        }
-//    }, ContextCompat.getMainExecutor(context))
-//}
-//)

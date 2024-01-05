@@ -179,8 +179,8 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                     mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(true))
                     mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = mainViewModel.missionDetailsList))
                     scheduleTheAlarm(
-                        mainViewModel.newAlarm,
-                        alarmScheduler, mainViewModel.whichAlarm.isOld,
+                        false,
+                        mainViewModel.newAlarm, alarmScheduler, mainViewModel.whichAlarm.isOld,
                     ) { tomorrowTimeMillis, currentTimeMillis ->
                         remainingTime = tomorrowTimeMillis - currentTimeMillis
                     }

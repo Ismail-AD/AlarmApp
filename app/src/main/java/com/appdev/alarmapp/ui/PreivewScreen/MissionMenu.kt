@@ -60,7 +60,7 @@ import com.appdev.alarmapp.utils.whichMissionHandler
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
-    if(Helper.isPlaying()){
+    if (Helper.isPlaying()) {
         Helper.stopStream()
     }
     val context = LocalContext.current
@@ -93,9 +93,13 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
             ) {
                 Card(
                     onClick = {
-                        controller.navigate(Routes.Preview.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
+                        if (mainViewModel.managingDefault) {
+                            controller.popBackStack()
+                        } else {
+                            controller.navigate(Routes.Preview.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
                         }
                     },
                     border = BorderStroke(1.dp, Color.White),

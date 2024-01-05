@@ -1,7 +1,7 @@
 package com.appdev.alarmapp.Repository
 
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
-import com.appdev.alarmapp.utils.AlarmDao
+import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

@@ -1,9 +1,10 @@
-package com.appdev.alarmapp.utils
+package com.appdev.alarmapp.utils.DaoClasses
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.appdev.alarmapp.utils.ImageData
 import kotlinx.coroutines.flow.Flow
 
 @Dao

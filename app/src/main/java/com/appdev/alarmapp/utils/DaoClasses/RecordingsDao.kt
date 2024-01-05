@@ -1,9 +1,11 @@
-package com.appdev.alarmapp.utils
+package com.appdev.alarmapp.utils.DaoClasses
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.appdev.alarmapp.utils.RingtoneEntity
+import com.appdev.alarmapp.utils.SystemRingtone
 import kotlinx.coroutines.flow.Flow
 
 
@@ -20,6 +22,9 @@ interface RecordingsDao {
 
     @Query("SELECT * FROM systemRings_table")
     fun getAllSystemRings(): Flow<List<SystemRingtone>>
+
+    @Query("DELETE FROM systemRings_table")
+    suspend fun deleteAllRingtone()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSystemRings(systemRingtone: List<SystemRingtone>)

@@ -2,7 +2,6 @@ package com.appdev.alarmapp.AlarmManagement
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -13,11 +12,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.MainActivity
+import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
-import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
@@ -33,8 +33,6 @@ import com.appdev.alarmapp.utils.Ringtone
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.AndroidEntryPoint
-import java.io.File
-import java.io.Serializable
 import java.time.Instant
 import java.time.LocalTime
 import java.time.OffsetTime
@@ -42,13 +40,12 @@ import java.time.ZoneId
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class AlarmCancelAccess : ComponentActivity() {
     val mainViewModel by viewModels<MainViewModel>()
     var localTime: LocalTime = LocalTime.now()
+    var dismissSettings: DismissSettings = DismissSettings()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,17 +53,18 @@ class AlarmCancelAccess : ComponentActivity() {
             AlarmAppTheme {
                 mainViewModel.updateIsReal(true)
                 val alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
-
                 val snoozeTime = intent.getStringExtra("snooze")
                 val timeInM = intent.getStringExtra("tInM")
+                val notify = intent.getBooleanExtra("notify",false)
                 val id = intent.getStringExtra("id")
                 val receivedLocalTimeString = intent?.getStringExtra("localTime")
                 receivedLocalTimeString?.let { LTS ->
                     localTime = LocalTime.parse(LTS)
                 }
 
+
                 if (intent?.hasExtra("ringtoneObj") == true) {
-                    val receivedRingtone = intent.getSerializableExtra("ringtoneObj") as? Ringtone
+                    val receivedRingtone: Ringtone? = intent.getParcelableExtra("ringtoneObj")
                     receivedRingtone?.let { ringtone ->
 
                         if (intent?.hasExtra("list") == true) {
@@ -100,7 +98,7 @@ class AlarmCancelAccess : ComponentActivity() {
                                                         ringtone = ringtone,
                                                         localTime = localTime
                                                     )
-                                                    scheduleTheAlarm(alarmEntity, alarmScheduler)
+                                                    scheduleTheAlarm(alarmEntity, alarmScheduler,notify)
                                                 }
                                             }
                                         }
@@ -132,7 +130,11 @@ class AlarmCancelAccess : ComponentActivity() {
                                                     ringtone = ringtone,
                                                     localTime = localTime
                                                 )
-                                                scheduleTheAlarm(alarmEntity, alarmScheduler)
+                                                scheduleTheAlarm(
+                                                    alarmEntity,
+                                                    alarmScheduler,
+                                                    notify
+                                                )
                                             }
                                         }
                                     }
@@ -161,6 +163,7 @@ class AlarmCancelAccess : ComponentActivity() {
 fun scheduleTheAlarm(
     alarmEntity: AlarmEntity,
     alarmScheduler: AlarmScheduler,
+    notify: Boolean,
 ) {
     val selectedTimeMillis = localTimeToMillis(alarmEntity.localTime)
 
@@ -195,7 +198,7 @@ fun scheduleTheAlarm(
         alarmEntity.localTime = offsetTime.toLocalTime()
         alarmEntity.reqCode = (0..19992).random()
 
-        alarmScheduler.schedule(alarmEntity)
+        alarmScheduler.schedule(alarmEntity,notify)
 
     }
 }
@@ -226,19 +229,24 @@ fun AlarmNavGraph(
                 alarmEnds()
             }
         }
+        composable(route = Routes.BarCodePreviewAlarmScreen.route) {
+            BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller) {
+                alarmEnds()
+            }
+        }
         composable(route = Routes.StepDetectorScreen.route) {
-            StepMission(mainViewModel = mainViewModel, controller){
+            StepMission(mainViewModel = mainViewModel, controller) {
                 alarmEnds()
             }
         }
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
-            PhotoMissionScreen(mainViewModel = mainViewModel, controller=controller){
+            PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller) {
                 alarmEnds()
             }
         }
 
         composable(route = Routes.TypingPreviewScreen.route) {
-            TypingMissionHandler(mainViewModel = mainViewModel, controller = controller){
+            TypingMissionHandler(mainViewModel = mainViewModel, controller = controller) {
                 alarmEnds()
             }
         }

@@ -1,4 +1,4 @@
-package com.appdev.alarmapp.utils
+package com.appdev.alarmapp.utils.DaoClasses
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AlarmDao {
-    @Query("SELECT * FROM alarms_table_")
+    @Query("SELECT * FROM alarm_table")
     fun getAllAlarms(): Flow<List<AlarmEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAlarm(alarmEntity: AlarmEntity)
 
-    @Query("DELETE FROM alarms_table_ WHERE id = :id")
+    @Query("DELETE FROM alarm_table WHERE id = :id")
     suspend fun deleteAlarmById(id: Long)
 
     @Update

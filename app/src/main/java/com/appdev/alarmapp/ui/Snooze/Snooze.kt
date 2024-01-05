@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -32,10 +33,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.PreivewScreen.TopBar
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.listOfIntervals
 import com.appdev.alarmapp.utils.newAlarmHandler
@@ -43,22 +46,47 @@ import com.appdev.alarmapp.utils.newAlarmHandler
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SnoozeScreen(controller: NavHostController, mainViewModel: MainViewModel) {
-    var switchState by remember { mutableStateOf(if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) true else !mainViewModel.whichAlarm.isOld && mainViewModel.newAlarm.snoozeTime != -1) }
-    var selectedOption by remember { mutableStateOf(if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) mainViewModel.selectedDataAlarm.snoozeTime.toString() else mainViewModel.newAlarm.snoozeTime.toString()) }
+    var switchState by remember { mutableStateOf(if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime != -1) true else if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime == -1) false else if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) true else !mainViewModel.whichAlarm.isOld && mainViewModel.newAlarm.snoozeTime != -1) }
+    var selectedOption by remember { mutableStateOf(if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime != -1) mainViewModel.defaultSettings.value.snoozeTime.toString() else if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) mainViewModel.selectedDataAlarm.snoozeTime.toString() else mainViewModel.newAlarm.snoozeTime.toString()) }
     Scaffold(topBar = {
-        TopBar(width = 0.5f, title = "Snooze", actionText = "", backColor = backColor) {
-            if (mainViewModel.whichAlarm.isOld && switchState) {
-                mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = selectedOption.toInt()))
-            } else if (!mainViewModel.whichAlarm.isOld && switchState) {
-                mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = selectedOption.toInt()))
-            } else if (mainViewModel.whichAlarm.isOld && !switchState) {
-                mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = -1))
+        TopBar(width = 0.85f, title = "Snooze", actionText = "", backColor = backColor) {
+            if (mainViewModel.managingDefault) {
+                if (!switchState) {
+                    mainViewModel.setDefaultSettings(
+                        DefaultSettingsHandler.GetNewObject(defaultSettings = DefaultSettings(
+                            id = mainViewModel.defaultSettings.value.id,
+                            ringtone = mainViewModel.defaultSettings.value.ringtone,
+                            snoozeTime = -1,
+                            listOfMissions = mainViewModel.defaultSettings.value.listOfMissions
+                        )
+                        )
+                    )
+                } else {
+                    mainViewModel.setDefaultSettings(
+                        DefaultSettingsHandler.GetNewObject(defaultSettings = DefaultSettings(
+                            id = mainViewModel.defaultSettings.value.id,
+                            ringtone = mainViewModel.defaultSettings.value.ringtone,
+                            snoozeTime = selectedOption.toInt(),
+                            listOfMissions = mainViewModel.defaultSettings.value.listOfMissions
+                        ))
+                    )
+                }
+                mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                controller.popBackStack()
             } else {
-                mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = -1))
-            }
-            controller.navigate(Routes.Preview.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+                if (mainViewModel.whichAlarm.isOld && switchState) {
+                    mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = selectedOption.toInt()))
+                } else if (!mainViewModel.whichAlarm.isOld && switchState) {
+                    mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = selectedOption.toInt()))
+                } else if (mainViewModel.whichAlarm.isOld && !switchState) {
+                    mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = -1))
+                } else {
+                    mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = -1))
+                }
+                controller.navigate(Routes.Preview.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
             }
         }
     }) { PV ->
@@ -159,7 +187,7 @@ fun SingleChoice(isSelected: Boolean, onCLick: () -> Unit, title: String, enable
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         RadioButton(selected = isSelected, onClick = { onCLick() }, enabled = enabled)
         Text(
-            text = "$title minutes",
+            text = if(title!="Off") "$title minutes" else title,
             color = Color.White,
             fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp)
         )

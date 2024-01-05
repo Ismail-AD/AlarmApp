@@ -8,6 +8,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
 import androidx.core.graphics.toRectF
+import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.google.mlkit.vision.barcode.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -18,6 +19,7 @@ import kotlin.math.max
 
 @ExperimentalGetImage
 class QrCodeAnalyzer(
+    private val mainViewModel: MainViewModel,
     private val targetRect: Rect,
     private val previewView: PreviewView,
     private val onQrCodeDetected: (String) -> Unit,
@@ -33,7 +35,7 @@ class QrCodeAnalyzer(
     private val scanner: BarcodeScanner = BarcodeScanning.getClient(scannerOptions)
 
     override fun analyze(image: ImageProxy) {
-        if (image.image != null) {
+        if (mainViewModel.detectedQrCodeState.startProcess && image.image != null) {
             val frameWidth = image.width
             val frameHeight = image.height
             scaleFactor = max(
@@ -55,6 +57,8 @@ class QrCodeAnalyzer(
                                     scaledBound.offset(-marginX, -marginY)
                                     if (targetRect.toRectF().contains(scaledBound)) {
                                         barcode.rawValue?.let {
+                                            Log.d("CURC","PREP OF BAR CODE RESULT WHICH IS : $it")
+                                            mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = it))
                                             onQrCodeDetected(it)
                                         }
                                     }
@@ -66,9 +70,11 @@ class QrCodeAnalyzer(
                             Log.e("QR Analyzer", exception.message.orEmpty())
                         }
                     }
+                    Log.d("CURC","IMAGE CLOSED")
                     image.close()
                 }
         } else {
+            Log.d("CURC","IMAGE CLOSED")
             image.close()
         }
     }

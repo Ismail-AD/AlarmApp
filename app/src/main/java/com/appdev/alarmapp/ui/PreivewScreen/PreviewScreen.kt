@@ -1,20 +1,9 @@
 package com.appdev.alarmapp.ui.PreivewScreen
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
-import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -30,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -44,7 +32,7 @@ import androidx.compose.material.icons.filled.CameraEnhance
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.VolumeOff
@@ -52,7 +40,6 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,17 +58,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -89,9 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
-import com.andyliu.compose_wheel_picker.VerticalWheelPicker
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
-import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -106,14 +88,11 @@ import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getRepeatText
 import com.appdev.alarmapp.utils.newAlarmHandler
-import com.appdev.alarmapp.utils.weekDays
 import com.appdev.alarmapp.utils.whichMissionHandler
 import com.commandiron.wheel_picker_compose.WheelTimePicker
 import com.commandiron.wheel_picker_compose.core.TimeFormat
 import com.commandiron.wheel_picker_compose.core.WheelPickerDefaults
-import kotlinx.coroutines.launch
 import java.lang.Integer.max
-import java.lang.Math.abs
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -123,7 +102,6 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
-import kotlin.reflect.KFunction1
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -139,33 +117,13 @@ fun PreviewScreen(
 
     val scrollState = rememberScrollState()
     val scrollStateRow = rememberScrollState()
-    val scrollStateCol = rememberScrollState()
     var switchState by remember { mutableStateOf(false) }
     var showRemaining by remember { mutableStateOf(false) }
     var soundVolume by remember { mutableFloatStateOf(0f) }
-    var choiceSliderState by remember { mutableFloatStateOf(0f) }
     var showRepeatSheet by remember {
         mutableStateOf(false)
     }
     val context = LocalContext.current
-    val tokenManagement by remember {
-        mutableStateOf(TokenManagement(context))
-    }
-
-    var showMissionSheet by remember {
-        mutableStateOf(false)
-    }
-    var showSetMissionSheet by remember {
-        mutableStateOf(false)
-    }
-    var showMathSheet by remember {
-        mutableStateOf(false)
-    }
-    var showShakeSheet by remember {
-        mutableStateOf(false)
-    }
-    var coroutine = rememberCoroutineScope()
-
     var days by rememberSaveable {
         mutableStateOf(
             getRepeatText(
@@ -173,18 +131,12 @@ fun PreviewScreen(
             )
         )
     }
-
-
     val alarmScheduler by remember {
         mutableStateOf(AlarmScheduler(context, mainViewModel))
     }
     val selectedOptions =
         rememberSaveable { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.listOfDays else mainViewModel.newAlarm.listOfDays) }
-
-
     var remainingTime by remember { mutableStateOf(0L) }
-
-
 
     LaunchedEffect(key1 = showRemaining) {
         if (showRemaining) {
@@ -195,9 +147,25 @@ fun PreviewScreen(
             ).show()
         }
     }
+    var timeToTrigger by remember {
+        mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.localTime else mainViewModel.newAlarm.localTime)
+    }
 
     Scaffold(topBar = {
-        TopBar(title = "Ring in 2 days", actionText = "Preview") {
+        TopBar(
+            title = "Rings in ${
+                timeInString(
+                    calculateTimeUntil(
+                        calculateAlarmTriggerTime(
+                            AlarmEntity(
+                                localTime = timeToTrigger, listOfDays = selectedOptions.value
+                            )
+                        )
+                    )
+                )
+            }",
+            actionText = "Preview"
+        ) {
             controller.navigate(Routes.MainScreen.route) {
                 popUpTo(controller.graph.startDestinationId)
                 launchSingleTop = true
@@ -232,8 +200,10 @@ fun PreviewScreen(
                 ) { snappedTime ->
                     if (mainViewModel.whichAlarm.isOld) {
                         mainViewModel.updateHandler(EventHandlerAlarm.getTime(time = snappedTime))
+                        timeToTrigger = snappedTime
                     } else {
                         mainViewModel.newAlarmHandler(newAlarmHandler.getTime(time = snappedTime))
+                        timeToTrigger = snappedTime
                     }
                 }
                 SingleOption(
@@ -312,7 +282,14 @@ fun PreviewScreen(
                                                 misData.isSelected
                                             )
                                         )
-                                        mainViewModel.whichMissionHandle(whichMissionHandler.thisMission(missionMemory = true, missionMath = false, missionShake = false, isSteps = false))
+                                        mainViewModel.whichMissionHandle(
+                                            whichMissionHandler.thisMission(
+                                                missionMemory = true,
+                                                missionMath = false,
+                                                missionShake = false,
+                                                isSteps = false
+                                            )
+                                        )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
@@ -346,7 +323,14 @@ fun PreviewScreen(
                                                 misData.isSelected
                                             )
                                         )
-                                        mainViewModel.whichMissionHandle(whichMissionHandler.thisMission(missionMemory = false, missionMath = false, missionShake = true, isSteps = false))
+                                        mainViewModel.whichMissionHandle(
+                                            whichMissionHandler.thisMission(
+                                                missionMemory = false,
+                                                missionMath = false,
+                                                missionShake = true,
+                                                isSteps = false
+                                            )
+                                        )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
@@ -377,7 +361,14 @@ fun PreviewScreen(
                                                 misData.isSelected
                                             )
                                         )
-                                        mainViewModel.whichMissionHandle(whichMissionHandler.thisMission(missionMemory = false, missionMath = true, missionShake = false, isSteps = false))
+                                        mainViewModel.whichMissionHandle(
+                                            whichMissionHandler.thisMission(
+                                                missionMemory = false,
+                                                missionMath = true,
+                                                missionShake = false,
+                                                isSteps = false
+                                            )
+                                        )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
@@ -420,23 +411,14 @@ fun PreviewScreen(
                                         }
 
                                     }
+
                                     "Photo" -> {
                                         mainViewModel.missionData(
                                             MissionDataHandler.MissionId(misData.missionID)
                                         )
                                         mainViewModel.missionData(
-                                            MissionDataHandler.MissionLevel(
-                                                misData.missionLevel
-                                            )
-                                        )
-                                        mainViewModel.missionData(
                                             MissionDataHandler.MissionName(
                                                 misData.missionName
-                                            )
-                                        )
-                                        mainViewModel.missionData(
-                                            MissionDataHandler.RepeatTimes(
-                                                misData.repeatTimes
                                             )
                                         )
                                         mainViewModel.missionData(
@@ -450,6 +432,32 @@ fun PreviewScreen(
                                             )
                                         )
                                         controller.navigate(Routes.CameraRoutineScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+
+                                    }
+
+                                    "QR/Barcode" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.SelectedQrCode(
+                                                misData.codeId
+                                            )
+                                        )
+                                        controller.navigate(Routes.BarCodeDemoScreen.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
                                         }
@@ -548,6 +556,7 @@ fun PreviewScreen(
                 }
 
                 SingleOption(title = "Sound power-up", data = "off") {
+
                 }
             }
 
@@ -591,6 +600,7 @@ fun PreviewScreen(
                             }
                             mainViewModel.updateHandler(EventHandlerAlarm.isActive(true))
                             scheduleTheAlarm(
+                                mainViewModel.basicSettings.value.showInNotification,
                                 mainViewModel.selectedDataAlarm,
                                 alarmScheduler, mainViewModel.whichAlarm.isOld
                             ) { tomorrowTimeMillis, currentTimeMillis ->
@@ -614,8 +624,10 @@ fun PreviewScreen(
 
                             }
                             scheduleTheAlarm(
+                                mainViewModel.basicSettings.value.showInNotification,
                                 mainViewModel.newAlarm,
-                                alarmScheduler, mainViewModel.whichAlarm.isOld,
+                                alarmScheduler,
+                                mainViewModel.whichAlarm.isOld,
                             ) { tomorrowTimeMillis, currentTimeMillis ->
                                 remainingTime = tomorrowTimeMillis - currentTimeMillis
                             }
@@ -627,6 +639,106 @@ fun PreviewScreen(
                             launchSingleTop = true
                         }
                     }, text = "Save", width = 0.85f)
+                }
+            }
+        }
+        if (showRepeatSheet) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Dialog(onDismissRequest = {
+                    selectedOptions.value =
+                        if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.listOfDays else mainViewModel.newAlarm.listOfDays
+                    showRepeatSheet = false
+                }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(elementBack)
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Repeat",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center, fontWeight = FontWeight.W500
+                            )
+                        }
+                        // Replace this with your logic to get the list of days
+                        val daysOfWeek = listOf(
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                            "Sunday"
+                        )
+
+                        daysOfWeek.forEach { day ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 1.dp)
+                            ) {
+                                // Checkbox for each day
+                                Checkbox(
+                                    checked = selectedOptions.value.contains(day),
+                                    onCheckedChange = {
+                                        selectedOptions.value = if (it) {
+                                            selectedOptions.value + day
+                                        } else {
+                                            selectedOptions.value - day
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .padding(end = 8.dp)
+                                        .align(Alignment.CenterVertically)
+                                )
+
+                                // Display day of the week
+                                Text(
+                                    text = day,
+                                    color = Color.White,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .align(Alignment.CenterVertically)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        CustomButton(
+                            onClick = {
+                                if (mainViewModel.whichAlarm.isOld) {
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getDays(
+                                            days = selectedOptions.value
+                                        )
+                                    )
+                                } else {
+                                    mainViewModel.newAlarmHandler(
+                                        newAlarmHandler.getDays(
+                                            days = selectedOptions.value
+                                        )
+                                    )
+                                }
+                                days = getRepeatText(selectedOptions.value)
+                                showRepeatSheet = false
+                            },
+                            text = "Done",
+                            width = 0.98f
+                        )
+                    }
                 }
             }
         }
@@ -664,88 +776,62 @@ fun getMathEqForSliderValue(value: String): String {
     }
 }
 
-fun scheduleTheAlarm(
-    alarmEntity: AlarmEntity,
-    alarmScheduler: AlarmScheduler,
-    isOld: Boolean,
-    updateRemainingTime: (Long, Long) -> Unit
-) {
-
+fun calculateAlarmTriggerTime(alarmEntity: AlarmEntity): Long {
     val selectedTimeMillis = localTimeToMillis(alarmEntity.localTime)
-    Log.d("ALMD", "$selectedTimeMillis SELECTED MILLI SEC")
-    // If the selected time has already passed today, calculate the days until the next occurrence
+
     if (alarmEntity.listOfDays.isNotEmpty()) {
         val calendar = Calendar.getInstance()
+        val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
 
-        // Find the next occurrence of the specified day
         val nextOccurrence = alarmEntity.listOfDays
             .map { getDayOfWeek(it) }
-            .filter { it >= calendar.get(Calendar.DAY_OF_WEEK) }
+            .filter { it >= currentDayOfWeek }
             .minOrNull() ?: alarmEntity.listOfDays
             .map { getDayOfWeek(it) }
             .minOrNull()!!
 
-        // Calculate the difference between the current day and the specified day
-        val daysUntilNextOccurrence = nextOccurrence - calendar.get(Calendar.DAY_OF_WEEK)
-        Log.d(
-            "ALMD",
-            "BEFORE SCHEDULING ${calendar.timeInMillis} and day to trigger is index is $nextOccurrence and days until are $daysUntilNextOccurrence"
-        )
-        Log.d("ALMD", "DAY OF WEEK ${calendar.get(Calendar.DAY_OF_WEEK)} ")
-        Log.d(
-            "ALMD",
-            "DAYS UNTIL SUBTRACT RESULT ${nextOccurrence - calendar.get(Calendar.DAY_OF_WEEK)} "
-        )
-        if (daysUntilNextOccurrence < 0) {
-            // Add 7 days to move to the next week
-            val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrence)
-            calendar.timeInMillis =
-                selectedTimeMillis + TimeUnit.DAYS.toMillis(correctDay.toLong())
+        val daysUntilNextOccurrence = nextOccurrence - currentDayOfWeek
 
-        } else if (selectedTimeMillis <= System.currentTimeMillis() && daysUntilNextOccurrence == 0) {
-            if (alarmEntity.listOfDays.size == 1) {
-                calendar.timeInMillis = selectedTimeMillis + TimeUnit.DAYS.toMillis(7L)
-            } else {
-                val nextOccurrenceAgain = alarmEntity.listOfDays
-                    .map { getDayOfWeek(it) }
-                    .filter { it > calendar.get(Calendar.DAY_OF_WEEK) }
-                    .minOrNull() ?: alarmEntity.listOfDays
-                    .map { getDayOfWeek(it) }
-                    .minOrNull()!!
-                val daysUntilNextOccurrenceAgain =
-                    nextOccurrenceAgain - calendar.get(Calendar.DAY_OF_WEEK)
-                if (daysUntilNextOccurrenceAgain < 0) {
-                    // Add 7 days to move to the next week
-                    val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrenceAgain)
-                    calendar.timeInMillis =
-                        selectedTimeMillis + TimeUnit.DAYS.toMillis(correctDay.toLong())
+        val triggerTimeMillis = when {
+            daysUntilNextOccurrence < 0 -> {
+                selectedTimeMillis + TimeUnit.DAYS.toMillis(
+                    (7 - kotlin.math.abs(
+                        daysUntilNextOccurrence
+                    )).toLong()
+                )
+            }
 
+            selectedTimeMillis <= System.currentTimeMillis() && daysUntilNextOccurrence == 0 -> {
+                if (alarmEntity.listOfDays.size == 1) {
+                    selectedTimeMillis + TimeUnit.DAYS.toMillis(7L)
                 } else {
-                    calendar.timeInMillis =
+                    val nextOccurrenceAgain = alarmEntity.listOfDays
+                        .map { getDayOfWeek(it) }
+                        .filter { it > currentDayOfWeek }
+                        .minOrNull() ?: alarmEntity.listOfDays
+                        .map { getDayOfWeek(it) }
+                        .minOrNull()!!
+
+                    val daysUntilNextOccurrenceAgain = nextOccurrenceAgain - currentDayOfWeek
+
+                    if (daysUntilNextOccurrenceAgain < 0) {
+                        selectedTimeMillis + TimeUnit.DAYS.toMillis(
+                            (7 - kotlin.math.abs(
+                                daysUntilNextOccurrenceAgain
+                            )).toLong()
+                        )
+                    } else {
                         selectedTimeMillis + TimeUnit.DAYS.toMillis(daysUntilNextOccurrenceAgain.toLong())
+                    }
                 }
             }
-        } else {
-            calendar.timeInMillis =
+
+            else -> {
                 selectedTimeMillis + TimeUnit.DAYS.toMillis(daysUntilNextOccurrence.toLong())
+            }
         }
-        Log.d("ALMD", "AFTER SCHEDULING ${calendar.timeInMillis}")
 
-        if (!isOld) {
-            alarmEntity.id = calendar.timeInMillis
-        }
-        alarmEntity.timeInMillis = calendar.timeInMillis
-
-        val instant = Instant.ofEpochMilli(calendar.timeInMillis)
-        val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
-        alarmEntity.localTime = offsetTime.toLocalTime()
-        alarmEntity.reqCode = (0..19992).random()
-
-        alarmScheduler.schedule(alarmEntity)
-
-        // Update the remaining time for UI or other purposes
-        updateRemainingTime(alarmEntity.timeInMillis, System.currentTimeMillis())
-
+        return triggerTimeMillis
     } else {
         if (selectedTimeMillis <= System.currentTimeMillis() && alarmEntity.listOfDays.isEmpty()) {
             val calendar = Calendar.getInstance().apply {
@@ -753,32 +839,37 @@ fun scheduleTheAlarm(
                 add(Calendar.DAY_OF_YEAR, 1)
             }
 
-            if (!isOld) {
-                alarmEntity.id = calendar.timeInMillis
-            }
-            alarmEntity.timeInMillis = calendar.timeInMillis
-
-            val instant = Instant.ofEpochMilli(calendar.timeInMillis)
-            val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
-            alarmEntity.localTime = offsetTime.toLocalTime()
-            alarmEntity.reqCode = (0..19992).random()
-
-            alarmScheduler.schedule(alarmEntity)
-
-            updateRemainingTime(alarmEntity.timeInMillis, System.currentTimeMillis())
+            return calendar.timeInMillis
         } else {
-            // Schedule the alarm for the selected time
-            if (!isOld) {
-                alarmEntity.id = selectedTimeMillis
-            }
-            alarmEntity.reqCode = (0..19992).random()
-            alarmEntity.timeInMillis = selectedTimeMillis
-            alarmScheduler.schedule(alarmEntity)
-
-            updateRemainingTime(selectedTimeMillis, System.currentTimeMillis())
+            return selectedTimeMillis
         }
     }
+}
 
+
+fun scheduleTheAlarm(
+    notify: Boolean,
+    alarmEntity: AlarmEntity,
+    alarmScheduler: AlarmScheduler,
+    isOld: Boolean,
+    updateRemainingTime: (Long, Long) -> Unit
+) {
+    val triggerTimeMillis = calculateAlarmTriggerTime(alarmEntity)
+
+    if (!isOld) {
+        alarmEntity.id = triggerTimeMillis + (0..19992).random()
+    }
+
+    alarmEntity.timeInMillis = triggerTimeMillis
+
+    val instant = Instant.ofEpochMilli(triggerTimeMillis)
+    val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
+    alarmEntity.localTime = offsetTime.toLocalTime()
+    alarmEntity.reqCode = (0..19992).random()
+
+    alarmScheduler.schedule(alarmEntity,notify)
+
+    updateRemainingTime(alarmEntity.timeInMillis, System.currentTimeMillis())
 }
 
 
@@ -846,6 +937,7 @@ fun singleMission(
                         "Shake" -> Icons.Filled.ScreenRotation
                         "Typing" -> Icons.Filled.Keyboard
                         "Photo" -> Icons.Filled.CameraEnhance
+                        "QR/Barcode" -> Icons.Filled.QrCode2
                         else -> {
                             Icons.Filled.AutoAwesomeMosaic
                         }
@@ -930,20 +1022,28 @@ fun SingleOption(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
-    width: Float = 0.63f,
+    width: Float = 0f,
     title: String,
     actionText: String = "",
     backColor: Color = elementBack,
     onClick: () -> Unit,
 ) {
     TopAppBar(title = {
-        Text(
-            text = title,
-            color = Color.White,
-            textAlign = TextAlign.End,
-            modifier = Modifier
-                .fillMaxWidth(width), fontSize = 16.sp
-        )
+        if (width != 0f) {
+            Box(modifier = Modifier.fillMaxWidth(width), contentAlignment = Alignment.Center) {
+                Text(
+                    text = title,
+                    color = Color.White, fontSize = 16.sp
+                )
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = title,
+                    color = Color.White, fontSize = 16.sp
+                )
+            }
+        }
     }, navigationIcon = {
         IconButton(onClick = { onClick() }) {
             Icon(
@@ -954,7 +1054,7 @@ fun TopBar(
             )
         }
     }, actions = {
-        Text(text = actionText, color = Color.White, fontSize = 13.sp)
+        Text(text = actionText, color = Color.White, fontSize = 14.sp)
     }, colors = topAppBarColors(
         containerColor = backColor,
         navigationIconContentColor = Color.White
@@ -1024,5 +1124,36 @@ fun MissionSelection(iconID: ImageVector, title: String, onClick: () -> Unit) {
                 fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
             )
         }
+    }
+}
+
+data class TimeUntil(val days: Long, val hours: Long, val minutes: Long, val seconds: Long)
+
+fun calculateTimeUntil(timestamp: Long): TimeUntil {
+    val currentTime = System.currentTimeMillis()
+    val timeDifference = timestamp - currentTime
+    val days = TimeUnit.MILLISECONDS.toDays(timeDifference)
+    val hours = TimeUnit.MILLISECONDS.toHours(timeDifference) % 24
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(timeDifference) % 60
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(timeDifference) % 60
+    return TimeUntil(days, hours, minutes, seconds)
+}
+
+fun pluralize(value: Long, unit: String): String {
+    return if (value > 1) "$value ${unit}s" else "$value $unit"
+}
+
+fun timeInString(timeToTrigger: TimeUntil): String {
+    return when {
+        timeToTrigger.days > 0 ->
+            "${pluralize(timeToTrigger.days, "day")} ${pluralize(timeToTrigger.hours, "hr")}"
+
+        timeToTrigger.hours > 0 ->
+            "${pluralize(timeToTrigger.hours, "hr")} ${pluralize(timeToTrigger.minutes, "min")}"
+
+        timeToTrigger.minutes > 0 ->
+            "${pluralize(timeToTrigger.minutes, "min")} ${pluralize(timeToTrigger.seconds, "sec")}"
+
+        else -> pluralize(timeToTrigger.seconds, "sec")
     }
 }

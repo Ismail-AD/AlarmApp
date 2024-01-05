@@ -2,11 +2,15 @@ package com.appdev.alarmapp.Hilt
 
 import android.content.Context
 import androidx.room.Room
-import com.appdev.alarmapp.utils.AlarmDao
-import com.appdev.alarmapp.utils.ImageStoreDao
+import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
+import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
+import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
+import com.appdev.alarmapp.utils.DaoClasses.DismissDao
+import com.appdev.alarmapp.utils.DaoClasses.ImageStoreDao
 import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.DatabaseName
-import com.appdev.alarmapp.utils.PhraseDao
-import com.appdev.alarmapp.utils.RecordingsDao
+import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
+import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
+import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
 import com.appdev.alarmapp.utils.RoomDB
 import dagger.Module
 import dagger.Provides
@@ -57,5 +61,26 @@ object RoomModule {
         return roomDatabase.imageDao()
     }
 
+    @Singleton
+    @Provides
+    fun provideDatabaseTheQrCodeClass(roomDatabase: RoomDB): QrCodeDao {
+        return roomDatabase.qrCodeDao()
+    }
+    @Singleton
+    @Provides
+    fun provideDatabaseTheSettingsDefaultClass(roomDatabase: RoomDB): DefaultSettingsDao {
+        return roomDatabase.dSettingsDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideDatabaseTheSettingsBasicClass(roomDatabase: RoomDB): AlarmBasicSettingDao {
+        return roomDatabase.basicSettingsDao()
+    }
+    @Singleton
+    @Provides
+    fun provideDatabaseTheSettingsDismissClass(roomDatabase: RoomDB): DismissDao {
+        return roomDatabase.dismissSettingsDao()
+    }
 
 }

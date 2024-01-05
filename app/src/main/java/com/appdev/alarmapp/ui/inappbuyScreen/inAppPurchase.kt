@@ -2,6 +2,7 @@ package com.appdev.alarmapp.ui.inappbuyScreen
 
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -75,6 +76,9 @@ fun InAppPurchase(
         mutableStateOf(paymentState.value is PaymentUiState.Available)
     }
 
+    BackHandler {
+        controller.popBackStack()
+    }
     LaunchedEffect(key1 = paymentState.value) {
         if (paymentState.value is PaymentUiState.Available) {
             showBtn = true
@@ -98,11 +102,7 @@ fun InAppPurchase(
                     .padding(top = 20.dp)
             ) {
                 IconButton(onClick = {
-                    controller.navigate(Routes.MainScreen.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
-
-                    }
+                    controller.popBackStack()
                 }) {
                     Icon(
                         imageVector = Icons.Filled.ArrowBackIos,

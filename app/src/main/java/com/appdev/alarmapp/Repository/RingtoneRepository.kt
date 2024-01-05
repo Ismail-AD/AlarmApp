@@ -1,13 +1,18 @@
 package com.appdev.alarmapp.Repository
 
-import android.content.Context
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import com.appdev.alarmapp.ModelClass.AlarmSetting
+import com.appdev.alarmapp.ModelClass.DefaultSettings
+import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.utils.CustomPhrase
+import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
+import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
+import com.appdev.alarmapp.utils.DaoClasses.DismissDao
 import com.appdev.alarmapp.utils.ImageData
-import com.appdev.alarmapp.utils.ImageStoreDao
-import com.appdev.alarmapp.utils.PhraseDao
-import com.appdev.alarmapp.utils.RecordingsDao
+import com.appdev.alarmapp.utils.DaoClasses.ImageStoreDao
+import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
+import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
+import com.appdev.alarmapp.utils.QrCodeData
+import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.RingtoneEntity
 import com.appdev.alarmapp.utils.SystemRingtone
@@ -21,7 +26,13 @@ import javax.inject.Inject
 
 
 class RingtoneRepository @Inject constructor(
-    private val recordingsDao: RecordingsDao,private val phraseDao: PhraseDao,private val imageStoreDao: ImageStoreDao
+    private val recordingsDao: RecordingsDao,
+    private val phraseDao: PhraseDao,
+    private val imageStoreDao: ImageStoreDao,
+    private val qrCodeDao: QrCodeDao,
+    private val defaultSettingsDao: DefaultSettingsDao,
+    private val alarmBasicSettingDao: AlarmBasicSettingDao,
+    private val dismissDao: DismissDao,
 ) {
     val roomRecordings: Flow<List<Ringtone>> = recordingsDao.getAllRecordings()
         .map { list ->
@@ -39,6 +50,49 @@ class RingtoneRepository @Inject constructor(
 
     val listOfCustomPhrases: Flow<List<CustomPhrase>> = phraseDao.getAllPhrases()
     val listOfClickedImages: Flow<List<ImageData>> = imageStoreDao.getAllImages()
+    val listOfQrCodes: Flow<List<QrCodeData>> = qrCodeDao.getAllQrCodes()
+    val getDefaultSettings: Flow<DefaultSettings> = defaultSettingsDao.getDefaultSettings()
+    val getBasicSettings: Flow<AlarmSetting> = alarmBasicSettingDao.getAlarmSettings()
+    val getDismissSettings: Flow<DismissSettings> = dismissDao.getDismissSettings()
+
+    suspend fun updateDismissSettings(dismissSettings: DismissSettings) {
+        dismissDao.updateDismissSettings(dismissSettings)
+    }
+    suspend fun insertDismissSettings(dismissSettings: DismissSettings) {
+        dismissDao.insertDismissSettings(dismissSettings)
+    }
+    suspend fun updateBasicSettings(alarmSettingEntity: AlarmSetting) {
+        alarmBasicSettingDao.updateAlarmSettings(alarmSettingEntity)
+    }
+    suspend fun insertBasicSettings(alarmSettingEntity: AlarmSetting) {
+        alarmBasicSettingDao.insertAlarmSettings(alarmSettingEntity)
+    }
+    suspend fun updateDefaultSettings(defaultSettings: DefaultSettings) {
+        defaultSettingsDao.updateDefaultSettings(defaultSettings)
+    }
+    suspend fun insertDefaultSettings(defaultSettings: DefaultSettings) {
+        defaultSettingsDao.insertDefaultSettings(defaultSettings)
+    }
+
+    suspend fun updateQrCode(qrCodeData: QrCodeData) {
+        qrCodeDao.updateQrCode(qrCodeData)
+    }
+
+    suspend fun insertQrCode(qrCodeData: QrCodeData) {
+        qrCodeDao.insertQrCode(qrCodeData)
+    }
+
+    suspend fun deleteQrCode(codeId: Long) {
+        qrCodeDao.deleteCodeById(codeId)
+    }
+
+    suspend fun deleteAllRingtones() {
+        recordingsDao.deleteAllRingtone()
+    }
+
+    suspend fun getQrCode(qrCodeId: Long): QrCodeData? {
+        return qrCodeDao.getCodeById(qrCodeId)
+    }
 
 
     suspend fun insertImage(listOfImages: List<ImageData>) {
@@ -52,9 +106,11 @@ class RingtoneRepository @Inject constructor(
     suspend fun deleteImage(imageId: Long) {
         imageStoreDao.deleteImageById(imageId)
     }
+
     suspend fun updatePhrase(customPhrase: CustomPhrase) {
         phraseDao.updatePhrase(customPhrase)
     }
+
     suspend fun insertPhrase(customPhrase: CustomPhrase) {
         phraseDao.insertPhrase(customPhrase)
     }

@@ -80,12 +80,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.theme.elementBack
 import com.appdev.alarmapp.utils.AudioRecorder
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.Ringtone
@@ -117,9 +119,7 @@ fun RingtoneSelection(
 ) {
 
     val context = LocalContext.current
-    var selectedTabIndex by remember {
-        mutableIntStateOf(0) // or use mutableStateOf(0)
-    }
+
     val pagerState = rememberPagerState {
         tabs.size
     }
@@ -129,6 +129,7 @@ fun RingtoneSelection(
     var showRationale by remember(notifyPermissionState) {
         mutableStateOf(false)
     }
+    val stateObject = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
     var showSheetState by remember {
         mutableStateOf(false)
     }
@@ -156,25 +157,39 @@ fun RingtoneSelection(
     }
 
     var loading by remember { mutableStateOf(false) }
-    var selectedRingtone by remember { mutableStateOf( if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.ringtone else mainViewModel.newAlarm.ringtone) }
+    var selectedRingtone by remember { mutableStateOf(if (mainViewModel.managingDefault)  stateObject.value.ringtone else if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.ringtone else mainViewModel.newAlarm.ringtone) }
 
     val recordingsList by mainViewModel.recordingsList.collectAsStateWithLifecycle(initialValue = emptyList())
     val ringtoneDeviceList by mainViewModel.ringtoneSystemList.collectAsStateWithLifecycle(
         initialValue = emptyList()
     )
+    var selectedTabIndex by remember {
+        mutableIntStateOf(0) // or use mutableStateOf(0)
+    }
 
     LaunchedEffect(selectedTabIndex) {
         pagerState.animateScrollToPage(selectedTabIndex)
     }
 
     LaunchedEffect(ringtoneDeviceList) {
-//        loading = ringtoneDeviceList.isEmpty()
-        if (!loading) {
+        loading = ringtoneDeviceList.isEmpty()
+        if (mainViewModel.managingDefault) {
+            selectedRingtone = mainViewModel.defaultSettings.value.ringtone
             selectedTabIndex = when (selectedRingtone) {
                 in recordingsList -> 2
                 in ringtoneDeviceList -> 1
                 in ringtoneList -> 0
-                else -> 0 // Default to the first tab if not found in any list.
+                else -> 0
+            }
+            Log.d("PGR","$selectedTabIndex and ${mainViewModel.defaultSettings.value.ringtone}")
+        } else {
+            if (!loading) {
+                selectedTabIndex = when (selectedRingtone) {
+                    in recordingsList -> 2
+                    in ringtoneDeviceList -> 1
+                    in ringtoneList -> 0
+                    else -> 0 // Default to the first tab if not found in any list.
+                }
             }
         }
     }
@@ -200,10 +215,24 @@ fun RingtoneSelection(
     DisposableEffect(selectedRingtone) {
         // Start playing the audio when the composable is first created
         selectedRingtone.let {
-            if (mainViewModel.whichAlarm.isOld) {
-                mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = it))
+            if (mainViewModel.managingDefault) {
+                mainViewModel.setDefaultSettings(
+                    DefaultSettingsHandler.GetNewObject(
+                        defaultSettings = DefaultSettings(
+                            id = mainViewModel.defaultSettings.value.id,
+                            ringtone = it,
+                            snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
+                            listOfMissions = mainViewModel.defaultSettings.value.listOfMissions
+                        )
+                    )
+                )
+                mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
             } else {
-                mainViewModel.newAlarmHandler(newAlarmHandler.ringtone(ringtone = it))
+                if (mainViewModel.whichAlarm.isOld) {
+                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = it))
+                } else {
+                    mainViewModel.newAlarmHandler(newAlarmHandler.ringtone(ringtone = it))
+                }
             }
             if (it.rawResourceId != -1) {
                 Helper.playStream(context, it.rawResourceId)
@@ -231,9 +260,13 @@ fun RingtoneSelection(
 
     Scaffold(topBar = {
         TopBarRT() {
-            controller.navigate(Routes.Preview.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if (mainViewModel.managingDefault) {
+                controller.popBackStack()
+            } else {
+                controller.navigate(Routes.Preview.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
             }
         }
     }) { pd ->
@@ -759,10 +792,6 @@ fun RingtoneSelection(
 
     }
 
-}
-
-fun findRingtoneByName(name: String, allRingtones: List<Ringtone>): Ringtone? {
-    return allRingtones.find { it.name == name }
 }
 
 private fun startRecording(

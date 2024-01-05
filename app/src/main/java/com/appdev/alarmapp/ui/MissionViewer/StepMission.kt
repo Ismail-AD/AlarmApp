@@ -136,6 +136,7 @@ fun StepMission(
                             missionName = singleMission.missionName,
                             isSelected = singleMission.isSelected,
                             setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
+                        , codeId = singleMission.codeId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -169,6 +170,14 @@ fun StepMission(
                         "Photo" -> {
                             controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "QR/Barcode" -> {
+                            controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                popUpTo(Routes.PreviewAlarm.route) {
+                                    inclusive = true
+                                }
                                 launchSingleTop = true
                             }
                         }

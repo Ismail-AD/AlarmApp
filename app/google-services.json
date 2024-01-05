@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "896978582983",
+    "project_id": "alarmapp-b1338",
+    "storage_bucket": "alarmapp-b1338.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:896978582983:android:e6949a5793675a2320ede2",
+        "android_client_info": {
+          "package_name": "com.appdev.alarmapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABa5pTOIJtYOMWZrWL7gt3KxrpLymnLJU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

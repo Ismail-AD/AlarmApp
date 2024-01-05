@@ -50,14 +50,7 @@ class MainActivity : ComponentActivity() {
         if(Helper.isPlaying()){
             Helper.stopStream()
         }
-        if (tokenManagement.getToken().isNullOrEmpty()) {
-            val context = this
-            val ringViewModel by viewModels<MainViewModel>()
-            lifecycleScope.launch(Dispatchers.IO) {
-                val rings = getSystemRingtones(context)
-                ringViewModel.insertSystemList(rings)
-            }
-        }
+
         setContent {
             AlarmAppTheme {
                 val controller = rememberNavController()
@@ -110,35 +103,13 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        tokenManagement.removeDays()
         super.onDestroy()
     }
 
 }
 
 
-fun getRingtoneTitle(context: Context, ringtoneUri: Uri): String {
-    val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
-    return ringtone.getTitle(context) ?: "Unknown Ringtone"
-}
 
-fun getSystemRingtones(context: Context): List<Ringtone> {
-    val ringtoneManager = RingtoneManager(context)
-    ringtoneManager.setType(RingtoneManager.TYPE_RINGTONE)
-
-    val cursor = ringtoneManager.cursor
-    val mergedRingtoneList = mutableListOf<Ringtone>()
-
-    while (cursor.moveToNext()) {
-        val ringtoneUri = ringtoneManager.getRingtoneUri(cursor.position)
-        val ringtoneName = getRingtoneTitle(context, ringtoneUri)
-        val mergedRingtone = Ringtone(ringtoneName, uri = ringtoneUri)
-        mergedRingtoneList.add(mergedRingtone)
-    }
-
-    cursor.close()
-    return mergedRingtoneList
-}
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {

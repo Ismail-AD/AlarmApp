@@ -57,12 +57,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.ImageData
 import com.appdev.alarmapp.utils.MissionDataHandler
@@ -70,10 +72,15 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
+
+    if (Helper.isPlaying()) {
+        Helper.stopStream()
+    }
 
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
@@ -92,11 +99,17 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
         initialValue = emptyList()
     )
     var loading by remember { mutableStateOf(false) }
-    var selectedImageIndex by remember { mutableLongStateOf(if (mainViewModel.selectedImage.id > 1) mainViewModel.selectedImage.id  else if (mainViewModel.missionDetails.imageId > 1) mainViewModel.missionDetails.imageId else -1) }
+    var selectedImageIndex by remember { mutableLongStateOf(if (mainViewModel.selectedImage.id > 1) mainViewModel.selectedImage.id else if (mainViewModel.missionDetails.imageId > 1) mainViewModel.missionDetails.imageId else -1) }
     LaunchedEffect(permissionState.status) {
         if (permissionState.status.isGranted) {
             guideOrNot = permissionState.status.isGranted
-//            loading = imagesList.isEmpty()
+        }
+    }
+    LaunchedEffect(key1 = imagesList) {
+        loading = imagesList.isEmpty()
+        delay(700)
+        if (imagesList.isEmpty()) {
+            loading = false
         }
     }
     LaunchedEffect(showToast) {
@@ -138,22 +151,53 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                 Spacer(modifier = Modifier.width(14.dp))
                 CustomButton(
                     onClick = {
-                        if (selectedImageIndex > 1) {
-                            mainViewModel.missionData(
-                                MissionDataHandler.IsSelectedMission(
-                                    isSelected = true
+                        if (mainViewModel.managingDefault) {
+                            if (selectedImageIndex > 1) {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.IsSelectedMission(
+                                        isSelected = true
+                                    )
                                 )
-                            )
-                            mainViewModel.missionData(
-                                MissionDataHandler.ImageId(mainViewModel.selectedImage.id)
-                            )
-                            mainViewModel.missionData(MissionDataHandler.SubmitData)
-                            controller.navigate(Routes.MissionMenuScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
+                                mainViewModel.missionData(
+                                    MissionDataHandler.ImageId(mainViewModel.selectedImage.id)
+                                )
+                                mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                mainViewModel.setDefaultSettings(
+                                    DefaultSettingsHandler.GetNewObject(
+                                        defaultSettings = DefaultSettings(
+                                            id = mainViewModel.defaultSettings.value.id,
+                                            ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                            snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
+                                            listOfMissions = mainViewModel.missionDetailsList
+                                        )
+                                    )
+                                )
+                                mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                                controller.navigate(Routes.MissionMenuScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                showToast = true
                             }
                         } else {
-                            showToast = true
+                            if (selectedImageIndex > 1) {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.IsSelectedMission(
+                                        isSelected = true
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.ImageId(mainViewModel.selectedImage.id)
+                                )
+                                mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                controller.navigate(Routes.MissionMenuScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                showToast = true
+                            }
                         }
 
                     },

@@ -8,14 +8,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.Embedded
+import androidx.room.PrimaryKey
+import com.appdev.alarmapp.ModelClass.AlarmSetting
+import com.appdev.alarmapp.ModelClass.DefaultSettings
+import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.Repository.AlarmRepository
 import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.utils.CustomPhrase
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.ImageData
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Missions
+import com.appdev.alarmapp.utils.QrCodeData
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.Updating
 import com.appdev.alarmapp.utils.convertSetToString
@@ -32,9 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -48,8 +52,35 @@ class MainViewModel @Inject constructor(
     val alarmRepository: AlarmRepository
 ) : ViewModel() {
 
+    private var _defaultSettings = MutableStateFlow(DefaultSettings())
+    val defaultSettings: StateFlow<DefaultSettings> get() = _defaultSettings
+
+
+    private var _basicSettings = MutableStateFlow(AlarmSetting())
+    val basicSettings: StateFlow<AlarmSetting> get() = _basicSettings
+
+    private var _dismissSettings = MutableStateFlow(DismissSettings())
+    val dismissSettings: StateFlow<DismissSettings> get() = _dismissSettings
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            ringtoneRepository.getDefaultSettings.collect {
+                _defaultSettings.value = it
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            ringtoneRepository.getBasicSettings.collect {
+                _basicSettings.value = it
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            ringtoneRepository.getDismissSettings.collect {
+                _dismissSettings.value = it
+            }
+        }
+    }
+
     var selectedDataAlarm by mutableStateOf(AlarmEntity())
-    var newAlarm by mutableStateOf(AlarmEntity())
     var whichAlarm by mutableStateOf(newOneOrNot())
     var UpdatingState by mutableStateOf(UpdateIt())
     var missionDetailsList by mutableStateOf(listOf<Missions>())
@@ -58,13 +89,59 @@ class MainViewModel @Inject constructor(
     var isRealAlarm by mutableStateOf(false)
     var whichMission by mutableStateOf(MissionState())
     var selectedImage by mutableStateOf(ImageData())
+    var selectedCode by mutableStateOf(QrCodeData(qrCodeString = ""))
     var flashLight by mutableStateOf(false)
-    var barCodeSheetState by mutableStateOf(false)
+    var tabValue by mutableStateOf(0)
+
+    fun tabChange(value: Int) {
+        tabValue = value
+    }
+
+    var managingDefault by mutableStateOf(false)
 
     var sentencesList by mutableStateOf(setOf<CustomPhrase>())
 
-    private val _uiState: MutableStateFlow<QrScanUIState> = MutableStateFlow(QrScanUIState())
+    val _uiState: MutableStateFlow<QrScanUIState> = MutableStateFlow(QrScanUIState())
     val uiState: StateFlow<QrScanUIState> = _uiState
+    var detectedQrCodeState by mutableStateOf(ProcessingState())
+    var newAlarm by mutableStateOf(getAlarmEntityWithDefaultSettings())
+
+    fun getAlarmEntityWithDefaultSettings(): AlarmEntity {
+        val alarmEntity = AlarmEntity()
+        alarmEntity.initializeWithDefaultSettings(defaultSettings.value)
+        return alarmEntity
+    }
+
+    fun basicSettingsInsertion(alarmSettingEntity: AlarmSetting) {
+        viewModelScope.launch {
+            ringtoneRepository.insertBasicSettings(alarmSettingEntity)
+        }
+    }
+
+    fun updateDismissSettings(dismissSettingsObj: DismissSettings) {
+        _dismissSettings.value = dismissSettingsObj
+        viewModelScope.launch {
+            ringtoneRepository.updateDismissSettings(dismissSettings.value)
+        }
+    }
+
+
+    fun updateBasicSettings(alarmSettingEntity: AlarmSetting) {
+        _basicSettings.value = alarmSettingEntity
+        viewModelScope.launch {
+            ringtoneRepository.updateBasicSettings(basicSettings.value)
+        }
+    }
+
+    fun dismissSettingsInsertion(dismissSettingsObj: DismissSettings) {
+        viewModelScope.launch {
+            ringtoneRepository.insertDismissSettings(dismissSettingsObj)
+        }
+    }
+
+    fun updateDetectedString(processingState: ProcessingState) {
+        detectedQrCodeState = processingState
+    }
 
     fun onQrCodeDetected(result: String) {
         _uiState.update { it.copy(detectedQR = result) }
@@ -74,12 +151,13 @@ class MainViewModel @Inject constructor(
         _uiState.update { it.copy(targetRect = rect) }
     }
 
-    fun updateBarCodeSheetState(value: Boolean) {
-        barCodeSheetState = value
-    }
 
     fun updateFlash(value: Boolean) {
         flashLight = value
+    }
+
+    fun updateSelectedCode(qrCodeData: QrCodeData) {
+        selectedCode = qrCodeData
     }
 
     val alarmList: Flow<List<AlarmEntity>> = alarmRepository.roomDataFlow
@@ -96,6 +174,48 @@ class MainViewModel @Inject constructor(
 
     val imagesList: Flow<List<ImageData>> =
         ringtoneRepository.listOfClickedImages.flowOn(Dispatchers.IO)
+
+    val codesList: Flow<List<QrCodeData>> =
+        ringtoneRepository.listOfQrCodes.flowOn(Dispatchers.IO)
+
+
+    fun insertDefaultSettings(defaultSettings: DefaultSettings) {
+        viewModelScope.launch {
+            ringtoneRepository.insertDefaultSettings(defaultSettings)
+        }
+    }
+
+    fun deleteAllRingtones() {
+        viewModelScope.launch {
+            ringtoneRepository.deleteAllRingtones()
+        }
+    }
+
+    fun insertCode(qrCodeData: QrCodeData) {
+        viewModelScope.launch {
+            ringtoneRepository.insertQrCode(qrCodeData)
+        }
+    }
+
+    fun getCodeById(codeId: Long) {
+        viewModelScope.launch {
+            ringtoneRepository.getQrCode(codeId)?.let {
+                selectedCode = it
+            }
+        }
+    }
+
+    fun updateQrCode(qrCodeData: QrCodeData) {
+        viewModelScope.launch {
+            ringtoneRepository.updateQrCode(qrCodeData)
+        }
+    }
+
+    fun deleteQrCode(id: Long) {
+        viewModelScope.launch {
+            ringtoneRepository.deleteQrCode(id)
+        }
+    }
 
     fun insertImage(imageData: List<ImageData>) {
         viewModelScope.launch {
@@ -308,7 +428,7 @@ class MainViewModel @Inject constructor(
                     repeatProgress = 1,
                     missionLevel = "Very Easy",
                     missionName = "",
-                    isSelected = false, selectedSentences = ""
+                    isSelected = false, selectedSentences = "", codeId = 0, imageId = 0
                 )
                 sentencesList = emptySet()
             }
@@ -329,7 +449,7 @@ class MainViewModel @Inject constructor(
                 repeatProgress = missionDataHandler.repeatProgress,
                 isSelected = missionDataHandler.isSelected,
                 selectedSentences = convertSetToString(missionDataHandler.setOfSentences),
-                imageId = missionDataHandler.imageId
+                imageId = missionDataHandler.imageId, codeId = missionDataHandler.codeId
             )
 
             MissionDataHandler.ResetData -> missionDetails = missionDetails.copy(
@@ -338,7 +458,7 @@ class MainViewModel @Inject constructor(
                 repeatProgress = 1,
                 missionLevel = "Very Easy",
                 missionName = "", selectedSentences = "",
-                isSelected = false, imageId = 0
+                isSelected = false, imageId = 0, codeId = 0
             )
 
             is MissionDataHandler.SelectedSentences -> {
@@ -348,8 +468,29 @@ class MainViewModel @Inject constructor(
 
             is MissionDataHandler.ImageId -> missionDetails =
                 missionDetails.copy(imageId = missionDataHandler.imageId)
+
+            is MissionDataHandler.SelectedQrCode -> missionDetails =
+                missionDetails.copy(codeId = missionDataHandler.selectedCodeId)
         }
     }
+
+    fun setDefaultSettings(defaultSettingsHandler: DefaultSettingsHandler) {
+        when (defaultSettingsHandler) {
+
+            DefaultSettingsHandler.UpdateDefault -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    ringtoneRepository.updateDefaultSettings(defaultSettings.value)
+                }
+            }
+
+            is DefaultSettingsHandler.GoingToSetDefault -> managingDefault =
+                defaultSettingsHandler.isDefault
+
+            is DefaultSettingsHandler.GetNewObject -> _defaultSettings.value =
+                defaultSettingsHandler.defaultSettings
+        }
+    }
+
 
     fun isOld(isOldOr: isOldOrNew) {
         when (isOldOr) {
@@ -393,13 +534,9 @@ class MainViewModel @Inject constructor(
         val isSteps: Boolean = false
     )
 
-    data class MissionData(
-        val missionID: Int = -1,
-        val repeatTimes: Int = 1,
-        val missionLevel: Float = 0f,
-        val missionName: String = "",
-        val repeatProgress: Int = 1,
-        val isSelected: Boolean = false
+    data class ProcessingState(
+        val qrCode: String = "",
+        val startProcess: Boolean = true
     )
 
     data class QrScanUIState(
@@ -408,4 +545,5 @@ class MainViewModel @Inject constructor(
         val targetRect: Rect = Rect.Zero,
         val lensFacing: Int = CameraSelector.LENS_FACING_BACK,
     )
+
 }

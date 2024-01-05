@@ -2,7 +2,6 @@ package com.appdev.alarmapp.ui.AlarmCancel
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -40,8 +40,8 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
-import com.appdev.alarmapp.utils.convertSetToString
 import com.appdev.alarmapp.utils.convertStringToSet
+import kotlinx.coroutines.delay
 import java.io.File
 import java.time.Instant
 import java.time.OffsetTime
@@ -65,6 +65,11 @@ fun AlarmCancelScreen(
     var showSnoozed by remember {
         mutableStateOf(false)
     }
+
+    val dismissSettingsReceived: DismissSettings? by remember {
+        mutableStateOf(intent.getParcelableExtra("dismissSet"))
+    }
+
     LaunchedEffect(key1 = showSnoozed) {
         if (showSnoozed) {
             intent.getStringExtra("snooze")?.let { st ->
@@ -73,8 +78,17 @@ fun AlarmCancelScreen(
             }
         }
     }
+    LaunchedEffect(key1 = Unit){
+        dismissSettingsReceived?.let { dset->
+            if (dset.dismissTime > 0 && mainViewModel.isRealAlarm) {
+                delay(dset.dismissTime * 60 * 1000L) // Convert minutes to milliseconds
+                Helper.stopStream()
+                alarmEndHandle()
+            }
+        }
+    }
 
-    if (mainViewModel.isRealAlarm) {
+    if (mainViewModel.isRealAlarm && !Helper.isPlaying()) {
         when (intent.getIntExtra("tonetype", 0)) {
             0 -> {
                 val rawResourceId = intent.getStringExtra("ringtone")
@@ -127,6 +141,7 @@ fun AlarmCancelScreen(
                     val snoozeTime = intent.getStringExtra("snooze")
                     val timeInM = intent.getStringExtra("tInM")
                     val id = intent.getStringExtra("id")
+                    val notifyIt = intent.getBooleanExtra("notify",false)
 
                     timeInM?.let { timeInMili ->
                         id?.let { ID ->
@@ -138,7 +153,7 @@ fun AlarmCancelScreen(
                                         snoozeTime = snooze.toInt(),
                                         ringtone = ringtone,
                                         reqCode = (0..19992).random()
-                                    ), alarmScheduler
+                                    ), alarmScheduler,notifyIt
                                 )
                                 showSnoozed = true
                                 Helper.stopStream()
@@ -169,7 +184,7 @@ fun AlarmCancelScreen(
                                         missionName = singleMission.missionName,
                                         isSelected = singleMission.isSelected,
                                         setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId =
-                                            singleMission.imageId
+                                            singleMission.imageId, codeId = singleMission.codeId
                                     )
                                 )
                             }
@@ -226,6 +241,14 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+                            "QR/Barcode" -> {
+                                controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
                             else -> {
                                 Helper.stopStream()
                                 alarmEndHandle()
@@ -263,7 +286,11 @@ fun AlarmCancelScreen(
     }
 }
 
-fun snoozeAlarm(alarmEntity: AlarmEntity, alarmScheduler: AlarmScheduler) {
+fun snoozeAlarm(
+    alarmEntity: AlarmEntity,
+    alarmScheduler: AlarmScheduler,
+    showInNotification: Boolean
+) {
     val snoozeMinutes =
         alarmEntity.snoozeTime // Set the snooze duration in minutes (adjust as needed)
     val currentTimeMillis = System.currentTimeMillis()
@@ -281,5 +308,5 @@ fun snoozeAlarm(alarmEntity: AlarmEntity, alarmScheduler: AlarmScheduler) {
 //    Log.d("RINGC","LOCAL TIME AFTER SNOOZE ADD ${offsetTime.toLocalTime()}")
 
     // Reschedule the alarm with the updated time
-    alarmScheduler.schedule(alarmEntity)
+    alarmScheduler.schedule(alarmEntity,showInNotification)
 }

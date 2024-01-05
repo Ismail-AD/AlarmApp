@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.ui.MissionViewer
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -58,12 +60,18 @@ import kotlin.math.min
 
 @Composable
 fun MissionHandlerScreen(
-    cubeHeightWidth: Dp, colPadding: Dp, rowHeight: Dp,
-    controller: NavHostController, totalSize: Int,
-    missionViewModel: MissionViewModel = hiltViewModel(), mainViewModel: MainViewModel,alarmEndHandle:()->Unit={}
+    cubeHeightWidth: Dp,
+    colPadding: Dp,
+    rowHeight: Dp,
+    controller: NavHostController,
+    totalSize: Int,
+    missionViewModel: MissionViewModel = hiltViewModel(),
+    mainViewModel: MainViewModel,
+    alarmEndHandle: () -> Unit = {}
 ) {
-    if (Helper.isPlaying()) {
-        Helper.pauseStream()
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+    if (dismissSettings.muteTone) {
+        Helper.stopStream()
     }
     val context = LocalContext.current
     var progress by remember { mutableFloatStateOf(1f) }
@@ -75,10 +83,13 @@ fun MissionHandlerScreen(
                 missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
                 missionViewModel.missionHandler.preservedIndexes
             } else {
-                missionViewModel.missionHandler.correctChoiceList
+                missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
+                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
+                missionViewModel.missionHandler.preservedIndexes
             }
         )
     }
+
 
     val animatedProgress = animateFloatAsState(
         targetValue = progress,
@@ -89,7 +100,7 @@ fun MissionHandlerScreen(
 
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = 7500L // 3 seconds
+        val duration = dismissSettings.missionTime * 1000
         while (elapsedTime < duration && progress > 0.00100f) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
@@ -152,7 +163,10 @@ fun MissionHandlerScreen(
                             repeatProgress = singleMission.repeatProgress,
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
+                            isSelected = singleMission.isSelected,
+                            setOfSentences = convertStringToSet(singleMission.selectedSentences),
+                            imageId = singleMission.imageId,
+                            codeId = singleMission.codeId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -176,15 +190,26 @@ fun MissionHandlerScreen(
                                 launchSingleTop = true
                             }
                         }
+
                         "Typing" -> {
                             controller.navigate(Routes.TypingPreviewScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "Photo" -> {
                             controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+
+                        "QR/Barcode" -> {
+                            controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                popUpTo(Routes.PreviewAlarm.route) {
+                                    inclusive = true
+                                }
                                 launchSingleTop = true
                             }
                         }
@@ -241,9 +266,6 @@ fun MissionHandlerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    if(!mainViewModel.isRealAlarm){
-                        Helper.playStream(context, R.raw.alarmsound)
-                    }
                     controller.navigate(Routes.PreviewAlarm.route) {
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true

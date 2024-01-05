@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -55,8 +56,9 @@ fun ShakeDetectionScreen(
     controller: NavHostController,
     alarmEndHandle: () -> Unit = {}
 ) {
-    if(Helper.isPlaying()){
-        Helper.pauseStream()
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+    if (dismissSettings.muteTone) {
+        Helper.stopStream()
     }
     var progress by remember { mutableFloatStateOf(1f) }
 
@@ -80,7 +82,7 @@ fun ShakeDetectionScreen(
 
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = 7500L // 3 seconds
+        val duration = dismissSettings.missionTime * 1000
         while (elapsedTime < duration && progress > 0.00100f) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
@@ -135,6 +137,7 @@ fun ShakeDetectionScreen(
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
                             isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
+                        , codeId = singleMission.codeId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -167,6 +170,14 @@ fun ShakeDetectionScreen(
                         "Photo" -> {
                             controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "QR/Barcode" -> {
+                            controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                popUpTo(Routes.PreviewAlarm.route) {
+                                    inclusive = true
+                                }
                                 launchSingleTop = true
                             }
                         }
@@ -216,9 +227,6 @@ fun ShakeDetectionScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    if(!mainViewModel.isRealAlarm){
-                        Helper.playStream(context, R.raw.alarmsound)
-                    }
                     controller.navigate(Routes.PreviewAlarm.route) {
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true

@@ -1,5 +1,8 @@
 package com.appdev.alarmapp.ui.MainUI
 
+import android.content.Context
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.EnterTransition
@@ -16,13 +19,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -31,6 +37,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.Hilt.TokenManagement
+import com.appdev.alarmapp.ModelClass.AlarmSetting
+import com.appdev.alarmapp.ModelClass.DefaultSettings
+import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
@@ -44,6 +53,7 @@ import com.appdev.alarmapp.ui.MissionDemos.PhotoClickScreen
 import com.appdev.alarmapp.ui.MissionDemos.ScanBarCodeScreen
 import com.appdev.alarmapp.ui.MissionDemos.SentenceSelection
 import com.appdev.alarmapp.ui.MissionDemos.TypingMissionScreen
+import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
@@ -53,7 +63,11 @@ import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
 import com.appdev.alarmapp.ui.PreivewScreen.MissionMenu
 import com.appdev.alarmapp.ui.PreivewScreen.PreviewScreen
 import com.appdev.alarmapp.ui.PreivewScreen.RingtoneSelection
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.AlarmDismissSettings
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.AlarmSettings
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.DefaultAlarmMissions
 import com.appdev.alarmapp.ui.SettingsScreen.SettingsScreen
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.UsabilityScreen
 import com.appdev.alarmapp.ui.SleepScreen.SleepScreen
 import com.appdev.alarmapp.ui.Snooze.SnoozeScreen
 import com.appdev.alarmapp.ui.SunScreen.MorningScreen
@@ -63,7 +77,11 @@ import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.isOldOrNew
 import com.appdev.alarmapp.utils.newAlarmHandler
+import com.appdev.alarmapp.utils.ringtoneList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalTime
+import kotlin.random.Random
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -74,7 +92,26 @@ fun MainUiScreen(
 ) {
     if (tokenManagement.getToken() == null) {
         tokenManagement.saveToken(System.currentTimeMillis().toString())
+        mainViewModel.insertDefaultSettings(
+            DefaultSettings()
+        )
+        mainViewModel.basicSettingsInsertion(
+            AlarmSetting()
+        )
+        mainViewModel.dismissSettingsInsertion(
+            DismissSettings()
+        )
     }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(key1 = Unit) {
+        scope.launch(Dispatchers.IO) {
+            mainViewModel.deleteAllRingtones()
+            val rings = getSystemRingtones(context)
+            mainViewModel.insertSystemList(rings)
+        }
+    }
+
     var selectedIndex by remember { mutableIntStateOf(0) }
 //    val navItems = remember { BottomNavItems.}
     val backStackEntry = controller.currentBackStackEntryAsState()
@@ -98,6 +135,11 @@ fun MainUiScreen(
         Routes.PhotoMissionPreviewScreen.route,
         Routes.BarCodeDemoScreen.route,
         Routes.BarCodeScanScreen.route,
+        Routes.BarCodePreviewAlarmScreen.route,
+        Routes.SetUsabilityScreen.route,
+        Routes.SettingsOfAlarmScreen.route,
+        Routes.DefaultSettingsScreen.route,
+        Routes.AlarmDismissScreen.route,
     )
     androidx.compose.material.Scaffold(
         floatingActionButtonPosition = androidx.compose.material.FabPosition.Center,
@@ -109,15 +151,16 @@ fun MainUiScreen(
                         mainViewModel.isOld(isOldOrNew.isOld(false))
                         mainViewModel.missionData(MissionDataHandler.ResetList)
                         mainViewModel.newAlarmHandler(newAlarmHandler.getTime(time = LocalTime.now()))
-                        mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = 5))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = mainViewModel.defaultSettings.value.snoozeTime))
                         mainViewModel.newAlarmHandler(
                             newAlarmHandler.ringtone(
-                                ringtone = Ringtone(
-                                    name = "Alarm Bell",
-                                    rawResourceId = R.raw.alarmsound
-                                )
+                                ringtone = mainViewModel.defaultSettings.value.ringtone
                             )
                         )
+                        mainViewModel.newAlarmHandler(
+                            newAlarmHandler.getMissions(missions = mainViewModel.defaultSettings.value.listOfMissions)
+                        )
+                        mainViewModel.missionData(MissionDataHandler.AddList(missionsList = mainViewModel.defaultSettings.value.listOfMissions))
                         mainViewModel.newAlarmHandler(newAlarmHandler.getDays(days = emptySet()))
                         controller.navigate(Routes.Preview.route) {
                             popUpTo(controller.graph.startDestinationId)
@@ -221,6 +264,18 @@ fun MainUiScreen(
             composable(route = Routes.FifthScreen.route) {
                 SettingsScreen(controller)
             }
+            composable(route = Routes.SetUsabilityScreen.route) {
+                UsabilityScreen(controller)
+            }
+            composable(route = Routes.AlarmDismissScreen.route) {
+                AlarmDismissSettings(mainViewModel = mainViewModel, controller = controller)
+            }
+            composable(route = Routes.SettingsOfAlarmScreen.route) {
+                AlarmSettings(mainViewModel = mainViewModel, controller = controller)
+            }
+            composable(route = Routes.DefaultSettingsScreen.route) {
+                DefaultAlarmMissions(mainViewModel = mainViewModel, controller = controller)
+            }
             composable(route = Routes.Purchase.route) {
                 InAppPurchase(controller, onCLick = { inAppPurchaseClick() })
             }
@@ -243,19 +298,22 @@ fun MainUiScreen(
                 ShakeDetectionScreen(mainViewModel = mainViewModel, controller)
             }
             composable(route = Routes.CameraRoutineScreen.route) {
-                CameraMissionDemo(mainViewModel = mainViewModel, controller=controller)
+                CameraMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.PhotoMissionPreviewScreen.route) {
-                PhotoMissionScreen(mainViewModel = mainViewModel, controller=controller)
+                PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.PhotoClickScreen.route) {
-                PhotoClickScreen(mainViewModel = mainViewModel, controller=controller)
+                PhotoClickScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodeDemoScreen.route) {
-                BarCodeMissionDemo(mainViewModel = mainViewModel, controller=controller)
+                BarCodeMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodeScanScreen.route) {
-                ScanBarCodeScreen(mainViewModel = mainViewModel, controller=controller)
+                ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
+            }
+            composable(route = Routes.BarCodePreviewAlarmScreen.route) {
+                BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.StepDetectorScreen.route) {
                 StepMission(mainViewModel = mainViewModel, controller)
@@ -273,7 +331,7 @@ fun MainUiScreen(
                 SentenceSelection(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.MissionMenuScreen.route) {
-                MissionMenu(controller = controller,mainViewModel)
+                MissionMenu(controller = controller, mainViewModel)
             }
             composable(route = Routes.MissionMathScreen.route) {
                 MathMissionHandler(
@@ -342,3 +400,26 @@ fun NavItem(item: BottomNavItems, isSelected: Boolean, onCLick: () -> Unit) {
     )
 }
 
+fun getSystemRingtones(context: Context): List<Ringtone> {
+    val ringtoneManager = RingtoneManager(context)
+    ringtoneManager.setType(RingtoneManager.TYPE_RINGTONE)
+
+    val cursor = ringtoneManager.cursor
+    val mergedRingtoneList = mutableListOf<Ringtone>()
+
+    while (cursor.moveToNext()) {
+        val ringtoneUri = ringtoneManager.getRingtoneUri(cursor.position)
+        val ringtoneName = getRingtoneTitle(context, ringtoneUri)
+        val mergedRingtone = Ringtone(ringtoneName, uri = ringtoneUri)
+        mergedRingtoneList.add(mergedRingtone)
+    }
+
+    cursor.close()
+    return mergedRingtoneList
+}
+
+
+fun getRingtoneTitle(context: Context, ringtoneUri: Uri): String {
+    val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
+    return ringtone.getTitle(context) ?: "Unknown Ringtone"
+}

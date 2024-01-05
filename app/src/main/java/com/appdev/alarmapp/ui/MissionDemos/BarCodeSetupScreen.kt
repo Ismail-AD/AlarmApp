@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
 import android.Manifest
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -21,16 +22,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,20 +51,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -68,27 +71,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.CustomImageButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
+import com.appdev.alarmapp.ui.StartingScreens.DemoScreens.buttonToPlay
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.ui.theme.signatureBlue
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
+import com.appdev.alarmapp.utils.Helper
+import com.appdev.alarmapp.utils.MissionDataHandler
+import com.appdev.alarmapp.utils.QrCodeData
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(
     ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class,
-    ExperimentalComposeUiApi::class
 )
 @Composable
 fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
-
+    if (Helper.isPlaying()) {
+        Helper.stopStream()
+    }
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
 
@@ -96,6 +110,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
         mutableStateOf(false)
     }
     val sheetState = rememberModalBottomSheetState()
+    val configSheetState = rememberModalBottomSheetState()
     var bottomSheetState by remember {
         mutableStateOf(false)
     }
@@ -108,41 +123,75 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
     var showEmptyToast by remember {
         mutableStateOf(false)
     }
-    var filename by remember {
-        mutableStateOf(mainViewModel.uiState.value.detectedQR)
+    var clickedElement by remember {
+        mutableLongStateOf(if (mainViewModel.missionDetails.codeId > 1) mainViewModel.missionDetails.codeId else if (mainViewModel.selectedCode.codeId > 1) mainViewModel.selectedCode.codeId else -1)
     }
-    val uiState by mainViewModel.uiState.collectAsState()
+    var updateAttempt by remember {
+        mutableStateOf(false)
+    }
+    var configBottomBar by remember {
+        mutableStateOf(false)
+    }
+    var filename by remember {
+        mutableStateOf(mainViewModel.detectedQrCodeState.qrCode)
+    }
+    val scope = rememberCoroutineScope()
 
-
-    LaunchedEffect(uiState.detectedQR) {
-        if(uiState.detectedQR.trim().isNotEmpty()){
+    LaunchedEffect(mainViewModel.detectedQrCodeState) {
+        if (mainViewModel.detectedQrCodeState.qrCode.trim().isNotEmpty()) {
             bottomSheetState = true
-            filename = uiState.detectedQR
+            filename = mainViewModel.detectedQrCodeState.qrCode
         }
     }
-
+    LaunchedEffect(key1 = bottomSheetState) {
+        if (!bottomSheetState && mainViewModel.detectedQrCodeState.qrCode.trim().isNotEmpty()) {
+            mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = ""))
+        }
+    }
+    LaunchedEffect(key1 = Unit) {
+        if (!mainViewModel.detectedQrCodeState.startProcess) {
+            mainViewModel.updateDetectedString(
+                MainViewModel.ProcessingState(
+                    qrCode = "",
+                    startProcess = true
+                )
+            )
+        }
+    }
     LaunchedEffect(showEmptyToast) {
         if (showEmptyToast) {
             Toast.makeText(context, "File name should not be Empty !", Toast.LENGTH_SHORT).show()
             showEmptyToast = false
         }
     }
+    LaunchedEffect(showToast) {
+        if (showToast) {
+            Toast.makeText(
+                context,
+                "Code not selected! Please scan and select a code",
+                Toast.LENGTH_SHORT
+            )
+                .show()
+            showToast = false
+        }
+    }
 
-//    val imagesList by mainViewModel.imagesList.collectAsStateWithLifecycle(
-//        initialValue = emptyList()
-//    )
+    val codesList by mainViewModel.codesList.collectAsStateWithLifecycle(
+        initialValue = emptyList()
+    )
+
     var loading by remember { mutableStateOf(false) }
-    var selectedCodeIndex by remember { mutableLongStateOf(-1) }
+    var selectedCodeIndex by remember { mutableLongStateOf(if (mainViewModel.selectedCode.codeId > 1) mainViewModel.selectedCode.codeId else if (mainViewModel.missionDetails.codeId > 1) mainViewModel.missionDetails.codeId else -1) }
+    LaunchedEffect(key1 = codesList) {
+        loading = codesList.isEmpty()
+        delay(700)
+        if (codesList.isEmpty()) {
+            loading = false
+        }
+    }
     LaunchedEffect(permissionState.status) {
         if (permissionState.status.isGranted) {
             guideOrNot = permissionState.status.isGranted
-        }
-    }
-    LaunchedEffect(showToast) {
-        if (showToast) {
-            Toast.makeText(context, "Photo not selected! Please select a photo", Toast.LENGTH_SHORT)
-                .show()
-            showToast = false
         }
     }
 
@@ -156,17 +205,17 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
             ) {
                 CustomButton(
                     onClick = {
-//                        if (selectedImageIndex > 1) {
-//                            if (!mainViewModel.isRealAlarm) {
-//                                Helper.playStream(context, R.raw.alarmsound)
-//                            }
-//                            controller.navigate(Routes.PreviewAlarm.route) {
-//                                popUpTo(controller.graph.startDestinationId)
-//                                launchSingleTop = true
-//                            }
-//                        } else {
-//                            showToast = true
-//                        }
+                        if (selectedCodeIndex > 1) {
+                            if (!mainViewModel.isRealAlarm) {
+                                Helper.playStream(context, R.raw.alarmsound)
+                            }
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        } else {
+                            showToast = true
+                        }
                     },
                     text = "Preview",
                     width = 0.3f,
@@ -177,24 +226,54 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 Spacer(modifier = Modifier.width(14.dp))
                 CustomButton(
                     onClick = {
-//                        if (selectedImageIndex > 1) {
-//                            mainViewModel.missionData(
-//                                MissionDataHandler.IsSelectedMission(
-//                                    isSelected = true
-//                                )
-//                            )
-//                            mainViewModel.missionData(
-//                                MissionDataHandler.ImageId(mainViewModel.selectedImage.id)
-//                            )
-//                            mainViewModel.missionData(MissionDataHandler.SubmitData)
-//                            controller.navigate(Routes.MissionMenuScreen.route) {
-//                                popUpTo(controller.graph.startDestinationId)
-//                                launchSingleTop = true
-//                            }
-//                        } else {
-//                            showToast = true
-//                        }
-
+                        if (mainViewModel.managingDefault) {
+                            if (selectedCodeIndex > 1) {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.IsSelectedMission(
+                                        isSelected = true
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
+                                )
+                                mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                mainViewModel.setDefaultSettings(
+                                    DefaultSettingsHandler.GetNewObject(
+                                        defaultSettings = DefaultSettings(
+                                            id = mainViewModel.defaultSettings.value.id,
+                                            ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                            snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
+                                            listOfMissions = mainViewModel.missionDetailsList
+                                        )
+                                    )
+                                )
+                                mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                                controller.navigate(Routes.MissionMenuScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                showToast = true
+                            }
+                        } else {
+                            if (selectedCodeIndex > 1) {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.IsSelectedMission(
+                                        isSelected = true
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
+                                )
+                                mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                controller.navigate(Routes.MissionMenuScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                showToast = true
+                            }
+                        }
                     },
                     text = "Complete",
                     width = 0.83f,
@@ -209,21 +288,21 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 .fillMaxSize()
                 .padding(it), contentAlignment = Alignment.TopCenter
         ) {
-//        if (loading) {
-//            Box(
-//                modifier = Modifier.fillMaxSize(),
-//            ) {
-//                Column(
-//                    modifier = Modifier.fillMaxSize(),
-//                    verticalArrangement = Arrangement.Center,
-//                    horizontalAlignment = Alignment.CenterHorizontally
-//                ) {
-//                    Dialog(onDismissRequest = { /*TODO*/ }) {
-//                        CircularProgressIndicator()
-//                    }
-//                }
-//            }
-//        }
+            if (loading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Dialog(onDismissRequest = { /*TODO*/ }) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -272,7 +351,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp, horizontal = 22.dp)
+                                .padding(vertical = 10.dp, horizontal = 22.dp)
                                 .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
                             verticalArrangement = Arrangement.spacedBy(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -286,6 +365,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 fontWeight = FontWeight.W500,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 30.dp)
                             )
                             Image(
                                 painter = painterResource(id = R.drawable.qr),
@@ -294,6 +374,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     .width(200.dp)
                                     .height(300.dp)
                             )
+                            Spacer(modifier = Modifier.height(10.dp))
                         }
                     }
                     Box(
@@ -310,9 +391,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 }
                             },
                             text = "Scan",
-                            width = 0.8f,
-                            backgroundColor = Color.White,
-                            textColor = Color.Black.copy(alpha = 0.9f)
+                            width = 0.85f,
+                            backgroundColor = signatureBlue,
+                            textColor = Color.White
                         )
                     }
                 } else {
@@ -363,45 +444,49 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     }
                                 }
                             }
-//                            items(imagesList) { imageData ->
-//                                singleEntry(imageData = imageData,
-//                                    isSelected = selectedImageIndex == imageData.id,
-//                                    onImageClick = {
-//                                        selectedImageIndex = imageData.id
-//                                        mainViewModel.updateSelectedImage(imageData)
-//                                    }) {
-//                                    mainViewModel.deleteImage(imageData.id)
-//                                }
-//                            }
+                            item {
+                                Spacer(modifier = Modifier.height(20.dp))
+                            }
+                            items(codesList) { qrCodeData ->
+                                singleEntry(
+                                    qrCodeData = qrCodeData,
+                                    isSelected = selectedCodeIndex == qrCodeData.codeId,
+                                    changeSheetState = {
+                                        clickedElement = qrCodeData.codeId
+                                        filename = qrCodeData.qrCodeString
+                                        configBottomBar = true
+                                    }
+                                ) {
+                                    selectedCodeIndex = qrCodeData.codeId
+                                    mainViewModel.updateSelectedCode(qrCodeData)
+                                }
+                            }
                         }
                     }
                 }
                 if (bottomSheetState) {
                     ModalBottomSheet(
                         onDismissRequest = {
-                            if (filename.isEmpty()) {
-//                                audioFile?.let {
-//                                    mainViewModel.insertRecording(
-//                                        Ringtone(
-//                                            file = it,
-//                                            name = getDefaultFilename()
-//                                        )
-//                                    )
-//                                }
-                                showEmptyToast = false
-                                bottomSheetState = false
-                            } else {
-//                                audioFile?.let {
-//                                    mainViewModel.insertRecording(
-//                                        Ringtone(
-//                                            file = it,
-//                                            name = getDefaultFilename()
-//                                        )
-//                                    )
-//                                }
-                                showEmptyToast = false
-                                bottomSheetState = false
+                            if (!updateAttempt) {
+                                if (filename.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
+                                        .isNotEmpty()
+                                ) {
+                                    mainViewModel.insertCode(
+                                        QrCodeData(
+                                            codeId = System.currentTimeMillis(),
+                                            qrCodeString = mainViewModel.detectedQrCodeState.qrCode
+                                        )
+                                    )
+                                } else {
+                                    mainViewModel.insertCode(
+                                        QrCodeData(
+                                            codeId = System.currentTimeMillis(),
+                                            qrCodeString = filename
+                                        )
+                                    )
+                                }
                             }
+                            bottomSheetState = false
                         },
                         sheetState = sheetState,
                         dragHandle = {}) {
@@ -428,13 +513,26 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
                                     IconButton(onClick = {
-                                        if (filename.isEmpty()) {
-                                            showEmptyToast = true
-                                        } else {
-                                            // Save to database
-                                            showEmptyToast = false
-                                            bottomSheetState = false
+                                        if (!updateAttempt) {
+                                            if (filename.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
+                                                    .isNotEmpty()
+                                            ) {
+                                                mainViewModel.insertCode(
+                                                    QrCodeData(
+                                                        codeId = System.currentTimeMillis(),
+                                                        qrCodeString = mainViewModel.detectedQrCodeState.qrCode
+                                                    )
+                                                )
+                                            } else {
+                                                mainViewModel.insertCode(
+                                                    QrCodeData(
+                                                        codeId = System.currentTimeMillis(),
+                                                        qrCodeString = filename
+                                                    )
+                                                )
+                                            }
                                         }
+                                        bottomSheetState = false
                                     }) {
                                         Icon(
                                             imageVector = Icons.Filled.Close,
@@ -450,10 +548,14 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     value = filename,
                                     onValueChange = {
                                         filename = it
-                                    }, cursorBrush = SolidColor(Color.White), singleLine = true,
+                                    },
+                                    cursorBrush = SolidColor(Color.White),
+                                    singleLine = true,
                                     modifier = Modifier
-                                        .fillMaxWidth(0.8f), textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-                                    maxLines = 1, decorationBox = { innerTextField ->
+                                        .fillMaxWidth(0.8f),
+                                    textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                                    maxLines = 1,
+                                    decorationBox = { innerTextField ->
                                         Box(
                                             modifier = Modifier.padding(
                                                 start = 3.dp,
@@ -465,7 +567,11 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                         }
                                     }
                                 )
-                                Divider(thickness = 1.dp, color = Color.LightGray, modifier = Modifier.fillMaxWidth(0.8f))
+                                Divider(
+                                    thickness = 1.dp,
+                                    color = Color.LightGray,
+                                    modifier = Modifier.fillMaxWidth(0.8f)
+                                )
                             }
 
 
@@ -474,25 +580,83 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     .fillMaxWidth()
                                     .padding(vertical = 30.dp), contentAlignment = Alignment.Center
                             ) {
-                                CustomButton(onClick = {
-                                    if (filename.isEmpty()) {
-                                        showEmptyToast = true
-                                    } else {
-//                                        audioFile?.let {
-//                                            mainViewModel.insertRecording(
-//                                                Ringtone(
-//                                                    file = it,
-//                                                    name = getDefaultFilename()
-//                                                )
-//                                            )
-//                                        }
-                                        showEmptyToast = false
+                                CustomButton(
+                                    onClick = {
+                                        if (updateAttempt) {
+                                            mainViewModel.updateQrCode(
+                                                QrCodeData(
+                                                    codeId = clickedElement,
+                                                    qrCodeString = filename
+                                                )
+                                            )
+                                        } else {
+                                            mainViewModel.insertCode(
+                                                QrCodeData(
+                                                    codeId = System.currentTimeMillis(),
+                                                    qrCodeString = filename
+                                                )
+                                            )
+                                        }
+                                        clickedElement = -1
+                                        filename = ""
                                         bottomSheetState = false
-                                    }
-
-                                }, text = "Save", width = 0.8f)
+                                    },
+                                    text = "Save",
+                                    width = 0.8f,
+                                    isEnabled = filename.trim().isNotEmpty()
+                                )
                             }
 
+                        }
+                    }
+                }
+                if (configBottomBar) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
+                            filename = ""
+                            configBottomBar = false
+                        },
+                        sheetState = sheetState,
+                        dragHandle = {}) {
+                        Column(modifier = Modifier.background(Color(0xff1C1F26))) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(0.96f),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                IconButton(onClick = {
+                                    scope.launch {
+                                        sheetState.hide()
+                                    }
+                                    configBottomBar = false
+                                    filename = ""
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = "",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                            if (selectedCodeIndex != clickedElement) {
+                                singleSheetItem(
+                                    name = "Delete Phrase",
+                                    icon = Icons.Filled.Delete
+                                ) {
+                                    mainViewModel.deleteQrCode(clickedElement)
+                                    scope.launch {
+                                        configSheetState.hide()
+                                    }
+                                    configBottomBar = false
+                                    filename = ""
+                                }
+                            }
+                            singleSheetItem(name = "Edit Phrase", icon = Icons.Filled.Edit) {
+                                updateAttempt = true
+                                configBottomBar = false
+                                bottomSheetState = true
+                            }
+
+                            Spacer(modifier = Modifier.height(30.dp))
                         }
                     }
                 }
@@ -532,7 +696,70 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
             }
         }
     }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun singleEntry(
+    qrCodeData: QrCodeData,
+    isSelected: Boolean,
+    changeSheetState: () -> Unit,
+    onQrCodeClicked: () -> Unit
+) {
+    Column {
+        Spacer(modifier = Modifier.height(7.dp))
+        Card(
+            onClick = {
+                onQrCodeClicked()
+            },
+            modifier = Modifier
+                .height(62.dp)
+                .padding(horizontal = 7.dp),
+            shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed
+            border = BorderStroke(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = if (isSelected) Color(0xff0FAACB) else Color.Transparent
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSelected) Color(0xff2F333E) else Color(0xff24272E)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = qrCodeData.qrCodeString,
+                    color = Color.White,
+                    fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 3.dp),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(25.dp)
+                            .clickable {
+                                changeSheetState()
+                            }, contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.dots),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(22.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 

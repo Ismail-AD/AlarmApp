@@ -6,8 +6,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Parcelable
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -35,7 +37,7 @@ class AlarmScheduler(
 //    }
 
     @SuppressLint("MissingPermission")
-    fun schedule(alarmData: AlarmEntity) {
+    fun schedule(alarmData: AlarmEntity,showNotify:Boolean) {
 
         val intent = Intent(context, AlarmTriggerHandler::class.java)
 
@@ -48,7 +50,7 @@ class AlarmScheduler(
             intent.putExtra("ringtone", alarmData.ringtone.uri.toString())
         } else if (alarmData.ringtone.file != null) {
             intent.putExtra("tonetype", 2)
-            intent.putExtra("ringtone", alarmData.ringtone.file.absolutePath)
+            intent.putExtra("ringtone", alarmData.ringtone.file!!.absolutePath)
         }
         if (alarmData.listOfMissions.isNotEmpty()) {
             intent.putExtra("list", alarmData.listOfMissions as Serializable)
@@ -59,10 +61,12 @@ class AlarmScheduler(
         if (alarmData.snoozeTime != -1) {
             intent.putExtra("snooze", alarmData.snoozeTime.toString())
         }
-        intent.putExtra("ringtoneObj", alarmData.ringtone as Serializable)
+        intent.putExtra("ringtoneObj", alarmData.ringtone)
         intent.putExtra("tInM", alarmData.timeInMillis.toString())
         intent.putExtra("id", alarmData.id.toString())
         intent.putExtra("localTime", alarmData.localTime.toString())
+        intent.putExtra("notify", showNotify)
+        intent.putExtra("dismissSet", mainVM.dismissSettings.value)
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,

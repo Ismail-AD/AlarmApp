@@ -254,6 +254,19 @@ val listOfIntervals: List<String> = listOf(
     "25",
     "30"
 )
+val listOfMissionTime: List<String> = listOf(
+    "10",
+    "20",
+    "30",
+    "40",
+    "50",
+    "60",
+)
+val listOfSensi: List<String> = listOf(
+    "High(hard to turn off)",
+    "Normal",
+    "Low(easy to turn off)",
+)
 
 data class TimeUntil(val days: Long, val hours: Long, val minutes: Long, val seconds: Long)
 

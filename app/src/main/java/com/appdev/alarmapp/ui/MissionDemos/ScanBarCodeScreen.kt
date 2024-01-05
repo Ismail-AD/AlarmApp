@@ -36,7 +36,6 @@ import com.appdev.alarmapp.ui.theme.backColor
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun ScanBarCodeScreen(controller: NavHostController, mainViewModel: MainViewModel) {
-    val context = LocalContext.current
 
     var isFlashOn by remember { mutableStateOf(false) }
 

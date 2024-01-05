@@ -1,10 +1,11 @@
-package com.appdev.alarmapp.utils
+package com.appdev.alarmapp.utils.DaoClasses
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.appdev.alarmapp.utils.QrCodeData
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -85,7 +86,8 @@ fun MathMissionHandler(
     controller: NavHostController,
     missionViewModel: MissionViewModel = hiltViewModel(),alarmEndHandle:()->Unit={}
 ) {
-    if(Helper.isPlaying()){
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+    if (dismissSettings.muteTone) {
         Helper.stopStream()
     }
 
@@ -137,7 +139,7 @@ fun MathMissionHandler(
                             repeatProgress = singleMission.repeatProgress,
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
+                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId, codeId = singleMission.codeId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -173,6 +175,14 @@ fun MathMissionHandler(
                                 launchSingleTop = true
                             }
                         }
+                        "QR/Barcode" -> {
+                            controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                popUpTo(Routes.PreviewAlarm.route) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
                         else -> {
                             alarmEndHandle()
                         }
@@ -199,7 +209,7 @@ fun MathMissionHandler(
 
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = 7500L // 3 seconds
+        val duration = dismissSettings.missionTime * 1000
         while (elapsedTime < duration && progress > 0.00100f) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
@@ -254,9 +264,6 @@ fun MathMissionHandler(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                   if(!mainViewModel.isRealAlarm){
-                       Helper.playStream(context, R.raw.alarmsound)
-                   }
                     controller.navigate(Routes.PreviewAlarm.route) {
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true

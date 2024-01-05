@@ -10,5 +10,6 @@ data class Missions(
     val repeatProgress: Int = 1,
     val selectedSentences: String = "",
     val imageId: Long = 0,
+    val codeId: Long = 0,
     val isSelected: Boolean = false
 ) : Serializable

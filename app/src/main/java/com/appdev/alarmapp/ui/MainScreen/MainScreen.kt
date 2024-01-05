@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -79,7 +80,9 @@ import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.CustomImageButton
+import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
 import com.appdev.alarmapp.ui.PreivewScreen.localTimeToMillis
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.findUpcomingAlarm
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.ui.theme.linear
 import com.appdev.alarmapp.ui.theme.redOne
@@ -89,6 +92,7 @@ import com.appdev.alarmapp.utils.Updating
 import com.appdev.alarmapp.utils.calculateTimeUntil
 import com.appdev.alarmapp.utils.getRepeatText
 import com.appdev.alarmapp.utils.isOldOrNew
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.saket.swipe.SwipeAction
 import me.saket.swipe.SwipeableActionsBox
@@ -113,6 +117,10 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
     }
     val scope = rememberCoroutineScope()
     val alarmList by mainViewModel.alarmList.collectAsStateWithLifecycle(initialValue = emptyList())
+    val alarmSettings by mainViewModel.basicSettings.collectAsStateWithLifecycle()
+    var allAlarms by remember {
+        mutableStateOf(emptyList<AlarmEntity>())
+    }
     val context = LocalContext.current
     val alarmScheduler by remember {
         mutableStateOf(
@@ -122,6 +130,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
             )
         )
     }
+    val notificationService by remember { mutableStateOf(NotificationService(context)) }
 
     var upcomingAlarm by remember {
         mutableStateOf(alarmList
@@ -132,11 +141,32 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
         mutableStateOf(upcomingAlarm?.let { calculateTimeUntil(it.timeInMillis) })
     }
     LaunchedEffect(key1 = alarmList, key2 = stateChanges) {
+        allAlarms = if (alarmSettings.activeSort) {
+            val activeAlarms = alarmList.filter { it.isActive }
+            val inactiveAlarms = alarmList.filter { !it.isActive }
+            activeAlarms + inactiveAlarms
+        } else {
+            alarmList.sortedBy { it.timeInMillis }
+        }
         upcomingAlarm = alarmList
             .filter { it.isActive && it.timeInMillis > System.currentTimeMillis() }
             .minByOrNull { it.timeInMillis }
         timeUntilNextAlarm = upcomingAlarm?.let { calculateTimeUntil(it.timeInMillis) }
+        if (mainViewModel.basicSettings.value.showInNotification) {
+            if (upcomingAlarm != null) {
+                if (upcomingAlarm!!.isActive) {
+                    notificationService.showNotification(
+                        upcomingAlarm!!.localTime.toString() + " " + getAMPM(
+                            upcomingAlarm!!.localTime
+                        )
+                    )
+                }
+            } else {
+                notificationService.cancelNotification()
+            }
+        }
     }
+
 
     val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -255,14 +285,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                             Row(verticalAlignment = Alignment.Bottom) {
                                                 Text(
                                                     "${tu.hours}",
-                                                    fontSize = 27.sp,
+                                                    fontSize = 25.sp,
                                                     letterSpacing = 0.sp,
                                                     color = Color.White,
                                                     fontWeight = FontWeight.W600
                                                 )
                                                 Text(
                                                     "hr",
-                                                    fontSize = 16.sp,
+                                                    fontSize = 14.sp,
                                                     letterSpacing = 0.sp,
                                                     color = Color.White,
                                                     modifier = Modifier.padding(
@@ -274,14 +304,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                             Row(verticalAlignment = Alignment.Bottom) {
                                                 Text(
                                                     "${tu.minutes}",
-                                                    fontSize = 27.sp,
+                                                    fontSize = 25.sp,
                                                     letterSpacing = 0.sp,
                                                     color = Color.White,
                                                     fontWeight = FontWeight.W600
                                                 )
                                                 Text(
                                                     "min",
-                                                    fontSize = 16.sp,
+                                                    fontSize = 14.sp,
                                                     letterSpacing = 0.sp,
                                                     color = Color.White,
                                                     modifier = Modifier.padding(
@@ -299,14 +329,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                                 Row(verticalAlignment = Alignment.Bottom) {
                                                     Text(
                                                         "${tu.minutes}",
-                                                        fontSize = 27.sp,
+                                                        fontSize = 25.sp,
                                                         letterSpacing = 0.sp,
                                                         color = Color.White,
                                                         fontWeight = FontWeight.W600
                                                     )
                                                     Text(
                                                         "min",
-                                                        fontSize = 16.sp,
+                                                        fontSize = 14.sp,
                                                         letterSpacing = 0.sp,
                                                         color = Color.White,
                                                         modifier = Modifier.padding(
@@ -319,14 +349,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                             Row(verticalAlignment = Alignment.Bottom) {
                                                 Text(
                                                     "${tu.seconds}",
-                                                    fontSize = 27.sp,
+                                                    fontSize = 25.sp,
                                                     letterSpacing = 0.sp,
                                                     color = Color.White,
                                                     fontWeight = FontWeight.W600
                                                 )
                                                 Text(
                                                     "sec",
-                                                    fontSize = 16.sp,
+                                                    fontSize = 14.sp,
                                                     letterSpacing = 0.sp,
                                                     color = Color.White,
                                                     modifier = Modifier.padding(
@@ -422,7 +452,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
             }
 
             LazyColumn() {
-                items(alarmList) { alarm ->
+                items(allAlarms, key = { alarm -> alarm.id }) { alarm ->
                     AlarmBox(delete = {
                         mainViewModel.deleteAlarm(it)
                     }, onAlarmCLick = {
@@ -448,8 +478,8 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         clickAlarmId = clickedAlarmId
                         showSheetState = true
                     }, alarm) { on ->
-                        stateChanges = true
-                        mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = on))
+//                        stateChanges = true
+                        mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
                         mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
                         mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
                         mainViewModel.updateHandler(
@@ -458,20 +488,23 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             )
                         )
                         mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarm.timeInMillis))
-                        mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
                         mainViewModel.updateHandler(EventHandlerAlarm.requestCode(reqCode = alarm.reqCode))
                         mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarm.listOfMissions))
                         mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarm.snoozeTime))
+                        mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = on))
                         mainViewModel.updateHandler(EventHandlerAlarm.update)
                         if (on) {
-                            alarmScheduler.schedule(alarm)
+                            alarmScheduler.schedule(
+                                alarm,
+                                mainViewModel.basicSettings.value.showInNotification
+                            )
                         } else {
                             alarmScheduler.cancel(alarm)
                         }
                     }
-                    
+
                 }
-                item { 
+                item {
                     Spacer(modifier = Modifier.height(70.dp))
                 }
             }
@@ -727,43 +760,6 @@ fun singleSheetItem(name: String, icon: ImageVector, onCLick: () -> Unit) {
             modifier = Modifier.padding(start = 10.dp),
             color = Color.White.copy(alpha = 0.75f)
         )
-    }
-}
-
-
-fun scheduleTheAlarm(
-    alarmEntity: AlarmEntity,
-    alarmScheduler: AlarmScheduler,
-    isOld: Boolean,
-) {
-
-    val selectedTimeMillis = localTimeToMillis(alarmEntity.localTime)
-
-    // If the selected time has already passed today, schedule it for the same time tomorrow
-    val currentTimeMillis = System.currentTimeMillis()
-    if (selectedTimeMillis <= currentTimeMillis) {
-        // Calculate the time until the selected time tomorrow
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = selectedTimeMillis
-        calendar.add(Calendar.DAY_OF_YEAR, 1)
-        if (!isOld) {
-            alarmEntity.id = calendar.timeInMillis
-        }
-        alarmEntity.timeInMillis = calendar.timeInMillis
-
-        val instant = Instant.ofEpochMilli(calendar.timeInMillis)
-        val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
-        alarmEntity.localTime = offsetTime.toLocalTime()
-        alarmEntity.reqCode = (0..19992).random()
-        alarmScheduler.schedule(alarmEntity)
-    } else {
-        // Schedule the alarm for the selected time
-        if (!isOld) {
-            alarmEntity.id = selectedTimeMillis
-        }
-        alarmEntity.reqCode = (0..19992).random()
-        alarmEntity.timeInMillis = selectedTimeMillis
-        alarmScheduler.schedule(alarmEntity)
     }
 }
 

@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.utils
 
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import java.time.LocalTime
 
 sealed interface EventHandlerSearchBar {
@@ -37,6 +38,12 @@ sealed interface newAlarmHandler {
     object insert : newAlarmHandler
 
 }
+sealed interface DefaultSettingsHandler{
+
+    data class GoingToSetDefault(val isDefault: Boolean) : DefaultSettingsHandler
+    data class GetNewObject(val defaultSettings: DefaultSettings) : DefaultSettingsHandler
+    object UpdateDefault : DefaultSettingsHandler
+}
 
 
 sealed interface MissionDemoHandler {
@@ -62,8 +69,9 @@ sealed interface MissionDataHandler {
     data class MissionName(val missionName: String) : MissionDataHandler
     data class MissionProgress(val repeatProgress: Int) : MissionDataHandler
     data class IsSelectedMission(val isSelected: Boolean) : MissionDataHandler
+    data class SelectedQrCode(val selectedCodeId: Long) : MissionDataHandler
     data class SelectedSentences(val setOfSentences:Set<CustomPhrase>) : MissionDataHandler
-    data class AddCompleteMission(val setOfSentences:Set<CustomPhrase>,val repeat: Int,val missionId: Int,val missionLevel: String,val missionName: String,val repeatProgress: Int,val isSelected: Boolean,val imageId:Long) : MissionDataHandler
+    data class AddCompleteMission(val setOfSentences:Set<CustomPhrase>,val repeat: Int,val missionId: Int,val missionLevel: String,val missionName: String,val repeatProgress: Int,val isSelected: Boolean,val imageId:Long,val codeId:Long) : MissionDataHandler
     data class AddList(val missionsList:List<Missions>) : MissionDataHandler
     object SubmitData : MissionDataHandler
     object ResetData : MissionDataHandler

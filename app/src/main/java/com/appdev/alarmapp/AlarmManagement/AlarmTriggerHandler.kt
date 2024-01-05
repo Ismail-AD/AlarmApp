@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.Ringtone
@@ -27,6 +28,14 @@ class AlarmTriggerHandler : BroadcastReceiver() {
             val newIntent = Intent(context, AlarmCancelAccess::class.java)
             val ringtoneType = intent?.getIntExtra("tonetype", 0)
             val ringtoneData = intent?.getStringExtra("ringtone")
+            val notify = intent?.getBooleanExtra("notify",false)
+
+            if (intent?.hasExtra("dismissSet") == true) {
+                val receivedSettings = intent.getParcelableExtra("dismissSet") as? DismissSettings
+                receivedSettings?.let { dismissSetting ->
+                    newIntent.putExtra("dismissSet",dismissSetting)
+                }
+            }
 
             if (intent?.hasExtra("list") == true) {
                 val receivedList = intent.getSerializableExtra("list") as? List<Missions>
@@ -46,9 +55,9 @@ class AlarmTriggerHandler : BroadcastReceiver() {
             }
 
             if (intent?.hasExtra("ringtoneObj") == true) {
-                val receivedRingtone = intent.getSerializableExtra("ringtoneObj") as? Ringtone
+                val receivedRingtone = intent.getParcelableExtra("ringtoneObj") as? Ringtone
                 receivedRingtone?.let { ringtone ->
-                    newIntent.putExtra("ringtoneObj", ringtone as Serializable)
+                    newIntent.putExtra("ringtoneObj", ringtone)
                 }
             }
 
@@ -64,6 +73,7 @@ class AlarmTriggerHandler : BroadcastReceiver() {
             newIntent.putExtra("id", id)
             newIntent.putExtra("tonetype", ringtoneType)
             newIntent.putExtra("ringtone", ringtoneData)
+            newIntent.putExtra("notify",notify)
             newIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 

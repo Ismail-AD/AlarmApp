@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.andyliu.compose_wheel_picker.VerticalWheelPicker
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -61,6 +62,7 @@ import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.PreivewScreen.getImageForSliderValue
 import com.appdev.alarmapp.ui.PreivewScreen.getMathEqForSliderValue
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertStringToSet
@@ -73,7 +75,9 @@ fun TypingMissionScreen(
     mainViewModel: MainViewModel,
     controller: NavHostController
 ) {
-
+    if (Helper.isPlaying()) {
+        Helper.stopStream()
+    }
     val context = LocalContext.current
     val state =
         rememberLazyListState(if ((mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) || (mainViewModel.missionDetails.missionName == "Typing")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0)
@@ -316,21 +320,51 @@ fun TypingMissionScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         CustomButton(
                             onClick = {
-                                mainViewModel.missionData(
-                                    MissionDataHandler.IsSelectedMission(
-                                        isSelected = true
+                                if (mainViewModel.managingDefault) {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            isSelected = true
+                                        )
                                     )
-                                )
-                                mainViewModel.missionData(
-                                    MissionDataHandler.SelectedSentences(
-                                        mainViewModel.sentencesList
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.SelectedSentences(
+                                            mainViewModel.sentencesList
+                                        )
                                     )
-                                )
+                                    mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                    mainViewModel.setDefaultSettings(
+                                        DefaultSettingsHandler.GetNewObject(
+                                            defaultSettings = DefaultSettings(
+                                                id = mainViewModel.defaultSettings.value.id,
+                                                ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                                snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
+                                                listOfMissions = mainViewModel.missionDetailsList
+                                            )
+                                        )
+                                    )
+                                    mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                                    controller.navigate(Routes.MissionMenuScreen.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
 
-                                mainViewModel.missionData(MissionDataHandler.SubmitData)
-                                controller.navigate(Routes.MissionMenuScreen.route) {
-                                    popUpTo(controller.graph.startDestinationId)
-                                    launchSingleTop = true
+                                } else {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            isSelected = true
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.SelectedSentences(
+                                            mainViewModel.sentencesList
+                                        )
+                                    )
+
+                                    mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                    controller.navigate(Routes.MissionMenuScreen.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
                                 }
                             },
                             text = "Complete",
