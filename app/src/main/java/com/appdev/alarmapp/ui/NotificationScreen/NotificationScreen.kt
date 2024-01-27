@@ -69,10 +69,8 @@ fun NotificationScreen(controller: NavHostController) {
     LaunchedEffect(notifyPermissionState.status) {
         if (notifyPermissionState.status.isGranted) {
             controller.navigate(Routes.MainUIScreen.route) {
+                popUpTo(controller.graph.startDestinationId)
                 launchSingleTop = true
-                popUpTo(Routes.Notify.route) {
-                    inclusive = true
-                }
             }
         }
     }

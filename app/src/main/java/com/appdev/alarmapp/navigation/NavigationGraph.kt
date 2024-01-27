@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.navigation
 
 import android.os.Build
+import android.speech.tts.TextToSpeech
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -27,6 +28,7 @@ import com.appdev.alarmapp.ui.StartingScreens.getStarted
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun navGraph(
+    textToSpeech: TextToSpeech,
     controller: NavHostController,
     isToken: TokenManagement,
     inAppPurchaseClick: () -> Unit
@@ -84,7 +86,7 @@ fun navGraph(
             NotificationScreen(controller)
         }
         composable(route = Routes.MainUIScreen.route) {
-            MainUiScreen(isToken, mainViewModel = mainViewModel ,inAppPurchaseClick = { inAppPurchaseClick() })
+            MainUiScreen(textToSpeech,isToken, mainViewModel = mainViewModel ,inAppPurchaseClick = { inAppPurchaseClick() })
         }
     }
 }

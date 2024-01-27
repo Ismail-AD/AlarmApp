@@ -25,7 +25,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +55,7 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.MissionDemoHandler
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
@@ -69,6 +72,7 @@ fun MissionHandlerScreen(
     mainViewModel: MainViewModel,
     alarmEndHandle: () -> Unit = {}
 ) {
+
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
     if (dismissSettings.muteTone) {
         Helper.stopStream()
@@ -200,6 +204,18 @@ fun MissionHandlerScreen(
 
                         "Photo" -> {
                             controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Step" -> {
+                            controller.navigate(Routes.StepDetectorScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Squat" -> {
+                            controller.navigate(Routes.SquatMissionScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }

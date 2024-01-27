@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.speech.tts.TextToSpeech
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -40,10 +42,9 @@ import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
-import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
-import com.appdev.alarmapp.ui.Analysis.AnalysisScreen
+import com.appdev.alarmapp.ui.Analysis.LabelScreen
 import com.appdev.alarmapp.ui.MainScreen.MainScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MissionDemos.BarCodeMissionDemo
@@ -58,34 +59,36 @@ import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
+import com.appdev.alarmapp.ui.MissionViewer.SquatMission
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
 import com.appdev.alarmapp.ui.PreivewScreen.MissionMenu
 import com.appdev.alarmapp.ui.PreivewScreen.PreviewScreen
 import com.appdev.alarmapp.ui.PreivewScreen.RingtoneSelection
+import com.appdev.alarmapp.ui.PreivewScreen.SoundPowerUp
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.AlarmDismissSettings
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.AlarmSettings
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.DefaultAlarmMissions
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.FeedbackScreen
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.GeneralSettings
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.SetTheme
 import com.appdev.alarmapp.ui.SettingsScreen.SettingsScreen
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.UsabilityScreen
-import com.appdev.alarmapp.ui.SleepScreen.SleepScreen
 import com.appdev.alarmapp.ui.Snooze.SnoozeScreen
-import com.appdev.alarmapp.ui.SunScreen.MorningScreen
 import com.appdev.alarmapp.ui.inappbuyScreen.InAppPurchase
 import com.appdev.alarmapp.utils.BottomNavItems
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.isOldOrNew
 import com.appdev.alarmapp.utils.newAlarmHandler
-import com.appdev.alarmapp.utils.ringtoneList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalTime
-import kotlin.random.Random
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainUiScreen(
+    textToSpeech: TextToSpeech,
     tokenManagement: TokenManagement,
     controller: NavHostController = rememberNavController(),
     mainViewModel: MainViewModel, inAppPurchaseClick: () -> Unit
@@ -104,6 +107,7 @@ fun MainUiScreen(
     }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
     LaunchedEffect(key1 = Unit) {
         scope.launch(Dispatchers.IO) {
             mainViewModel.deleteAllRingtones()
@@ -111,6 +115,7 @@ fun MainUiScreen(
             mainViewModel.insertSystemList(rings)
         }
     }
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
 
     var selectedIndex by remember { mutableIntStateOf(0) }
 //    val navItems = remember { BottomNavItems.}
@@ -140,7 +145,14 @@ fun MainUiScreen(
         Routes.SettingsOfAlarmScreen.route,
         Routes.DefaultSettingsScreen.route,
         Routes.AlarmDismissScreen.route,
+        Routes.FeedbackScreen.route,
+        Routes.GeneralScreen.route,
+        Routes.ThemeChangeScreen.route,
+        Routes.SoundPowerUpScreen.route,
+        Routes.LabelScreen.route,
+        Routes.SquatMissionScreen.route,
     )
+
     androidx.compose.material.Scaffold(
         floatingActionButtonPosition = androidx.compose.material.FabPosition.Center,
         isFloatingActionButtonDocked = true,
@@ -150,6 +162,12 @@ fun MainUiScreen(
                     onClick = {
                         mainViewModel.isOld(isOldOrNew.isOld(false))
                         mainViewModel.missionData(MissionDataHandler.ResetList)
+                        mainViewModel.newAlarmHandler(newAlarmHandler.GetWakeUpTime(getWUTime = 30))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.TimeReminder(isTimeReminderOrNot = false))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.IsGentleWakeUp(isGentleWakeUp = true))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.LoudEffect(isLoudEffectOrNot = false))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.IsLabel(isLabelOrNot = false))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.LabelText(getLabelText = ""))
                         mainViewModel.newAlarmHandler(newAlarmHandler.getTime(time = LocalTime.now()))
                         mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = mainViewModel.defaultSettings.value.snoozeTime))
                         mainViewModel.newAlarmHandler(
@@ -181,12 +199,13 @@ fun MainUiScreen(
         bottomBar = {
             if (backStackEntry.value?.destination?.route !in screenWithNoBar) {
                 BottomAppBar(
-                    backgroundColor = Color(0xff1C1F26),
+                    backgroundColor = if (isDarkMode) Color(0xff1C1F26) else Color.White,
                     cutoutShape = CircleShape,
                     contentPadding = PaddingValues(horizontal = 30.dp)
                 ) {
+                    Spacer(modifier = Modifier.weight(0.15f))
                     BottomNavItems.Home.let { home ->
-                        NavItem(item = home, isSelected = home.id == selectedIndex) {
+                        NavItem(isDarkMode,item = home, isSelected = home.id == selectedIndex) {
                             selectedIndex = home.id
                             controller.navigate(Routes.MainScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -195,29 +214,9 @@ fun MainUiScreen(
                         }
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    BottomNavItems.Sleep.let { Sleep ->
-                        NavItem(item = Sleep, isSelected = Sleep.id == selectedIndex) {
-                            selectedIndex = Sleep.id
-                            controller.navigate(Routes.SecondScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.weight(1f))
-                    BottomNavItems.Morning.let { home ->
-                        NavItem(item = home, isSelected = home.id == selectedIndex) {
-                            selectedIndex = home.id
-                            controller.navigate(Routes.ThirdScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
+
                     BottomNavItems.Settings.let { set ->
-                        NavItem(item = set, isSelected = set.id == selectedIndex) {
+                        NavItem(isDarkMode,item = set, isSelected = set.id == selectedIndex) {
                             selectedIndex = set.id
                             controller.navigate(Routes.FifthScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -225,6 +224,7 @@ fun MainUiScreen(
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.weight(0.15f))
                 }
             }
         }) { PV ->
@@ -247,28 +247,39 @@ fun MainUiScreen(
             composable(route = Routes.MainScreen.route) {
                 MainScreen(controller, mainViewModel)
             }
-            composable(route = Routes.SecondScreen.route) {
-                SleepScreen(controller)
+
+            composable(route = Routes.SquatMissionScreen.route) {
+                SquatMission(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.ThirdScreen.route) {
-                MorningScreen(controller)
-            }
-            composable(route = Routes.FourthScreen.route) {
-                AnalysisScreen(controller)
+            composable(route = Routes.LabelScreen.route) {
+                LabelScreen(textToSpeech,controller,mainViewModel)
             }
 
             composable(route = Routes.TypingPreviewScreen.route) {
                 TypingMissionHandler(mainViewModel = mainViewModel, controller = controller)
             }
 
+            composable(route = Routes.FeedbackScreen.route) {
+                FeedbackScreen(mainViewModel = mainViewModel, controller = controller)
+            }
+
             composable(route = Routes.FifthScreen.route) {
-                SettingsScreen(controller)
+                SettingsScreen(controller,mainViewModel)
+            }
+            composable(route = Routes.SoundPowerUpScreen.route) {
+                SoundPowerUp(textToSpeech,controller,mainViewModel)
             }
             composable(route = Routes.SetUsabilityScreen.route) {
                 UsabilityScreen(controller)
             }
             composable(route = Routes.AlarmDismissScreen.route) {
                 AlarmDismissSettings(mainViewModel = mainViewModel, controller = controller)
+            }
+            composable(route = Routes.GeneralScreen.route) {
+                GeneralSettings(mainViewModel = mainViewModel, controller = controller)
+            }
+            composable(route = Routes.ThemeChangeScreen.route) {
+                SetTheme(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.SettingsOfAlarmScreen.route) {
                 AlarmSettings(mainViewModel = mainViewModel, controller = controller)
@@ -292,7 +303,7 @@ fun MainUiScreen(
                 )
             }
             composable(route = Routes.PreviewAlarm.route) {
-                AlarmCancelScreen(controller, mainViewModel)
+                AlarmCancelScreen(textToSpeech,controller, mainViewModel)
             }
             composable(route = Routes.MissionShakeScreen.route) {
                 ShakeDetectionScreen(mainViewModel = mainViewModel, controller)
@@ -390,9 +401,9 @@ fun Modifier.NoRippleClickable(onCLick: () -> Unit): Modifier = composed {
 }
 
 @Composable
-fun NavItem(item: BottomNavItems, isSelected: Boolean, onCLick: () -> Unit) {
+fun NavItem(isDarkMode: Boolean, item: BottomNavItems, isSelected: Boolean, onCLick: () -> Unit) {
     Image(
-        painter = painterResource(id = if (isSelected) item.selectedId else item.unSelectedId),
+        painter = painterResource(id = if (isSelected && (isDarkMode)) item.selectedId else if (isSelected) item.darkSelectedId else item.unSelectedId),
         modifier = Modifier
             .size(24.dp)
             .clickable { onCLick() },

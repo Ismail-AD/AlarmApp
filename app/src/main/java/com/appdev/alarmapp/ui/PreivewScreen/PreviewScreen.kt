@@ -4,9 +4,11 @@ import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +57,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +70,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -110,16 +115,15 @@ fun PreviewScreen(
     controller: NavHostController,
     mainViewModel: MainViewModel
 ) {
-
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
-
     val scrollState = rememberScrollState()
     val scrollStateRow = rememberScrollState()
-    var switchState by remember { mutableStateOf(false) }
+    var switchState by remember { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.willVibrate else mainViewModel.newAlarm.willVibrate) }
     var showRemaining by remember { mutableStateOf(false) }
-    var soundVolume by remember { mutableFloatStateOf(0f) }
+    var soundVolume by remember { mutableFloatStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.customVolume else mainViewModel.newAlarm.customVolume) }
     var showRepeatSheet by remember {
         mutableStateOf(false)
     }
@@ -153,6 +157,8 @@ fun PreviewScreen(
 
     Scaffold(topBar = {
         TopBar(
+            width = 0.9f,
+            isDarkMode = isDarkMode,
             title = "Rings in ${
                 timeInString(
                     calculateTimeUntil(
@@ -164,7 +170,7 @@ fun PreviewScreen(
                     )
                 )
             }",
-            actionText = "Preview"
+            actionText = ""
         ) {
             controller.navigate(Routes.MainScreen.route) {
                 popUpTo(controller.graph.startDestinationId)
@@ -177,24 +183,26 @@ fun PreviewScreen(
                 .verticalScroll(scrollState)
                 .fillMaxSize()
                 .padding(it)
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(elementBack),
+                    .background(MaterialTheme.colorScheme.onBackground),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 WheelTimePicker(
                     startTime = if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.localTime else mainViewModel.newAlarm.localTime,
                     timeFormat = TimeFormat.AM_PM,
                     size = DpSize(260.dp, 140.dp),
-                    textColor = Color.White,
+                    textColor = MaterialTheme.colorScheme.surfaceTint,
                     textStyle = MaterialTheme.typography.headlineSmall,
                     selectorProperties = WheelPickerDefaults.selectorProperties(
                         enabled = true,
                         shape = RoundedCornerShape(5.dp),
-                        color = Color(0xFFf1faee).copy(alpha = 0.2f),
+                        color = if (isDarkMode) Color(0xFFf1faee).copy(alpha = 0.2f) else Color(
+                            0xFFBDEAF5
+                        ),
                         border = BorderStroke(2.dp, Color.Gray)
                     ), modifier = Modifier.padding(top = 22.dp)
                 ) { snappedTime ->
@@ -218,7 +226,8 @@ fun PreviewScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
-                    .background(elementBack), verticalArrangement = Arrangement.Center
+                    .background(MaterialTheme.colorScheme.onBackground),
+                verticalArrangement = Arrangement.Center
             ) {
                 Row(
                     modifier = Modifier.padding(vertical = 33.dp, horizontal = 18.dp),
@@ -230,13 +239,14 @@ fun PreviewScreen(
                     ) {
                         Text(
                             text = "Mission",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 16.sp,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                         Text(
                             text = mainViewModel.missionDetailsList.size.toString() + "/5",
-                            color = Color.White.copy(alpha = 0.7f), fontSize = 15.sp
+                            color = if (isDarkMode) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                            fontSize = 15.sp
                         )
                     }
                     Spacer(modifier = Modifier.width(20.dp))
@@ -287,7 +297,88 @@ fun PreviewScreen(
                                                 missionMemory = true,
                                                 missionMath = false,
                                                 missionShake = false,
-                                                isSteps = false
+                                                isSteps = false, isSquat = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.CommonMissionScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+
+
+                                    }
+
+
+                                    "Step" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionLevel(
+                                                misData.missionLevel
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichMissionHandle(
+                                            whichMissionHandler.thisMission(
+                                                missionMemory = false,
+                                                missionMath = false,
+                                                missionShake = false,
+                                                isSteps = true, isSquat = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.CommonMissionScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+
+
+                                    }
+
+                                    "Squat" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionLevel(
+                                                misData.missionLevel
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichMissionHandle(
+                                            whichMissionHandler.thisMission(
+                                                missionMemory = false,
+                                                missionMath = false,
+                                                missionShake = false,
+                                                isSteps = false, isSquat = true
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -328,7 +419,7 @@ fun PreviewScreen(
                                                 missionMemory = false,
                                                 missionMath = false,
                                                 missionShake = true,
-                                                isSteps = false
+                                                isSteps = false, isSquat = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -366,7 +457,7 @@ fun PreviewScreen(
                                                 missionMemory = false,
                                                 missionMath = true,
                                                 missionShake = false,
-                                                isSteps = false
+                                                isSteps = false, isSquat = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -494,7 +585,7 @@ fun PreviewScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
-                    .background(elementBack)
+                    .background(MaterialTheme.colorScheme.onBackground)
             ) {
                 Row(
                     modifier = Modifier.padding(
@@ -507,7 +598,7 @@ fun PreviewScreen(
                 ) {
                     Icon(
                         imageVector = if (soundVolume <= 0) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
-                        contentDescription = "", tint = Color.White
+                        contentDescription = "", tint = MaterialTheme.colorScheme.surfaceTint
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Slider(
@@ -527,7 +618,11 @@ fun PreviewScreen(
                     Icon(
                         imageVector = Icons.Filled.Vibration,
                         contentDescription = "",
-                        tint = if (switchState) Color.White else Color(0xffB6BDCA)
+                        tint = if (isDarkMode) {
+                            if (switchState) Color.White else Color(0xffB6BDCA)
+                        } else {
+                            if (switchState) Color.Black else Color.Black.copy(alpha = 0.45f)
+                        }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Switch(
@@ -537,10 +632,18 @@ fun PreviewScreen(
                             // Handle the new switch state
                         },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xff12A8CB), // Color when switch is ON
-                            checkedTrackColor = Color(0xff18677E), // Track color when switch is ON
-                            uncheckedThumbColor = Color(0xffB5BCCB), // Color when switch is OFF
-                            uncheckedTrackColor = Color(0xff111217) // Track color when switch is OFF
+                            checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                0xff13A7CB
+                            ), // Color when switch is ON
+                            checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                0xff7FCFE1
+                            ), // Track color when switch is ON
+                            uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                0xff656D7D
+                            ), // Color when switch is OFF
+                            uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                0xff9E9E9E
+                            ) // Track color when switch is OFF
                         ), modifier = Modifier.scale(0.8f)
                     )
                 }
@@ -555,8 +658,23 @@ fun PreviewScreen(
                     }
                 }
 
-                SingleOption(title = "Sound power-up", data = "off") {
+                SingleOption(
+                    title = "Sound power-up",
+                    data = if (mainViewModel.whichAlarm.isOld) getValue(
+                        mainViewModel.selectedDataAlarm.isLoudEffect,
+                        mainViewModel.selectedDataAlarm.isTimeReminder,
+                        mainViewModel.selectedDataAlarm.isGentleWakeUp
+                    ) else getValue(
+                        mainViewModel.newAlarm.isLoudEffect,
+                        mainViewModel.newAlarm.isTimeReminder,
+                        mainViewModel.newAlarm.isGentleWakeUp
+                    )
+                ) {
+                    controller.navigate(Routes.SoundPowerUpScreen.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop = true
 
+                    }
                 }
             }
 
@@ -564,7 +682,7 @@ fun PreviewScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
-                    .background(elementBack)
+                    .background(MaterialTheme.colorScheme.onBackground)
             ) {
                 SingleOption(
                     title = "Snooze",
@@ -575,10 +693,20 @@ fun PreviewScreen(
                         launchSingleTop = true
                     }
                 }
-                SingleOption(title = "Label", data = "none") {
+                SingleOption(
+                    title = "Label",
+                    data = if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.labelTextForSpeech.trim()
+                            .isNotEmpty()
+                    ) mainViewModel.selectedDataAlarm.labelTextForSpeech else if (!mainViewModel.whichAlarm.isOld && mainViewModel.newAlarm.labelTextForSpeech.trim()
+                            .isNotEmpty()
+                    ) mainViewModel.newAlarm.labelTextForSpeech else "none"
+                ) {
+                    controller.navigate(Routes.LabelScreen.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
                 }
-                SingleOption(title = "Sound", isLock = true, data = "Random play") {
-                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -587,7 +715,6 @@ fun PreviewScreen(
                 ) {
                     CustomButton(onClick = {
                         if (mainViewModel.whichAlarm.isOld) {
-
                             if (selectedOptions.value.isEmpty()) {
                                 mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(true))
                             } else {
@@ -599,6 +726,8 @@ fun PreviewScreen(
                                 mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = mainViewModel.missionDetailsList))
                             }
                             mainViewModel.updateHandler(EventHandlerAlarm.isActive(true))
+                            mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = switchState))
+                            mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = soundVolume))
                             scheduleTheAlarm(
                                 mainViewModel.basicSettings.value.showInNotification,
                                 mainViewModel.selectedDataAlarm,
@@ -619,10 +748,11 @@ fun PreviewScreen(
 
                                 mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = emptyList()))
                             } else {
-
                                 mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = mainViewModel.missionDetailsList))
 
                             }
+                            mainViewModel.newAlarmHandler(newAlarmHandler.Vibrator(setVibration = switchState))
+                            mainViewModel.newAlarmHandler(newAlarmHandler.CustomVolume(customVolume = soundVolume))
                             scheduleTheAlarm(
                                 mainViewModel.basicSettings.value.showInNotification,
                                 mainViewModel.newAlarm,
@@ -655,7 +785,7 @@ fun PreviewScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(elementBack)
+                            .background(MaterialTheme.colorScheme.onBackground)
                             .padding(16.dp)
                     ) {
                         Row(
@@ -666,7 +796,7 @@ fun PreviewScreen(
                         ) {
                             Text(
                                 text = "Repeat",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 18.sp,
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center, fontWeight = FontWeight.W500
@@ -699,7 +829,11 @@ fun PreviewScreen(
                                         } else {
                                             selectedOptions.value - day
                                         }
-                                    },
+                                    }, colors = CheckboxDefaults.colors(
+                                        uncheckedColor = Color(0xffB6BDCA),
+                                        checkmarkColor = Color.White,
+                                        checkedColor = Color(0xff18677E)
+                                    ),
                                     modifier = Modifier
                                         .padding(end = 8.dp)
                                         .align(Alignment.CenterVertically)
@@ -708,7 +842,7 @@ fun PreviewScreen(
                                 // Display day of the week
                                 Text(
                                     text = day,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.surfaceTint,
                                     modifier = Modifier
                                         .weight(1f)
                                         .align(Alignment.CenterVertically)
@@ -742,6 +876,19 @@ fun PreviewScreen(
                 }
             }
         }
+    }
+}
+
+fun getValue(loudEffect: Boolean, timeReminder: Boolean, gentleWakeUp: Boolean): String {
+    // Count the number of true values
+    val trueCount = listOf(loudEffect, timeReminder, gentleWakeUp).count { it }
+
+    // Return the corresponding value based on the number of true values
+    return when (trueCount) {
+        3 -> "3 in use"
+        2 -> "2 in use"
+        1 -> "1 in use"
+        else -> "off"
     }
 }
 
@@ -867,7 +1014,7 @@ fun scheduleTheAlarm(
     alarmEntity.localTime = offsetTime.toLocalTime()
     alarmEntity.reqCode = (0..19992).random()
 
-    alarmScheduler.schedule(alarmEntity,notify)
+    alarmScheduler.schedule(alarmEntity, notify)
 
     updateRemainingTime(alarmEntity.timeInMillis, System.currentTimeMillis())
 }
@@ -939,14 +1086,24 @@ fun singleMission(
                         "Photo" -> Icons.Filled.CameraEnhance
                         "QR/Barcode" -> Icons.Filled.QrCode2
                         else -> {
-                            Icons.Filled.AutoAwesomeMosaic
+                            null
                         }
                     }
-                    Icon(
-                        imageVector = IconID,
-                        contentDescription = "",
-                        tint = Color.DarkGray
-                    )
+                    if (IconID != null) {
+                        Icon(
+                            imageVector = IconID,
+                            contentDescription = "",
+                            tint = Color.DarkGray
+                        )
+                    } else {
+                        val drawableId = if (missionData.missionName == "Step") R.drawable.stepsblack else R.drawable.strengthblack
+                        Image(
+                            painter = painterResource(id = drawableId),
+                            contentDescription = "",
+                            modifier = Modifier.size(24.dp)
+                        )
+
+                    }
                     Text(
                         text = "${missionData.repeatTimes} times",
                         fontSize = 12.sp, color = Color.DarkGray
@@ -980,7 +1137,7 @@ fun SingleOption(
     ) {
         Text(
             text = title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceTint,
             textAlign = TextAlign.Start, fontSize = 16.sp
         )
         if (isLock) {
@@ -988,7 +1145,7 @@ fun SingleOption(
             Icon(
                 imageVector = Icons.Filled.Lock,
                 contentDescription = "",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.surfaceTint,
                 modifier = Modifier.size(15.dp)
             )
         }
@@ -1002,15 +1159,13 @@ fun SingleOption(
                 Text(
                     data.trim(), fontSize = 15.sp,
                     letterSpacing = 0.sp,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.surfaceTint
                 )
                 Spacer(modifier = Modifier.width(2.dp))
                 Icon(
                     imageVector = Icons.Filled.ArrowForwardIos,
                     contentDescription = "",
-                    tint = Color.White.copy(
-                        alpha = 0.6f
-                    ),
+                    tint = MaterialTheme.colorScheme.surfaceTint,
                     modifier = Modifier.size(15.dp)
                 )
             }
@@ -1022,6 +1177,7 @@ fun SingleOption(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
+    isDarkMode: Boolean,
     width: Float = 0f,
     title: String,
     actionText: String = "",
@@ -1033,14 +1189,14 @@ fun TopBar(
             Box(modifier = Modifier.fillMaxWidth(width), contentAlignment = Alignment.Center) {
                 Text(
                     text = title,
-                    color = Color.White, fontSize = 16.sp
+                    color = MaterialTheme.colorScheme.surfaceTint, fontSize = 16.sp
                 )
             }
         } else {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
                     text = title,
-                    color = Color.White, fontSize = 16.sp
+                    color = MaterialTheme.colorScheme.surfaceTint, fontSize = 16.sp
                 )
             }
         }
@@ -1049,14 +1205,14 @@ fun TopBar(
             Icon(
                 imageVector = Icons.Filled.ArrowBackIos,
                 contentDescription = "",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.surfaceTint,
                 modifier = Modifier.size(23.dp)
             )
         }
     }, actions = {
-        Text(text = actionText, color = Color.White, fontSize = 14.sp)
+        Text(text = actionText, color = MaterialTheme.colorScheme.surfaceTint, fontSize = 14.sp)
     }, colors = topAppBarColors(
-        containerColor = backColor,
+        containerColor = if (isDarkMode) backColor else Color.White,
         navigationIconContentColor = Color.White
     )
     )

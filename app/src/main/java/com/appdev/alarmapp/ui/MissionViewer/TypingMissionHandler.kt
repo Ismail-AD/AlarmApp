@@ -23,7 +23,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,10 +53,12 @@ import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.ui.theme.signatureBlue
+import com.appdev.alarmapp.utils.CustomPhrase
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.MissionMathDemoHandler
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlin.math.min
 
@@ -87,6 +91,7 @@ fun TypingMissionHandler(
             ).random() else mainViewModel.getRandomSentence()
         )
     }
+    var previousRandomText: CustomPhrase? by remember { mutableStateOf(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
@@ -174,6 +179,18 @@ fun TypingMissionHandler(
                                 launchSingleTop = true
                             }
                         }
+                        "Step" -> {
+                            controller.navigate(Routes.StepDetectorScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Squat" -> {
+                            controller.navigate(Routes.SquatMissionScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
                         "QR/Barcode" -> {
                             controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -198,12 +215,17 @@ fun TypingMissionHandler(
         if (checkIt && userInput == randomText.phraseData && mainViewModel.missionDetails.repeatProgress != mainViewModel.missionDetails.repeatTimes) {
             delay(550)
             userInput = ""
-            randomText = if (mainViewModel.missionDetails.selectedSentences.isNotEmpty()) convertStringToSet(
-                mainViewModel.missionDetails.selectedSentences
-            ).random() else mainViewModel.getRandomSentence()
+            do {
+                val sentenceSet = convertStringToSet(mainViewModel.missionDetails.selectedSentences)
+                randomText  =  if (mainViewModel.missionDetails.selectedSentences.isNotEmpty()) sentenceSet.random() else mainViewModel.getRandomSentence()
+            } while (randomText == previousRandomText && sentenceSet.size > 1)
+
+            // Update the previousRandomText for the next iteration
+            previousRandomText = randomText
 
             checkIt = false
             mainViewModel.missionData(MissionDataHandler.MissionProgress(mainViewModel.missionDetails.repeatProgress + 1))
+
         }
     }
 

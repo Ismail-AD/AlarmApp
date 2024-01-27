@@ -182,7 +182,6 @@ private fun Content(
             text = "Place a QR/Barcode inside the box",
         )
         if (viewModel.detectedQrCodeState.qrCode.isNotEmpty() && viewModel.detectedQrCodeState.startProcess) {
-            Log.d("CURC", "STEP 0 SCAN RESULT : our code is ${viewModel.detectedQrCodeState}")
             onDetect()
         }
     }

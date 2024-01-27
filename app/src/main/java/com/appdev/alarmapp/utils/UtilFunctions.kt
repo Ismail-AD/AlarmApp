@@ -3,6 +3,7 @@ package com.appdev.alarmapp.utils
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import android.util.Patterns
 import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import androidx.room.TypeConverter
@@ -12,7 +13,10 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.net.URLDecoder
+import java.text.SimpleDateFormat
 import java.time.LocalTime
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 val motivationalPhrases = listOf(
@@ -262,11 +266,29 @@ val listOfMissionTime: List<String> = listOf(
     "50",
     "60",
 )
+val gentleWakeup: List<String> = listOf(
+    "15",
+    "30",
+    "1",
+    "5",
+    "10"
+)
+
 val listOfSensi: List<String> = listOf(
     "High(hard to turn off)",
     "Normal",
     "Low(easy to turn off)",
 )
+
+val listOfOptions: List<String> = listOf(
+    "Inquiry",
+    "Bug",
+    "Suggestion",
+    "Compliment",
+)
+fun isEmailValid(email: String): Boolean {
+    return Patterns.EMAIL_ADDRESS.matcher(email).matches()
+}
 
 data class TimeUntil(val days: Long, val hours: Long, val minutes: Long, val seconds: Long)
 
@@ -349,3 +371,4 @@ fun fromStringSet(value: Set<String>?): String? {
 fun toStringSet(value: String?): Set<String> {
     return value?.split(",")?.toSet() ?: emptySet()
 }
+

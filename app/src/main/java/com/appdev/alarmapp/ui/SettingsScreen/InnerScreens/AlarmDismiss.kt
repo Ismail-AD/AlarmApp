@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,11 +27,14 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +69,8 @@ import com.appdev.alarmapp.utils.listOfSensi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostController) {
+
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     val dismissSettings = mainViewModel.dismissSettings.collectAsStateWithLifecycle()
     var switchState by remember { mutableStateOf(dismissSettings.value.muteTone) }
     var showDismissSheet by remember { mutableStateOf(false) }
@@ -81,7 +87,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
     ) {
         Column(
             modifier = Modifier
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
                 .fillMaxHeight()
         ) {
             Row(
@@ -95,7 +101,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                     onClick = {
                         controller.popBackStack()
                     },
-                    border = BorderStroke(1.dp, Color.White),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
@@ -103,14 +109,14 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
 
                 Text(
                     text = "Dismiss Alarm/Mission",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
@@ -119,7 +125,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                 "Alarm Dismissal",
                 fontSize = 15.sp,
                 letterSpacing = 0.sp,
-                color = Color(0xffA6ACB5),
+                color = MaterialTheme.colorScheme.inverseSurface,
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,7 +143,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                 "Turn off alarm if unresponsive for a certain amount of time",
                 fontSize = 12.sp,
                 letterSpacing = 0.sp,
-                color = Color(0xffA6ACB5),
+                color = MaterialTheme.colorScheme.inverseSurface,
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +153,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                 "Mission Dismissal",
                 fontSize = 15.sp,
                 letterSpacing = 0.sp,
-                color = Color(0xffA6ACB5),
+                color = MaterialTheme.colorScheme.inverseSurface,
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,7 +175,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                         .padding(horizontal = 15.dp),
                     shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xff24272E)
+                        containerColor = MaterialTheme.colorScheme.inverseOnSurface,
                     )
                 ) {
                     Row(
@@ -181,7 +187,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
 
                         Text(
                             text = "Mute during mission",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
                         )
                         Box(
@@ -203,10 +209,18 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                                     )
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White, // Color when switch is ON
-                                    checkedTrackColor = Color(0xff7358F5), // Track color when switch is ON
-                                    uncheckedThumbColor = Color(0xff949495), // Color when switch is OFF
-                                    uncheckedTrackColor = Color(0xff343435) // Track color when switch is OFF
+                                    checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                        0xff13A7CB
+                                    ), // Color when switch is ON
+                                    checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                        0xff7FCFE1
+                                    ), // Track color when switch is ON
+                                    uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                        0xff656D7D
+                                    ), // Color when switch is OFF
+                                    uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                        0xff9E9E9E
+                                    ) // Track color when switch is OFF
                                 ), modifier = Modifier.scale(0.8f)
                             )
                         }
@@ -232,7 +246,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(elementBack)
+                            .background(MaterialTheme.colorScheme.onBackground)
                             .padding(vertical = 16.dp, horizontal = 9.dp)
                     ) {
                         Row(
@@ -243,7 +257,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                         ) {
                             Text(
                                 text = "Auto Dismiss",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 18.sp,
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center, fontWeight = FontWeight.W500
@@ -310,7 +324,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(elementBack)
+                            .background(MaterialTheme.colorScheme.onBackground)
                             .padding(vertical = 16.dp, horizontal = 9.dp)
                     ) {
                         Row(
@@ -321,7 +335,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                         ) {
                             Text(
                                 text = "Mission time limit",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 18.sp,
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center, fontWeight = FontWeight.W500
@@ -371,7 +385,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(elementBack)
+                            .background(MaterialTheme.colorScheme.background)
                             .padding(vertical = 16.dp, horizontal = 9.dp)
                     ) {
                         Row(
@@ -382,7 +396,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                         ) {
                             Text(
                                 text = "Photo sensitivity",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 18.sp,
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center, fontWeight = FontWeight.W500
@@ -391,7 +405,6 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-
                         ) {
                             listOfSensi.forEach { item ->
                                 Spacer(modifier = Modifier.height(7.dp))
@@ -441,7 +454,7 @@ fun DismissOption(
             .padding(horizontal = 15.dp),
         shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xff24272E)
+            containerColor = MaterialTheme.colorScheme.inverseOnSurface
         )
     ) {
         Row(
@@ -453,7 +466,7 @@ fun DismissOption(
             Column {
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     textAlign = TextAlign.Start, fontSize = 16.sp
                 )
                 Text(
@@ -467,7 +480,7 @@ fun DismissOption(
                     Icon(
                         imageVector = Icons.Filled.ArrowForwardIos,
                         contentDescription = "",
-                        tint = Color.White.copy(
+                        tint = MaterialTheme.colorScheme.surfaceTint.copy(
                             alpha = 0.6f
                         ),
                         modifier = Modifier.size(15.dp)
@@ -485,10 +498,10 @@ fun SingleAttempt(isSelected: Boolean, onCLick: () -> Unit, title: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        RadioButton(selected = isSelected, onClick = { onCLick() })
+        RadioButton(selected = isSelected, onClick = { onCLick() },colors = RadioButtonDefaults.colors(selectedColor = Color(0xff18677E), unselectedColor = Color(0xffB6BDCA)))
         Text(
             text = if (title != "Off") "$title minutes" else title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceTint,
             fontSize = 17.sp, modifier = Modifier.padding(start = 6.dp)
         )
     }
@@ -500,10 +513,10 @@ fun SingleAttemptMissionLimit(isSelected: Boolean, onCLick: () -> Unit, title: S
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        RadioButton(selected = isSelected, onClick = { onCLick() })
+        RadioButton(selected = isSelected, onClick = { onCLick() },colors = RadioButtonDefaults.colors(selectedColor = Color(0xff18677E), unselectedColor = Color(0xffB6BDCA)))
         Text(
             text = if (title != "Off") "$title seconds" else title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceTint,
             fontSize = 17.sp, modifier = Modifier.padding(start = 6.dp)
         )
     }
@@ -516,10 +529,10 @@ fun SingleAttemptSenstivity(isSelected: Boolean, onCLick: () -> Unit, title: Str
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        RadioButton(selected = isSelected, onClick = { onCLick() })
+        RadioButton(selected = isSelected, onClick = { onCLick() },colors = RadioButtonDefaults.colors(selectedColor = Color(0xff18677E), unselectedColor = Color(0xffB6BDCA)))
         Text(
             text = title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceTint,
             fontSize = 17.sp, modifier = Modifier.padding(start = 6.dp)
         )
     }

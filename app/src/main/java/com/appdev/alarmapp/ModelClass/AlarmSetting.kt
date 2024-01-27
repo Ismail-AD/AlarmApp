@@ -9,5 +9,6 @@ data class AlarmSetting(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val showInNotification: Boolean = false,
-    val activeSort: Boolean = false
+    val activeSort: Boolean = false,
+    val preventUninstall: Boolean = false
 )

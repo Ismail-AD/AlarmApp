@@ -37,47 +37,62 @@ class AlarmScheduler(
 //    }
 
     @SuppressLint("MissingPermission")
-    fun schedule(alarmData: AlarmEntity,showNotify:Boolean) {
+    fun schedule(alarmData: AlarmEntity, showNotify: Boolean) {
 
         val intent = Intent(context, AlarmTriggerHandler::class.java)
-
-
-        if (alarmData.ringtone.rawResourceId != -1) {
-            intent.putExtra("tonetype", 0)
-            intent.putExtra("ringtone", alarmData.ringtone.rawResourceId.toString())
-        } else if (alarmData.ringtone.uri != null) {
-            intent.putExtra("tonetype", 1)
-            intent.putExtra("ringtone", alarmData.ringtone.uri.toString())
-        } else if (alarmData.ringtone.file != null) {
-            intent.putExtra("tonetype", 2)
-            intent.putExtra("ringtone", alarmData.ringtone.file!!.absolutePath)
-        }
-        if (alarmData.listOfMissions.isNotEmpty()) {
-            intent.putExtra("list", alarmData.listOfMissions as Serializable)
-        }
-        if (alarmData.listOfDays.isNotEmpty()) {
-            intent.putExtra("listOfDays", Gson().toJson(alarmData.listOfDays))
-        }
-        if (alarmData.snoozeTime != -1) {
-            intent.putExtra("snooze", alarmData.snoozeTime.toString())
-        }
-        intent.putExtra("ringtoneObj", alarmData.ringtone)
-        intent.putExtra("tInM", alarmData.timeInMillis.toString())
-        intent.putExtra("id", alarmData.id.toString())
-        intent.putExtra("localTime", alarmData.localTime.toString())
+//
+//
+//        if (alarmData.ringtone.rawResourceId != -1) {
+//            intent.putExtra("tonetype", 0)
+//            intent.putExtra("ringtone", alarmData.ringtone.rawResourceId.toString())
+//        } else if (alarmData.ringtone.uri != null) {
+//            intent.putExtra("tonetype", 1)
+//            intent.putExtra("ringtone", alarmData.ringtone.uri.toString())
+//        } else if (alarmData.ringtone.file != null) {
+//            intent.putExtra("tonetype", 2)
+//            intent.putExtra("ringtone", alarmData.ringtone.file!!.absolutePath)
+//        }
+//        if (alarmData.listOfMissions.isNotEmpty()) {
+//            intent.putExtra("list", alarmData.listOfMissions as Serializable)
+//        }
+//        if (alarmData.listOfDays.isNotEmpty()) {
+//            intent.putExtra("listOfDays", Gson().toJson(alarmData.listOfDays))
+//        }
+//        if (alarmData.snoozeTime != -1) {
+//            intent.putExtra("snooze", alarmData.snoozeTime.toString())
+//        }
+//        intent.putExtra("ringtoneObj", alarmData.ringtone)
+//        intent.putExtra("tInM", alarmData.timeInMillis.toString())
+//        intent.putExtra("id", alarmData.id.toString())
+//        intent.putExtra("localTime", alarmData.localTime.toString())
         intent.putExtra("notify", showNotify)
         intent.putExtra("dismissSet", mainVM.dismissSettings.value)
+        intent.putExtra("Alarm", alarmData)
+        intent.action = "${context.packageName}.ACTION_ALARM"
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            alarmData.timeInMillis,
-            PendingIntent.getBroadcast(
-                context,
-                alarmData.reqCode,
-                intent,
-                PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        if (alarmData.snoozeTimeInMillis.toInt() != 0) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                alarmData.snoozeTimeInMillis,
+                PendingIntent.getBroadcast(
+                    context,
+                    alarmData.reqCode,
+                    intent,
+                    PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
             )
-        )
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                alarmData.timeInMillis,
+                PendingIntent.getBroadcast(
+                    context,
+                    alarmData.reqCode,
+                    intent,
+                    PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+        }
     }
 
     fun cancel(alarmData: AlarmEntity) {

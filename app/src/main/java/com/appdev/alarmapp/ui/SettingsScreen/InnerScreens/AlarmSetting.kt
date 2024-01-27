@@ -1,11 +1,24 @@
 package com.appdev.alarmapp.ui.SettingsScreen.InnerScreens
 
+import android.Manifest
+import android.app.Activity
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,9 +40,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,15 +60,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.appdev.alarmapp.DeviceAdminManage.DeviceAdminReceiver
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.navigation.Routes
+import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MainScreen.getAMPM
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
+import com.appdev.alarmapp.utils.MissionDataHandler
+import com.google.accompanist.permissions.rememberPermissionState
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -62,14 +84,46 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
     val alarmSettings = mainViewModel.basicSettings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
+    var showDialog by remember {
+        mutableStateOf(false)
+    }
 
+    val deviceAdminComponent by remember {
+        mutableStateOf(ComponentName(context, DeviceAdminReceiver::class.java))
+    }
+
+    val devicePolicyManager by remember {
+        mutableStateOf(context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager)
+    }
+
+    val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        showDialog = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            mainViewModel.updateBasicSettings(
+                AlarmSetting(
+                    id = mainViewModel.basicSettings.value.id,
+                    showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                    activeSort = mainViewModel.basicSettings.value.activeSort,
+                    preventUninstall = true
+                )
+            )
+        }
+
+        if (!devicePolicyManager.isAdminActive(deviceAdminComponent)) {
+            Toast.makeText(context, "This Activation is Required to prevent un-installation of app", Toast.LENGTH_SHORT)
+                .show()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
                 .fillMaxHeight()
         ) {
             Row(
@@ -83,7 +137,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                     onClick = {
                         controller.popBackStack()
                     },
-                    border = BorderStroke(1.dp, Color.White),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
@@ -91,19 +145,19 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
 
                 Text(
                     text = "Alarm Setting",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
             }
-            settingsElement(title = "Default Setting for New Alarms", onClick = {
+            settingsElement(isDarkMode, title = "Default Setting for New Alarms", onClick = {
                 mainViewModel.setDefaultSettings(DefaultSettingsHandler.GoingToSetDefault(true))
                 controller.navigate(Routes.DefaultSettingsScreen.route) {
                     popUpTo(Routes.SettingsOfAlarmScreen.route) {
@@ -116,7 +170,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 "Set by default in editor when setting alarms",
                 fontSize = 13.sp,
                 letterSpacing = 0.sp,
-                color = Color(0xffA6ACB5),
+                color = MaterialTheme.colorScheme.inverseSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -126,13 +180,14 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 "Upcoming alarms",
                 fontSize = 14.sp,
                 letterSpacing = 0.sp,
-                color = Color(0xffA6ACB5),
+                color = MaterialTheme.colorScheme.inverseSurface,
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 20.dp, top = 30.dp)
             )
             settingsElement(
+                isDarkMode = isDarkMode,
                 title = "Show next alarm in notification drawer",
                 onClick = {
 
@@ -158,6 +213,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 }
             }
             settingsElement(
+                isDarkMode = isDarkMode,
                 title = "Sort by enabled alarm first",
                 onClick = { /*TODO*/ },
                 isSwitch = true,
@@ -171,21 +227,119 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                     )
                 )
             }
-//            Text(
-//                "Alarm cheat prevention",
-//                fontSize = 14.sp,
-//                letterSpacing = 0.sp,
-//                color = Color(0xffA6ACB5),
-//                textAlign = TextAlign.Start,
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(start = 20.dp, top = 30.dp)
-//            )
-//            settingsElement(
-//                title = "Prevent app uninstall during alarm",
-//                onClick = { /*TODO*/ },
-//                isSwitch = true
-//            )
+            Text(
+                "Alarm cheat prevention",
+                fontSize = 14.sp,
+                letterSpacing = 0.sp,
+                color = Color(0xffA6ACB5),
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, top = 30.dp)
+            )
+            settingsElement(
+                isDarkMode = isDarkMode,
+                title = "Prevent app uninstall during alarm",
+                onClick = { /*TODO*/ },
+                isSwitch = true, switchState = alarmSettings.value.preventUninstall
+            ) {
+                if(it){
+                    showDialog = true
+                }
+            }
+        }
+        if (showDialog) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Dialog(onDismissRequest = {
+                    showDialog = false
+                }) {
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.onBackground,
+                                shape = RoundedCornerShape(5.dp)
+                            )
+                    ) {
+                        Text(
+                            text = "Prevent App Uninstall",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 20.dp), fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "during alarm",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth(), fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            "If you set this on, you can't uninstall Alarmy. If you want to uninstall Alarmy please tum off this option.",
+                            fontSize = 16.sp,
+                            letterSpacing = 0.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 18.dp, end = 18.dp)
+                        )
+
+                        Text(
+                            "(This needs Device Manager permission)", fontSize = 16.sp,
+                            letterSpacing = 0.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 15.dp, start = 18.dp, end = 18.dp)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 30.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(bottom = 20.dp)
+                            ) {
+                                CustomButton(
+                                    onClick = {
+                                        showDialog = false
+                                    },
+                                    text = "Cancel",
+                                    width = 0.40f,
+                                    backgroundColor = Color(0xffC5CDDA), textColor = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                                CustomButton(
+                                    onClick = {
+                                        if (devicePolicyManager.isAdminActive(deviceAdminComponent)) {
+                                            //do whatever is needed here is its active
+                                            showDialog = false
+                                        } else {
+                                            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                                            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, deviceAdminComponent)
+                                            requestOverlayPermissionLauncher.launch(intent)
+                                        }
+                                    },
+                                    text = "Ok",
+                                    width = 0.75f,
+                                    backgroundColor = Color(0xffC5CDDA), textColor = Color.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -193,6 +347,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun settingsElement(
+    isDarkMode: Boolean,
     resourceID: Int = -1,
     title: String,
     onClick: () -> Unit,
@@ -214,7 +369,7 @@ fun settingsElement(
                 .padding(horizontal = 15.dp),
             shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xff24272E)
+                containerColor = MaterialTheme.colorScheme.inverseOnSurface
             )
         ) {
             Row(
@@ -232,7 +387,7 @@ fun settingsElement(
                 }
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
                 )
                 if (isSwitch) {
@@ -248,10 +403,18 @@ fun settingsElement(
                                 // Handle the new switch state
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White, // Color when switch is ON
-                                checkedTrackColor = Color(0xff7358F5), // Track color when switch is ON
-                                uncheckedThumbColor = Color(0xff949495), // Color when switch is OFF
-                                uncheckedTrackColor = Color(0xff343435) // Track color when switch is OFF
+                                checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                    0xff13A7CB
+                                ), // Color when switch is ON
+                                checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                    0xff7FCFE1
+                                ), // Track color when switch is ON
+                                uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                    0xff656D7D
+                                ), // Color when switch is OFF
+                                uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                    0xff9E9E9E
+                                ) // Track color when switch is OFF
                             ), modifier = Modifier.scale(0.8f)
                         )
                     }
@@ -265,7 +428,7 @@ fun settingsElement(
                         Icon(
                             imageVector = Icons.Filled.ArrowForwardIos,
                             contentDescription = "",
-                            tint = Color.White.copy(
+                            tint = MaterialTheme.colorScheme.surfaceTint.copy(
                                 alpha = 0.6f
                             ),
                             modifier = Modifier.size(15.dp)

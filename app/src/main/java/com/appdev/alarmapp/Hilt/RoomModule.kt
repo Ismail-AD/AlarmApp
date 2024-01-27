@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.Hilt
 
 import android.content.Context
+import android.speech.tts.TextToSpeech
 import androidx.room.Room
 import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
 import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
@@ -12,6 +13,11 @@ import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
 import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
 import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
 import com.appdev.alarmapp.utils.RoomDB
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,6 +28,20 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RoomModule {
+    @Singleton
+    @Provides
+    fun provideTextToSpeech(context: Context): TextToSpeech {
+        return TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+
+            } else {
+                // Handle TextToSpeech initialization failure
+            }
+        }
+    }
+    @Singleton
+    @Provides
+    fun fireBaseDBInstance(): FirebaseDatabase = Firebase.database
 
     @Provides
     @Singleton

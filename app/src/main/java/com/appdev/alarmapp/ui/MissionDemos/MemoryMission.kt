@@ -2,12 +2,14 @@ package com.appdev.alarmapp.ui.MissionDemos
 
 import android.content.Context
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,11 +42,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,6 +87,7 @@ fun MemoryMissionScreen(
     mainViewModel: MainViewModel,
     controller: NavHostController
 ) {
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
@@ -90,18 +95,24 @@ fun MemoryMissionScreen(
         mutableStateOf(listOf("Very Easy", "Easy", "Normal", "Hard"))
     }
     var selectedItem by remember {
-        mutableStateOf(itemsList[0]) // initially, first item is selected
+        mutableStateOf(mainViewModel.missionDetails.missionLevel) // initially, first item is selected
     }
     val context = LocalContext.current
     val state =
-        rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else 0)
+        rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0)
 
-    var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else 0) }
+    var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0) }
 
     val scope = rememberCoroutineScope()
     LaunchedEffect(key1 = mainViewModel.missionDetails.repeatProgress) {
         if (mainViewModel.missionDetails.repeatProgress > 1) {
             mainViewModel.missionData(MissionDataHandler.MissionProgress(1))
+        }
+    }
+    BackHandler {
+        controller.navigate(Routes.MissionMenuScreen.route) {
+            popUpTo(controller.graph.startDestinationId)
+            launchSingleTop = true
         }
     }
     Box(
@@ -110,7 +121,7 @@ fun MemoryMissionScreen(
 
         Column(
             modifier = Modifier
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
                 .fillMaxHeight()
         ) {
             Row(
@@ -127,7 +138,7 @@ fun MemoryMissionScreen(
                             launchSingleTop = true
                         }
                     },
-                    border = BorderStroke(1.dp, Color.White),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
@@ -135,14 +146,14 @@ fun MemoryMissionScreen(
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
 
                 Text(
-                    text = if (mainViewModel.whichMission.isMemory) "Memory" else if (mainViewModel.whichMission.isMath) "Math" else if (mainViewModel.whichMission.isShake) "Shake" else if (mainViewModel.whichMission.isSteps) "Step" else "",
-                    color = Color.White,
+                    text = if (mainViewModel.whichMission.isMemory) "Memory" else if (mainViewModel.whichMission.isMath) "Math" else if (mainViewModel.whichMission.isShake) "Shake" else if (mainViewModel.whichMission.isSteps) "Step" else if (mainViewModel.whichMission.isSquat) "Squat" else "",
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 17.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
@@ -156,7 +167,10 @@ fun MemoryMissionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp, horizontal = 22.dp)
-                        .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(10.dp)
+                        ),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -173,7 +187,7 @@ fun MemoryMissionScreen(
                         ) {
                             Text(
                                 text = getMathEqForSliderValue(if (mainViewModel.missionDetails.missionID > 1) mainViewModel.missionDetails.missionLevel else selectedItem),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 30.sp,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
@@ -209,7 +223,7 @@ fun MemoryMissionScreen(
                                 }
                             }
                         }
-                    } else if (mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSteps) {
+                    } else if (mainViewModel.whichMission.isSquat || mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSteps) {
                         Image(
                             painter = painterResource(id = R.drawable.shakeimg),
                             contentDescription = "",
@@ -218,7 +232,7 @@ fun MemoryMissionScreen(
                                 .height(180.dp)
                         )
                     }
-                    if (!mainViewModel.whichMission.isShake && !mainViewModel.whichMission.isSteps) {
+                    if (!mainViewModel.whichMission.isShake && !mainViewModel.whichMission.isSteps && !mainViewModel.whichMission.isSquat) {
                         Text(
                             text = "Example",
                             color = Color(0xffD66616),
@@ -239,7 +253,7 @@ fun MemoryMissionScreen(
                         ) {
                             Text(
                                 text = if (mainViewModel.whichMission.isMemory) "Memory Level" else if (mainViewModel.whichMission.isMath) "Math Level" else if (mainViewModel.whichMission.isShake) "Shake Level" else "",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 16.sp,
                                 textAlign = TextAlign.Start,
                                 fontWeight = FontWeight.W500,
@@ -258,6 +272,7 @@ fun MemoryMissionScreen(
                                                 selected = (item == selectedItem),
                                                 onClick = {
                                                     selectedItem = item
+                                                    mainViewModel.missionData(MissionDataHandler.MissionLevel(selectedItem))
                                                 },
                                                 colors = FilterChipDefaults.filterChipColors(
                                                     containerColor = Color.Transparent,
@@ -286,7 +301,10 @@ fun MemoryMissionScreen(
                             horizontal = 22.dp,
                             vertical = if (mainViewModel.whichMission.isShake) 8.dp else 5.dp
                         )
-                        .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(10.dp)
+                        ),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -323,7 +341,7 @@ fun MemoryMissionScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (mainViewModel.whichMission.isShake) {
+                                if (mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSquat) {
                                     mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = (currentIndex + 1) * 5))
                                 } else if (mainViewModel.whichMission.isSteps) {
                                     mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = (currentIndex + 1) * 10))
@@ -331,8 +349,8 @@ fun MemoryMissionScreen(
                                     mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = currentIndex + 1))
                                 }
                                 Text(
-                                    text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if(mainViewModel.whichMission.isSteps) "${(index + 1) * 10}" else "${(index + 1) * 5}",
-                                    color = if (index == currentIndex) Color.White else Color.Gray,
+                                    text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if(mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else "${(index + 1) * 5}",
+                                    color = if(isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
                                     fontSize = 27.sp,
                                     fontWeight = FontWeight.W600
                                 )
@@ -340,7 +358,7 @@ fun MemoryMissionScreen(
                         }
                         Text(
                             text = "times",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.W400,
@@ -363,9 +381,9 @@ fun MemoryMissionScreen(
                             },
                             text = "Preview",
                             width = 0.3f,
-                            backgroundColor = backColor,
+                            backgroundColor = MaterialTheme.colorScheme.background,
                             isBorderPreview = true,
-                            textColor = Color.LightGray
+                            textColor = if(isDarkMode) Color.LightGray else Color.Black
                         )
                         Spacer(modifier = Modifier.width(14.dp))
                         CustomButton(

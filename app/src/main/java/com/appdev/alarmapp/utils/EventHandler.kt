@@ -22,6 +22,15 @@ sealed interface EventHandlerAlarm {
     data class requestCode(val reqCode: Int) : EventHandlerAlarm
     data class getSnoozeTime(val getSnoozeTime: Int) : EventHandlerAlarm
     data class getMissions(val missions:List<Missions>) : EventHandlerAlarm
+    data class IsGentleWakeUp(val isGentleWakeUp: Boolean) : EventHandlerAlarm
+    data class LoudEffect(val isLoudEffectOrNot: Boolean) : EventHandlerAlarm
+    data class TimeReminder(val isTimeReminderOrNot: Boolean) : EventHandlerAlarm
+    data class GetWakeUpTime(val getWUTime: Int) : EventHandlerAlarm
+
+    data class CustomVolume(val customVolume: Float) : EventHandlerAlarm
+    data class Vibrator(val setVibration:Boolean) : EventHandlerAlarm
+    data class IsLabel(val isLabelOrNot: Boolean) : EventHandlerAlarm
+    data class LabelText(val getLabelText: String) : EventHandlerAlarm
     object update : EventHandlerAlarm
 }
 
@@ -35,6 +44,15 @@ sealed interface newAlarmHandler {
     data class requestCode(val reqCode: Int) : newAlarmHandler
     data class getSnoozeTime(val getSnoozeTime: Int) : newAlarmHandler
     data class getMissions(val missions:List<Missions>) : newAlarmHandler
+    data class IsGentleWakeUp(val isGentleWakeUp: Boolean) : newAlarmHandler
+    data class LoudEffect(val isLoudEffectOrNot: Boolean) : newAlarmHandler
+    data class TimeReminder(val isTimeReminderOrNot: Boolean) : newAlarmHandler
+    data class GetWakeUpTime(val getWUTime: Int) : newAlarmHandler
+
+    data class CustomVolume(val customVolume: Float) : newAlarmHandler
+    data class Vibrator(val setVibration:Boolean) : newAlarmHandler
+    data class IsLabel(val isLabelOrNot: Boolean) : newAlarmHandler
+    data class LabelText(val getLabelText: String) : newAlarmHandler
     object insert : newAlarmHandler
 
 }
@@ -85,7 +103,7 @@ sealed interface isOldOrNew {
 
 
 sealed interface whichMissionHandler {
-    data class thisMission(val missionMath: Boolean,val missionShake:Boolean,val missionMemory:Boolean,val isSteps:Boolean) : whichMissionHandler
+    data class thisMission(val missionMath: Boolean,val missionShake:Boolean,val missionMemory:Boolean,val isSteps:Boolean,val isSquat:Boolean) : whichMissionHandler
 }
 
 

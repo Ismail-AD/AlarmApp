@@ -18,6 +18,8 @@ import com.appdev.alarmapp.utils.RingtoneEntity
 import com.appdev.alarmapp.utils.SystemRingtone
 import com.appdev.alarmapp.utils.toRingtone
 import com.appdev.alarmapp.utils.toRingtoneFromSystem
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -26,6 +28,7 @@ import javax.inject.Inject
 
 
 class RingtoneRepository @Inject constructor(
+    private val RealtimeDBObject: FirebaseDatabase,
     private val recordingsDao: RecordingsDao,
     private val phraseDao: PhraseDao,
     private val imageStoreDao: ImageStoreDao,
@@ -55,6 +58,16 @@ class RingtoneRepository @Inject constructor(
     val getBasicSettings: Flow<AlarmSetting> = alarmBasicSettingDao.getAlarmSettings()
     val getDismissSettings: Flow<DismissSettings> = dismissDao.getDismissSettings()
 
+    fun sendFeedbackInfo(
+        username: String, onComplete: (Boolean, String) -> Unit,
+    ) {
+        RealtimeDBObject.reference.child("Suggestion")
+            .setValue(username).addOnSuccessListener {
+                onComplete(true, "Submitted Successfully !")
+            }.addOnFailureListener {
+                onComplete(false, it.localizedMessage!!)
+            }
+    }
     suspend fun updateDismissSettings(dismissSettings: DismissSettings) {
         dismissDao.updateDismissSettings(dismissSettings)
     }

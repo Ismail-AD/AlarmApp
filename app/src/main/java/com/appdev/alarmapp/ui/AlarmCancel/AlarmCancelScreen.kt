@@ -1,8 +1,19 @@
 package com.appdev.alarmapp.ui.AlarmCancel
 
+import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.media.AudioManager
+import android.os.Build
+import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,16 +28,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.ModelClass.DismissSettings
@@ -36,25 +52,61 @@ import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.CustomImageButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
-import java.io.File
-import java.time.Instant
-import java.time.OffsetTime
-import java.time.ZoneId
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun AlarmCancelScreen(
+    textToSpeech: TextToSpeech,
     controller: NavHostController,
     mainViewModel: MainViewModel,
     intent: Intent = Intent(),
+    snoozeTrigger: () -> Unit = {},
     alarmEndHandle: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
+    var startItNow by remember { mutableStateOf(false) }
+    var timeIsDone by remember { mutableStateOf(false) }
+    var speechIsDone by remember { mutableStateOf(false) }
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+    var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) }
+    val scope = rememberCoroutineScope()
+
+    val systemUiController = rememberSystemUiController()
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager =
+            context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        vibratorManager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+
+    SideEffect {
+        systemUiController.setSystemBarsColor(
+            color = Color.Black,
+            darkIcons = false
+        )
+    }
+    BackHandler(false) {
+
+    }
+
+    val previewMode by remember {
+        mutableStateOf(intent.getBooleanExtra("Preview", false))
+    }
 
     var alarmScheduler by remember {
         mutableStateOf(AlarmScheduler(context, mainViewModel))
@@ -69,17 +121,79 @@ fun AlarmCancelScreen(
     val dismissSettingsReceived: DismissSettings? by remember {
         mutableStateOf(intent.getParcelableExtra("dismissSet"))
     }
+    val alarmEntity: AlarmEntity? by remember {
+        mutableStateOf(intent.getParcelableExtra("Alarm"))
+    }
 
-    LaunchedEffect(key1 = showSnoozed) {
-        if (showSnoozed) {
-            intent.getStringExtra("snooze")?.let { st ->
-                Toast.makeText(context, "Alarm is snoozed for $st minutes", Toast.LENGTH_SHORT)
-                    .show()
+    DisposableEffect(key1 = Unit) {
+        alarmEntity?.let {
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val newVolume = (it.customVolume / 100f * maxVolume).toInt()
+
+            // Ensure the new volume is within the valid range (0 to maxVolume)
+            val clampedVolume = newVolume.coerceIn(0, maxVolume)
+
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clampedVolume, 0)
+        }
+        onDispose {
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,currentVolume, 0)
+            textToSpeech.stop()
+            vibrator.cancel()
+            if (isDarkMode) {
+                systemUiController.setSystemBarsColor(
+                    color = Color.Black,
+                    darkIcons = false
+                )
+            } else {
+                systemUiController.setSystemBarsColor(
+                    color = Color.Transparent,
+                    darkIcons = true
+                )
             }
         }
     }
-    LaunchedEffect(key1 = Unit){
-        dismissSettingsReceived?.let { dset->
+    LaunchedEffect(key1 = showSnoozed) {
+        if (showSnoozed) {
+            alarmEntity?.let {
+                if (it.snoozeTime != -1) {
+                    Toast.makeText(
+                        context,
+                        "Alarm is snoozed for ${it.snoozeTime} minutes",
+                        Toast.LENGTH_SHORT
+                    )
+                        .show()
+                }
+            }
+        }
+    }
+    LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
+
+
+        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+
+            }
+            override fun onDone(utteranceId: String?) {
+                startItNow = true
+            }
+            override fun onError(utteranceId: String?) {
+            }
+        })
+        alarmEntity?.let {
+            Helper.updateCustomValue(it.customVolume)
+            if (it.willVibrate) {
+                vibrator.cancel()
+                val vibrationEffect = VibrationEffect.createWaveform(
+                    longArrayOf(
+                        0,
+                        250
+                    ), // Pattern for continuous vibration (0 indicates vibration, 1000 milliseconds off)
+                    0 // Repeat at index 0
+                )
+                vibrator.vibrate(vibrationEffect)
+            }
+        }
+        dismissSettingsReceived?.let { dset ->
             if (dset.dismissTime > 0 && mainViewModel.isRealAlarm) {
                 delay(dset.dismissTime * 60 * 1000L) // Convert minutes to milliseconds
                 Helper.stopStream()
@@ -88,45 +202,212 @@ fun AlarmCancelScreen(
         }
     }
 
-    if (mainViewModel.isRealAlarm && !Helper.isPlaying()) {
-        when (intent.getIntExtra("tonetype", 0)) {
-            0 -> {
-                val rawResourceId = intent.getStringExtra("ringtone")
-                rawResourceId?.let {
-                    ringtone = ringtone.copy(rawResourceId = it.toInt())
-                    Helper.playStream(context, it.toInt())
+    if ((mainViewModel.isRealAlarm || previewMode) && !Helper.isPlaying()) {
+        alarmEntity?.let { alarm ->
+            if (alarm.ringtone.rawResourceId != -1) {
+                ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
+                if (alarm.isTimeReminder) {
+                    if (!startItNow) {
+                        scope.launch {
+                            delay(500)
+                            startCurrentTimeAndDate(
+                                alarm.labelTextForSpeech,
+                                textToSpeech,
+                                System.currentTimeMillis().toString() + (0..19992).random()
+                            )
+                        }
+                    }
                 }
-            }
 
-            1 -> {
-                val uriString = intent.getStringExtra("ringtone")
-                val uri = Uri.parse(uriString)
-                ringtone = ringtone.copy(uri = uri)
-                Helper.playStream(context, uri = uri)
-            }
-
-            2 -> {
-                val filePath = intent.getStringExtra("ringtone")
-                filePath?.let {
-                    val file = File(it)
-                    ringtone = ringtone.copy(file = file)
-                    Helper.playFile(file, context)
+                if (!alarm.isTimeReminder) {
+                    if (alarm.isLabel) {
+                        scope.launch {
+                            delay(500)
+                            playTextToSpeech(
+                                text = alarm.labelTextForSpeech,
+                                textToSpeech = textToSpeech,
+                                id = System.currentTimeMillis().toString() + (0..19992).random()
+                            )
+                        }
+                    }
+                    if (alarm.isGentleWakeUp) {
+                        Helper.updateLow(true)
+                        Helper.startIncreasingVolume(
+                            convertToMilliseconds(
+                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                            )
+                        )
+                    }
+                    Helper.playStream(context, alarm.ringtone.rawResourceId)
+                } else {
+                    if (startItNow) {
+                        if (alarm.isGentleWakeUp) {
+                            Helper.updateLow(true)
+                            Helper.startIncreasingVolume(
+                                convertToMilliseconds(
+                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                                )
+                            )
+                        }
+                        Helper.playStream(context, alarm.ringtone.rawResourceId)
+                    }
                 }
-            }
+                if (alarm.isLoudEffect) {
+                    scope.launch {
+                        delay(40000L)
+                        setMaxVolume(context)
+                        Helper.playStream(context, R.raw.loudeffect)
+                    }
+                }
+            } else if (alarm.ringtone.uri != null) {
+                ringtone = ringtone.copy(uri = alarm.ringtone.uri)
 
-            else -> {}
+                if (alarm.isTimeReminder) {
+                    if (!startItNow) {
+                        scope.launch {
+                            delay(500)
+                            startCurrentTimeAndDate(
+                                alarm.labelTextForSpeech,
+                                textToSpeech,
+                                System.currentTimeMillis().toString()
+                            )
+                        }
+                    }
+                }
+
+                if (!alarm.isTimeReminder) {
+                    if (alarm.isGentleWakeUp) {
+                        Helper.updateLow(true)
+                        Helper.startIncreasingVolume(
+                            convertToMilliseconds(
+                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                            )
+                        )
+                    }
+                    Helper.playStream(context, uri = alarm.ringtone.uri)
+                } else {
+                    if (startItNow) {
+                        if (alarm.isGentleWakeUp) {
+                            Helper.updateLow(true)
+                            Helper.startIncreasingVolume(
+                                convertToMilliseconds(
+                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                                )
+                            )
+                        }
+                        Helper.playStream(context, uri = alarm.ringtone.uri)
+                    }
+                }
+
+                if (alarm.isLoudEffect) {
+                    scope.launch {
+                        delay(40000L)
+                        setMaxVolume(context)
+                        Helper.playStream(context, R.raw.loudeffect)
+                    }
+                }
+
+
+            } else if (alarm.ringtone.file != null) {
+                ringtone = ringtone.copy(file = alarm.ringtone.file)
+
+                if (alarm.isTimeReminder) {
+                    if (!startItNow) {
+                        scope.launch {
+                            delay(500)
+                            startCurrentTimeAndDate(
+                                alarm.labelTextForSpeech,
+                                textToSpeech,
+                                System.currentTimeMillis().toString()
+                            )
+                        }
+                    }
+                }
+                if (!alarm.isTimeReminder) {
+                    if (alarm.isGentleWakeUp) {
+                        Helper.updateLow(true)
+                        Helper.startIncreasingVolume(
+                            convertToMilliseconds(
+                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                            )
+                        )
+                    }
+                    Helper.playFile(alarm.ringtone.file!!, context)
+                } else {
+                    if (startItNow) {
+                        if (alarm.isGentleWakeUp) {
+                            Helper.updateLow(true)
+                            Helper.startIncreasingVolume(
+                                convertToMilliseconds(
+                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                                )
+                            )
+                        }
+                        Helper.playFile(alarm.ringtone.file!!, context)
+                    }
+                }
+                if (alarm.isLoudEffect) {
+                    scope.launch {
+                        delay(40000L)
+                        setMaxVolume(context)
+                        Helper.playStream(context, R.raw.loudeffect)
+                    }
+                }
+
+            } else {
+            }
         }
     } else {
         if (!Helper.isPlaying()) {
             Helper.playStream(context, R.raw.alarmsound)
         }
     }
+//    if (mainViewModel.isRealAlarm && !Helper.isPlaying()) {
+//        when (intent.getIntExtra("tonetype", 0)) {
+//            0 -> {
+//                val rawResourceId = intent.getStringExtra("ringtone")
+//                rawResourceId?.let {
+//                    ringtone = ringtone.copy(rawResourceId = it.toInt())
+//                    Helper.playStream(context, it.toInt())
+//                }
+//            }
+//
+//            1 -> {
+//                val uriString = intent.getStringExtra("ringtone")
+//                val uri = Uri.parse(uriString)
+//                ringtone = ringtone.copy(uri = uri)
+//                Helper.playStream(context, uri = uri)
+//            }
+//
+//            2 -> {
+//                val filePath = intent.getStringExtra("ringtone")
+//                filePath?.let {
+//                    val file = File(it)
+//                    ringtone = ringtone.copy(file = file)
+//                    Helper.playFile(file, context)
+//                }
+//            }
+//
+//            else -> {}
+//        }
+//    } else {
+//        if (!Helper.isPlaying()) {
+//            Helper.playStream(context, R.raw.alarmsound)
+//        }
+//    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(backColor), contentAlignment = Alignment.TopCenter
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxHeight(0.7f)
@@ -136,42 +417,34 @@ fun AlarmCancelScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(75.dp))
-            CustomButton(
-                onClick = {
-                    val snoozeTime = intent.getStringExtra("snooze")
-                    val timeInM = intent.getStringExtra("tInM")
-                    val id = intent.getStringExtra("id")
-                    val notifyIt = intent.getBooleanExtra("notify",false)
-
-                    timeInM?.let { timeInMili ->
-                        id?.let { ID ->
-                            snoozeTime?.let { snooze ->
-                                snoozeAlarm(
-                                    AlarmEntity(
-                                        id = ID.toLong(),
-                                        timeInMillis = timeInMili.toLong(),
-                                        snoozeTime = snooze.toInt(),
-                                        ringtone = ringtone,
-                                        reqCode = (0..19992).random()
-                                    ), alarmScheduler,notifyIt
-                                )
-                                showSnoozed = true
-                                Helper.stopStream()
-                                alarmEndHandle()
-                            }
-                        }
-
-                    }
-                },
-                text = "Snooze",
-                backgroundColor = Color.White,
-                textColor = Color.Black,
-                width = 0.6f
-            )
+            alarmEntity?.let {
+                if (it.snoozeTime != -1 && mainViewModel.isRealAlarm) {
+                    CustomButton(
+                        onClick = {
+                            val notifyIt = intent.getBooleanExtra("notify", false)
+                            snoozeAlarm(
+                                it, alarmScheduler, notifyIt
+                            )
+                            startItNow = false
+                            showSnoozed = true
+                            mainViewModel.snoozeUpdate(true)
+                            textToSpeech.stop()
+                            textToSpeech.shutdown()
+                            vibrator.cancel()
+                            Helper.stopStream()
+                            snoozeTrigger()
+                        },
+                        text = "Snooze",
+                        backgroundColor = Color.White,
+                        textColor = Color.Black,
+                        width = 0.6f
+                    )
+                }
+            }
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 CustomButton(
                     onClick = {
-                        if (mainViewModel.isRealAlarm) {
+                        if (mainViewModel.isRealAlarm || previewMode) {
                             if (mainViewModel.dummyMissionList.isNotEmpty()) {
                                 val singleMission = mainViewModel.dummyMissionList.first()
 
@@ -183,8 +456,10 @@ fun AlarmCancelScreen(
                                         missionLevel = singleMission.missionLevel,
                                         missionName = singleMission.missionName,
                                         isSelected = singleMission.isSelected,
-                                        setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId =
-                                            singleMission.imageId, codeId = singleMission.codeId
+                                        setOfSentences = convertStringToSet(singleMission.selectedSentences),
+                                        imageId =
+                                        singleMission.imageId,
+                                        codeId = singleMission.codeId
                                     )
                                 )
                             }
@@ -225,6 +500,7 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+
                             "Step" -> {
                                 controller.navigate(Routes.StepDetectorScreen.route) {
                                     popUpTo(Routes.PreviewAlarm.route) {
@@ -233,6 +509,15 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+                            "Squat" -> {
+                                controller.navigate(Routes.SquatMissionScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
                             "Photo" -> {
                                 controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
                                     popUpTo(Routes.PreviewAlarm.route) {
@@ -241,6 +526,7 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+
                             "QR/Barcode" -> {
                                 controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
                                     popUpTo(Routes.PreviewAlarm.route) {
@@ -249,8 +535,11 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+
                             else -> {
                                 Helper.stopStream()
+                                textToSpeech.stop()
+                                textToSpeech.shutdown()
                                 alarmEndHandle()
                             }
                         }
@@ -262,11 +551,13 @@ fun AlarmCancelScreen(
                 )
             }
         }
-        if (!mainViewModel.isRealAlarm) {
+        if (!mainViewModel.isRealAlarm && !previewMode) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 CustomImageButton(
                     onClick = {
                         Helper.stopStream()
+                        textToSpeech.stop()
+                        vibrator.cancel()
                         controller.navigate(Routes.MissionMenuScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
@@ -300,13 +591,42 @@ fun snoozeAlarm(
 //    Log.d("RINGC","LOCAL TIME BEFORE SNOOZE ADD ${offsetTime1.toLocalTime()}")
 
     val snoozeTimeMillis = currentTimeMillis + (snoozeMinutes * 60 * 1000)
-    alarmEntity.timeInMillis = snoozeTimeMillis
-    val instant = Instant.ofEpochMilli(snoozeTimeMillis)
-    val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
-    alarmEntity.localTime = offsetTime.toLocalTime()
-
+    alarmEntity.snoozeTimeInMillis = snoozeTimeMillis
+//    val instant = Instant.ofEpochMilli(snoozeTimeMillis)
+//    val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
+//    alarmEntity.localTime = offsetTime.toLocalTime()
 //    Log.d("RINGC","LOCAL TIME AFTER SNOOZE ADD ${offsetTime.toLocalTime()}")
 
     // Reschedule the alarm with the updated time
-    alarmScheduler.schedule(alarmEntity,showInNotification)
+    alarmScheduler.schedule(alarmEntity, showInNotification)
+}
+
+
+fun playTextToSpeech(textToSpeech: TextToSpeech, id: String, text: String) {
+
+    val params = Bundle()
+    params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, id)
+
+    // Play the formatted time and date as audio
+    textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, id)
+}
+
+fun startCurrentTimeAndDate(text: String, textToSpeech: TextToSpeech, id: String) {
+    val params = Bundle()
+    params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, id)
+
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    val currentDateAndTime: String = sdf.format(Date())
+
+    // Extracting only hour, minute, date, and day
+    val formattedTimeAndDate = SimpleDateFormat("hh:mm a EEEE, MMMM d, yyyy", Locale.getDefault())
+        .format(sdf.parse(currentDateAndTime) ?: Date())
+
+    // Play the formatted time and date as audio
+    textToSpeech.speak(formattedTimeAndDate + text, TextToSpeech.QUEUE_FLUSH, params, id)
+}
+
+
+fun convertToMilliseconds(minutes: Int, seconds: Int): Long {
+    return (minutes * 60 + seconds) * 1000L
 }

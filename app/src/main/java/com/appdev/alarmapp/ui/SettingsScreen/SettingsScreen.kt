@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.ui.SettingsScreen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,16 +37,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
+import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.StartingScreens.DemoScreens.buttonToPlay
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 
 @Composable
-fun SettingsScreen(controller: NavHostController) {
+fun SettingsScreen(controller: NavHostController, mainViewModel: MainViewModel) {
+    BackHandler {
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backColor)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -58,7 +63,7 @@ fun SettingsScreen(controller: NavHostController) {
             ) {
                 Text(
                     text = "Settings",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 25.sp, textAlign = TextAlign.Start,
                     fontWeight = FontWeight.W500,
                 )
@@ -103,10 +108,20 @@ fun SettingsScreen(controller: NavHostController) {
                 }
             }
             OptionMenu(title = "General") {
-
+                controller.navigate(Routes.GeneralScreen.route) {
+                    popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
             }
             OptionMenu(title = "Send feedback") {
-
+                controller.navigate(Routes.FeedbackScreen.route) {
+                    popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
             }
             Divider(
                 thickness = 1.dp,
@@ -142,7 +157,7 @@ fun OptionMenu(
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xff24272E)
+                containerColor = MaterialTheme.colorScheme.inverseOnSurface
             )
         ) {
             Row(
@@ -160,7 +175,7 @@ fun OptionMenu(
                 }
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
                 )
                 Box(
@@ -172,7 +187,7 @@ fun OptionMenu(
                     Icon(
                         imageVector = Icons.Filled.ArrowForwardIos,
                         contentDescription = "",
-                        tint = Color.White.copy(
+                        tint = MaterialTheme.colorScheme.surfaceTint.copy(
                             alpha = 0.6f
                         ),
                         modifier = Modifier.size(15.dp)

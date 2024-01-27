@@ -1,11 +1,20 @@
 package com.appdev.alarmapp.AlarmManagement
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -22,132 +31,269 @@ import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
+import com.appdev.alarmapp.ui.MissionViewer.SquatMission
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
 import com.appdev.alarmapp.ui.PreivewScreen.localTimeToMillis
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
+import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
-import com.appdev.alarmapp.utils.Missions
-import com.appdev.alarmapp.utils.Ringtone
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
-import java.time.LocalTime
 import java.time.OffsetTime
 import java.time.ZoneId
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class AlarmCancelAccess : ComponentActivity() {
     val mainViewModel by viewModels<MainViewModel>()
-    var localTime: LocalTime = LocalTime.now()
     var dismissSettings: DismissSettings = DismissSettings()
 
+    @Inject
+    lateinit var textToSpeech: TextToSpeech
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             AlarmAppTheme {
-                mainViewModel.updateIsReal(true)
                 val alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
-                val snoozeTime = intent.getStringExtra("snooze")
-                val timeInM = intent.getStringExtra("tInM")
-                val notify = intent.getBooleanExtra("notify",false)
-                val id = intent.getStringExtra("id")
-                val receivedLocalTimeString = intent?.getStringExtra("localTime")
-                receivedLocalTimeString?.let { LTS ->
-                    localTime = LocalTime.parse(LTS)
+                val previewMode = intent.getBooleanExtra("Preview", false)
+
+                if (!previewMode) {
+                    mainViewModel.updateIsReal(true)
+                    window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+                    window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
                 }
+                mainViewModel.previewModeUpdate(true)
+                mainViewModel.snoozeUpdate(false)
+                val notify = intent.getBooleanExtra("notify", false)
 
+                if (intent?.hasExtra("Alarm") == true) {
+                    val receivedAlarm: AlarmEntity? = intent.getParcelableExtra("Alarm")
+                    receivedAlarm?.let { alarm ->
+                        mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
 
-                if (intent?.hasExtra("ringtoneObj") == true) {
-                    val receivedRingtone: Ringtone? = intent.getParcelableExtra("ringtoneObj")
-                    receivedRingtone?.let { ringtone ->
-
-                        if (intent?.hasExtra("list") == true) {
-
-                            val receivedList =
-                                intent.getSerializableExtra("list") as? List<Missions>
-
-                            receivedList?.let { listOfMissions ->
-
-                                mainViewModel.missionData(MissionDataHandler.AddList(missionsList = listOfMissions))
-
-                                AlarmNavGraph(intent, mainViewModel = mainViewModel) {
-                                    if (mainViewModel.dummyMissionList.isEmpty()) {
-                                        if (intent.hasExtra("listOfDays")) {
-                                            val listOfDaysJson = intent.getStringExtra("listOfDays")
-
-                                            // Convert the JSON string back to a Set
-                                            val gson = Gson()
-                                            val type = object : TypeToken<Set<String>>() {}.type
-                                            val listOfDays =
-                                                gson.fromJson<Set<String>>(listOfDaysJson, type)
-                                            timeInM?.let { tIM ->
-                                                id?.let { ID ->
-                                                    val alarmEntity = AlarmEntity(
-                                                        id = ID.toLong(),
-                                                        snoozeTime = snoozeTime?.toInt() ?: 5,
-                                                        timeInMillis = tIM.toLong(),
-                                                        listOfMissions = listOfMissions,
-                                                        listOfDays = listOfDays,
-                                                        reqCode = (0..19992).random(),
-                                                        ringtone = ringtone,
-                                                        localTime = localTime
-                                                    )
-                                                    scheduleTheAlarm(alarmEntity, alarmScheduler,notify)
-                                                }
-                                            }
-                                        }
-                                        startActivity(Intent(this, MainActivity::class.java))
-                                        mainViewModel.updateIsReal(false)
-                                        finish()
-                                    }
+                        AlarmNavGraph(textToSpeech,
+                            intent,
+                            mainViewModel = mainViewModel,
+                            snoozeTrigger = {
+                                mainViewModel.updateIsReal(false)
+                                mainViewModel.previewModeUpdate(false)
+                                startActivity(Intent(this, MainActivity::class.java))
+                                finish()
+                            }) {
+                            if (mainViewModel.dummyMissionList.isEmpty()) {
+                                if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.Vibrator(
+                                            setVibration = alarm.willVibrate
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.CustomVolume(
+                                            customVolume = alarm.customVolume
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.IsLabel(
+                                            isLabelOrNot = alarm.isLabel
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.LabelText(
+                                            getLabelText = alarm.labelTextForSpeech
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.LoudEffect(
+                                            isLoudEffectOrNot = alarm.isLoudEffect
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.TimeReminder(
+                                            isTimeReminderOrNot = alarm.isTimeReminder
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.IsGentleWakeUp(
+                                            isGentleWakeUp = alarm.isGentleWakeUp
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.GetWakeUpTime(
+                                            getWUTime = alarm.wakeUpTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getTime(
+                                            time = alarm.localTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getMilli(
+                                            timeInMilli = alarm.timeInMillis
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.requestCode(
+                                            reqCode = alarm.reqCode
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getMissions(
+                                            missions = alarm.listOfMissions
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getSnoozeTime(
+                                            getSnoozeTime = alarm.snoozeTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = false))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.update)
                                 }
-                            }
-                        } else {
-                            AlarmNavGraph(intent, mainViewModel = mainViewModel) {
-                                if (mainViewModel.dummyMissionList.isEmpty()) {
-                                    if (intent.hasExtra("listOfDays")) {
-                                        val listOfDaysJson = intent.getStringExtra("listOfDays")
-
-                                        // Convert the JSON string back to a Set
-                                        val gson = Gson()
-                                        val type = object : TypeToken<Set<String>>() {}.type
-                                        val listOfDays =
-                                            gson.fromJson<Set<String>>(listOfDaysJson, type)
-                                        timeInM?.let { tIM ->
-                                            id?.let { ID ->
-                                                val alarmEntity = AlarmEntity(
-                                                    id = ID.toLong(),
-                                                    snoozeTime = snoozeTime?.toInt() ?: 5,
-                                                    timeInMillis = tIM.toLong(),
-                                                    listOfDays = listOfDays,
-                                                    reqCode = (0..19992).random(),
-                                                    ringtone = ringtone,
-                                                    localTime = localTime
-                                                )
-                                                scheduleTheAlarm(
-                                                    alarmEntity,
-                                                    alarmScheduler,
-                                                    notify
-                                                )
-                                            }
-                                        }
-                                    }
-                                    startActivity(Intent(this, MainActivity::class.java))
-                                    mainViewModel.updateIsReal(false)
-                                    finish()
+                                if (alarm.listOfDays.isNotEmpty() && mainViewModel.isRealAlarm) {
+                                    val alarmEntity = AlarmEntity(
+                                        id = alarm.id,
+                                        snoozeTime = alarm.snoozeTime,
+                                        timeInMillis = alarm.timeInMillis,
+                                        snoozeTimeInMillis = 0,
+                                        listOfMissions = alarm.listOfMissions,
+                                        listOfDays = alarm.listOfDays,
+                                        reqCode = (0..19992).random(),
+                                        ringtone = alarm.ringtone,
+                                        localTime = alarm.localTime,
+                                        isGentleWakeUp = alarm.isGentleWakeUp,
+                                        isTimeReminder = alarm.isTimeReminder,
+                                        isLoudEffect = alarm.isLoudEffect,
+                                        wakeUpTime = alarm.wakeUpTime,
+                                        isLabel = alarm.isLabel,
+                                        customVolume = alarm.customVolume,
+                                        willVibrate = alarm.willVibrate,
+                                        labelTextForSpeech = alarm.labelTextForSpeech,
+                                    )
+                                    scheduleTheAlarm(alarmEntity, alarmScheduler, notify)
                                 }
+                                mainViewModel.updateIsReal(false)
+                                mainViewModel.previewModeUpdate(false)
+                                if (alarm.isGentleWakeUp) {
+                                    Helper.updateLow(false)
+                                    Helper.stopIncreasingVolume()
+                                }
+                                Helper.updateCustomValue(100f)
+                                startActivity(Intent(this, MainActivity::class.java))
+                                finish()
                             }
                         }
                     }
                 }
+
+//                if (intent?.hasExtra("ringtoneObj") == true) {
+//                    val receivedRingtone: Ringtone? = intent.getParcelableExtra("ringtoneObj")
+//                    receivedRingtone?.let { ringtone ->
+//
+//                        if (intent?.hasExtra("list") == true) {
+//
+//                            val receivedList =
+//                                intent.getSerializableExtra("list") as? List<Missions>
+//
+//                            receivedList?.let { listOfMissions ->
+//
+//                                mainViewModel.missionData(MissionDataHandler.AddList(missionsList = listOfMissions))
+//
+//                                AlarmNavGraph(intent, mainViewModel = mainViewModel) {
+//                                    if (mainViewModel.dummyMissionList.isEmpty()) {
+//                                        if (intent.hasExtra("listOfDays")) {
+//                                            val listOfDaysJson = intent.getStringExtra("listOfDays")
+//
+//                                            // Convert the JSON string back to a Set
+//                                            val gson = Gson()
+//                                            val type = object : TypeToken<Set<String>>() {}.type
+//                                            val listOfDays =
+//                                                gson.fromJson<Set<String>>(listOfDaysJson, type)
+//                                            timeInM?.let { tIM ->
+//                                                id?.let { ID ->
+//                                                    val alarmEntity = AlarmEntity(
+//                                                        id = ID.toLong(),
+//                                                        snoozeTime = snoozeTime?.toInt() ?: 5,
+//                                                        timeInMillis = tIM.toLong(),
+//                                                        listOfMissions = listOfMissions,
+//                                                        listOfDays = listOfDays,
+//                                                        reqCode = (0..19992).random(),
+//                                                        ringtone = ringtone,
+//                                                        localTime = localTime
+//                                                    )
+//                                                    scheduleTheAlarm(
+//                                                        alarmEntity,
+//                                                        alarmScheduler,
+//                                                        notify
+//                                                    )
+//                                                }
+//                                            }
+//                                        }
+//                                        startActivity(Intent(this, MainActivity::class.java))
+//                                        mainViewModel.updateIsReal(false)
+//                                        finish()
+//                                    }
+//                                }
+//                            }
+//                        } else {
+//                            AlarmNavGraph(intent, mainViewModel = mainViewModel) {
+//                                if (mainViewModel.dummyMissionList.isEmpty()) {
+//                                    if (intent.hasExtra("listOfDays")) {
+//                                        val listOfDaysJson = intent.getStringExtra("listOfDays")
+//
+//                                        // Convert the JSON string back to a Set
+//                                        val gson = Gson()
+//                                        val type = object : TypeToken<Set<String>>() {}.type
+//                                        val listOfDays =
+//                                            gson.fromJson<Set<String>>(listOfDaysJson, type)
+//                                        timeInM?.let { tIM ->
+//                                            id?.let { ID ->
+//                                                val alarmEntity = AlarmEntity(
+//                                                    id = ID.toLong(),
+//                                                    snoozeTime = snoozeTime?.toInt() ?: 5,
+//                                                    timeInMillis = tIM.toLong(),
+//                                                    listOfDays = listOfDays,
+//                                                    reqCode = (0..19992).random(),
+//                                                    ringtone = ringtone,
+//                                                    localTime = localTime
+//                                                )
+//                                                scheduleTheAlarm(
+//                                                    alarmEntity,
+//                                                    alarmScheduler,
+//                                                    notify
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//                                    startActivity(Intent(this, MainActivity::class.java))
+//                                    mainViewModel.updateIsReal(false)
+//                                    finish()
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }
         }
+    }
+    @SuppressLint("RestrictedApi")
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        if (event?.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event?.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            // Handle the volume key events here
+            // You can either do nothing to prevent the system from changing the volume
+            // or perform a custom action on volume key press
+            return true // Consume the event to prevent the system volume change
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onStop() {
@@ -198,7 +344,7 @@ fun scheduleTheAlarm(
         alarmEntity.localTime = offsetTime.toLocalTime()
         alarmEntity.reqCode = (0..19992).random()
 
-        alarmScheduler.schedule(alarmEntity,notify)
+        alarmScheduler.schedule(alarmEntity, notify)
 
     }
 }
@@ -211,16 +357,17 @@ private fun getDayOfWeek(day: String): Int {
 
 @Composable
 fun AlarmNavGraph(
+    textToSpeech: TextToSpeech,
     intent: Intent,
     controller: NavHostController = rememberNavController(),
-    mainViewModel: MainViewModel, alarmEnds: () -> Unit
+    mainViewModel: MainViewModel, snoozeTrigger: () -> Unit, alarmEnds: () -> Unit
 ) {
     NavHost(
         navController = controller,
         startDestination = Routes.PreviewAlarm.route,
     ) {
         composable(route = Routes.PreviewAlarm.route) {
-            AlarmCancelScreen(controller, mainViewModel, intent) {
+            AlarmCancelScreen(textToSpeech, controller, mainViewModel, intent, snoozeTrigger) {
                 alarmEnds()
             }
         }
@@ -236,6 +383,11 @@ fun AlarmNavGraph(
         }
         composable(route = Routes.StepDetectorScreen.route) {
             StepMission(mainViewModel = mainViewModel, controller) {
+                alarmEnds()
+            }
+        }
+        composable(route = Routes.SquatMissionScreen.route) {
+            SquatMission(mainViewModel = mainViewModel, controller) {
                 alarmEnds()
             }
         }

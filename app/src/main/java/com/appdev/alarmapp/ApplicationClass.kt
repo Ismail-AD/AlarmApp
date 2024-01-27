@@ -37,7 +37,6 @@ class ApplicationClass: Application(){
         }
     }
     override fun onTerminate() {
-        tokenManagement.removeDays()
         super.onTerminate()
     }
 }

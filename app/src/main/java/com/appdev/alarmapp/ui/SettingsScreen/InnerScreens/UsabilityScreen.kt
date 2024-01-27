@@ -3,6 +3,7 @@ package com.appdev.alarmapp.ui.SettingsScreen.InnerScreens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +26,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,7 +51,7 @@ fun UsabilityScreen(controller: NavHostController) {
     ) {
         Column(
             modifier = Modifier
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(verticalScroll)
                 .fillMaxHeight()
         ) {
@@ -62,7 +66,7 @@ fun UsabilityScreen(controller: NavHostController) {
                     onClick = {
                         controller.popBackStack()
                     },
-                    border = BorderStroke(1.dp, Color.White),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
@@ -70,21 +74,21 @@ fun UsabilityScreen(controller: NavHostController) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
 
                 Text(
                     text = "Optimize Usability",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
             }
             Text(
                 text = "Checklist for better alarm usage environment",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surfaceTint,
                 fontSize = 19.sp,
                 textAlign = TextAlign.Start,
                 fontWeight = FontWeight.W400,
@@ -151,7 +155,7 @@ fun TipComponent(title: String, listOfTips: List<String>) {
     ) {
         Text(
             text = title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceTint,
             fontSize = 19.sp,
             fontWeight = FontWeight.W400, lineHeight = 29.sp
         )
@@ -171,14 +175,15 @@ fun TipComponent(title: String, listOfTips: List<String>) {
                 Text(
                     s,
                     fontSize = 15.sp,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     modifier = Modifier
                         .fillMaxWidth()
                 )
             }
             if (title == "1. Exclude From Battery Optimization" && index == 0) {
                 Column(modifier = Modifier
-                    .fillMaxWidth().clickable {
+                    .fillMaxWidth()
+                    .clickable {
 
                     }
                     .padding(horizontal = 13.dp)) {
@@ -202,7 +207,8 @@ fun TipComponent(title: String, listOfTips: List<String>) {
                 }
             } else if (title == "2. Check Do Not Disturb Mode" && index == 0) {
                 Column(modifier = Modifier
-                    .fillMaxWidth().clickable {
+                    .fillMaxWidth()
+                    .clickable {
 
                     }
                     .padding(horizontal = 13.dp),) {

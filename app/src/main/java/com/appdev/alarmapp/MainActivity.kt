@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,6 +38,10 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var tokenManagement: TokenManagement
+
+    @Inject
+    lateinit var textToSpeech: TextToSpeech
+
     val checkViewModel by viewModels<checkOutViewModel>()
 
     val MY_REQCODE =  (0..19992).random()
@@ -62,7 +67,7 @@ class MainActivity : ComponentActivity() {
                         getSystemService(Context.ALARM_SERVICE) as AlarmManager
                     val hasPermission: Boolean = alarmManager.canScheduleExactAlarms()
                     if (hasPermission) {
-                        navGraph(controller, tokenManagement) {
+                        navGraph(textToSpeech,controller, tokenManagement) {
                             AutoResolveHelper.resolveTask(checkViewModel.getPaymentData(), this, MY_REQCODE)
                         }
                     } else {
@@ -72,7 +77,7 @@ class MainActivity : ComponentActivity() {
                         startActivity(intent)
                     }
                 }else{
-                    navGraph(controller, tokenManagement) {
+                    navGraph(textToSpeech,controller, tokenManagement) {
                         AutoResolveHelper.resolveTask(checkViewModel.getPaymentData(), this, MY_REQCODE)
                     }
                 }

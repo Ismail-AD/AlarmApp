@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -45,11 +46,15 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -60,6 +65,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -117,7 +123,6 @@ fun RingtoneSelection(
     controller: NavHostController,
     mainViewModel: MainViewModel
 ) {
-
     val context = LocalContext.current
 
     val pagerState = rememberPagerState {
@@ -211,6 +216,16 @@ fun RingtoneSelection(
             Toast.makeText(context, "File name should not be Empty !", Toast.LENGTH_SHORT).show()
         }
     }
+    BackHandler {
+        if (mainViewModel.managingDefault) {
+            controller.popBackStack()
+        } else {
+            controller.navigate(Routes.Preview.route) {
+                popUpTo(controller.graph.startDestinationId)
+                launchSingleTop = true
+            }
+        }
+    }
 
     DisposableEffect(selectedRingtone) {
         // Start playing the audio when the composable is first created
@@ -275,7 +290,7 @@ fun RingtoneSelection(
                 .fillMaxSize()
                 .padding(pd)
                 .background(
-                    elementBack
+                    MaterialTheme.colorScheme.onBackground
                 )
         ) {
             if (loading) {
@@ -297,7 +312,12 @@ fun RingtoneSelection(
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
                 edgePadding = 2.dp,
-                containerColor = elementBack
+                containerColor = MaterialTheme.colorScheme.onBackground,indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]), // Adjust offset as needed
+                        color = MaterialTheme.colorScheme.surfaceTint
+                    )
+                }
             ) {
                 // tab items
                 tabs.forEachIndexed { index, item ->
@@ -311,7 +331,7 @@ fun RingtoneSelection(
                             }
                         },
                         text = {
-                            Text(text = item.name)
+                            Text(text = item.name, color = MaterialTheme.colorScheme.surfaceTint)
                         }, selectedContentColor = Color.White, unselectedContentColor = Color.White
                     )
                 }
@@ -393,7 +413,7 @@ fun RingtoneSelection(
                                         notifyPermissionState.launchPermissionRequest()
                                     }
                                 },
-                            border = BorderStroke(width = 1.dp, color = Color.White),
+                            border = BorderStroke(width = 1.dp, color = MaterialTheme.colorScheme.surfaceTint),
                             colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                         ) {
                             Box(
@@ -411,12 +431,12 @@ fun RingtoneSelection(
                                     Icon(
                                         imageVector = Icons.Filled.Add,
                                         contentDescription = "",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.surfaceTint
                                     )
                                     Text(
                                         "Record Now", fontSize = 18.sp,
                                         letterSpacing = 0.sp,
-                                        color = Color.White, textAlign = TextAlign.Center
+                                        color = MaterialTheme.colorScheme.surfaceTint, textAlign = TextAlign.Center
                                     )
                                 }
                             }
@@ -450,7 +470,7 @@ fun RingtoneSelection(
             ) {
                 Column(
                     modifier = Modifier
-                        .background(Color(0xff1C1F26))
+                        .background(MaterialTheme.colorScheme.onBackground)
                         .fillMaxWidth()
                         .fillMaxHeight(0.4f),
                     verticalArrangement = Arrangement.Center,
@@ -464,7 +484,7 @@ fun RingtoneSelection(
                     ) {
                         Text(
                             text = "Recorded sound",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 21.sp,
                             modifier = Modifier.fillMaxWidth(0.73f),
                             textAlign = TextAlign.End, fontWeight = FontWeight.W500
@@ -484,7 +504,7 @@ fun RingtoneSelection(
                                 Icon(
                                     imageVector = Icons.Filled.Close,
                                     contentDescription = "",
-                                    tint = Color.White
+                                    tint = MaterialTheme.colorScheme.surfaceTint
                                 )
                             }
                         }
@@ -497,13 +517,13 @@ fun RingtoneSelection(
                     ) {
                         Text(
                             text = String.format("%.2f", elapsedTime.toDouble()),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.W500
                         )
                         Text(
                             text = " / 30.00",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.7f),
                             fontSize = 17.sp, fontWeight = FontWeight.W500
                         )
                     }
@@ -597,7 +617,7 @@ fun RingtoneSelection(
                 sheetState = sheetState,
                 dragHandle = {}) {
                 Column(
-                    modifier = Modifier.background(Color(0xff1C1F26)),
+                    modifier = Modifier.background(MaterialTheme.colorScheme.onBackground),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -608,7 +628,7 @@ fun RingtoneSelection(
                     ) {
                         Text(
                             text = "Recorded sound name",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 21.sp,
                             modifier = Modifier.fillMaxWidth(0.83f),
                             textAlign = TextAlign.End, fontWeight = FontWeight.W500
@@ -637,7 +657,7 @@ fun RingtoneSelection(
                                 Icon(
                                     imageVector = Icons.Filled.Close,
                                     contentDescription = "",
-                                    tint = Color.White
+                                    tint = MaterialTheme.colorScheme.surfaceTint
                                 )
                             }
                         }
@@ -650,7 +670,7 @@ fun RingtoneSelection(
                         },
                         textStyle = TextStyle(
                             fontSize = 17.sp,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.surfaceTint
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -660,7 +680,7 @@ fun RingtoneSelection(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
                             disabledContainerColor = Color.Transparent,
-                            cursorColor = Color(0xff0FAACB), // Set the cursor color here
+                            cursorColor = MaterialTheme.colorScheme.surfaceTint, // Set the cursor color here
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                         )
@@ -737,11 +757,11 @@ fun RingtoneSelection(
             }) {
                 Column(
                     modifier = Modifier
-                        .background(Color(0xff1C1F26), shape = RoundedCornerShape(5.dp))
+                        .background(MaterialTheme.colorScheme.onBackground, shape = RoundedCornerShape(5.dp))
                 ) {
                     Text(
                         text = "Exit without saving the",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 22.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -750,7 +770,7 @@ fun RingtoneSelection(
                     )
                     Text(
                         text = "recorded sound?",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 22.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -825,9 +845,9 @@ fun EachRingtone(isSelected: Boolean, ringtone: Ringtone, onCLick: () -> Unit) {
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RadioButton(selected = isSelected, onClick = { onCLick() })
+        RadioButton(selected = isSelected, onClick = { onCLick() }, colors = RadioButtonDefaults.colors(selectedColor = Color(0xff18677E), unselectedColor = Color(0xffB6BDCA)))
         Spacer(modifier = Modifier.width(7.dp))
-        Text(text = ringtone.name, color = Color.White)
+        Text(text = ringtone.name, color = MaterialTheme.colorScheme.surfaceTint)
     }
 }
 
@@ -838,7 +858,7 @@ fun TopBarRT(onClick: () -> Unit) {
     TopAppBar(title = {
         Text(
             text = "Sound",
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceTint,
             textAlign = TextAlign.End,
             modifier = Modifier
                 .fillMaxWidth(0.5f), fontSize = 16.sp
@@ -848,15 +868,15 @@ fun TopBarRT(onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.ArrowBackIos,
                 contentDescription = "",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.surfaceTint,
                 modifier = Modifier.size(23.dp)
             )
         }
     }, actions = {
 
     }, colors = TopAppBarDefaults.topAppBarColors(
-        containerColor = elementBack,
-        navigationIconContentColor = Color.White
+        containerColor = MaterialTheme.colorScheme.onBackground,
+        navigationIconContentColor = MaterialTheme.colorScheme.surfaceTint
     )
     )
 }
@@ -877,9 +897,9 @@ fun EachRecording(
             },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
     ) {
-        RadioButton(selected = isSelected, onClick = { onCLick() })
+        RadioButton(selected = isSelected, onClick = { onCLick() }, colors = RadioButtonDefaults.colors(selectedColor = Color(0xff18677E), unselectedColor = Color(0xffB6BDCA)))
         Spacer(modifier = Modifier.width(7.dp))
-        Text(text = ringtone.name, color = Color.White)
+        Text(text = ringtone.name, color = MaterialTheme.colorScheme.surfaceTint)
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             IconButton(onClick = {
                 if (Helper.isPlaying()) {
@@ -887,7 +907,7 @@ fun EachRecording(
                 }
                 deleteIt(ringtone.ringId)
             }) {
-                Icon(imageVector = Icons.Filled.Delete, contentDescription = "", tint = Color.White)
+                Icon(imageVector = Icons.Filled.Delete, contentDescription = "", tint = MaterialTheme.colorScheme.surfaceTint)
             }
         }
     }

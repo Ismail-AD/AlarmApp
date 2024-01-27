@@ -10,22 +10,46 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 
 private val DarkColorScheme = darkColorScheme(
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    background = backColor, outlineVariant = Color(0xff3C3F48)
+    primary = Color.Black,
+    tertiary = Color(0xFF8572EB),
+    background = backColor,
+    surfaceTint = Color.White,
+    secondary = Color(0xff7B70FF),
+    outlineVariant = Color(0xff3C3F48),
+    surfaceVariant = Color(0xff222325),
+    onSurfaceVariant = Color(0xff2A2A2C),
+    onBackground = elementBack,
+    secondaryContainer = Color(0xff2F333E),
+    inverseOnSurface = Color(0xff24272E),
+    inverseSurface = Color(0xffA6ACB5)
 )
 
 private val LightColorScheme = lightColorScheme(
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    background = backColor, outlineVariant = Color(0xff3C3F48)
+    onBackground = Color.White,
+    primary = Color.White,
+    tertiary = Color.Black.copy(alpha = 0.9f),
+    surface = Color.White,
+    surfaceTint = Color.Black.copy(alpha = 0.9f),
+    secondary = Color(0xff7B70FF),
+    background = Color(0xffF4F5FA),
+    outlineVariant = Color(0xff3C3F48),
+    surfaceVariant = Color.White,
+    onSurfaceVariant = Color.Blue.copy(alpha = 0.1f),
+    secondaryContainer = Color(0xffE5EBF7),
+    inverseOnSurface = Color(0xffE5EBF7),
+    inverseSurface = Color.Gray
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -41,24 +65,26 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun AlarmAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    mainViewModel: MainViewModel = hiltViewModel(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     val colorScheme = when {
-        darkTheme -> {
+        isDarkMode -> {
             DarkColorScheme
         }
 
-        else -> LightColorScheme
+        else ->  LightColorScheme
     }
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
+            window.statusBarColor = colorScheme.primary.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                darkTheme // not darkTheme makes the status bar icons visible
+                !isDarkMode // not darkTheme makes the status bar icons visible
         }
     }
 

@@ -47,7 +47,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +80,7 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.ImageData
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -92,6 +95,7 @@ fun PhotoMissionScreen(
     controller: NavHostController,
     alarmEndHandle: () -> Unit = {}
 ) {
+
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
     if (dismissSettings.muteTone) {
         Helper.stopStream()
@@ -210,6 +214,18 @@ fun PhotoMissionScreen(
 
                         "Photo" -> {
                             controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Step" -> {
+                            controller.navigate(Routes.StepDetectorScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Squat" -> {
+                            controller.navigate(Routes.SquatMissionScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }

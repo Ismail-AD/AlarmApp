@@ -2,10 +2,12 @@ package com.appdev.alarmapp.ui.MissionDemos
 
 import android.Manifest
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,11 +36,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +68,7 @@ import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.ui.theme.signatureBlue
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.ImageData
@@ -77,7 +82,7 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
-
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
@@ -119,6 +124,12 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
             showToast = false
         }
     }
+    BackHandler {
+        controller.navigate(Routes.MissionMenuScreen.route) {
+            popUpTo(controller.graph.startDestinationId)
+            launchSingleTop = true
+        }
+    }
 
     Scaffold(bottomBar = {
         if (guideOrNot) {
@@ -144,9 +155,9 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                     },
                     text = "Preview",
                     width = 0.3f,
-                    backgroundColor = backColor,
+                    backgroundColor = MaterialTheme.colorScheme.background,
                     isBorderPreview = true,
-                    textColor = Color.LightGray
+                    textColor = if (isDarkMode) Color.LightGray else Color.Black
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 CustomButton(
@@ -232,7 +243,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
 
             Column(
                 modifier = Modifier
-                    .background(backColor)
+                    .background(MaterialTheme.colorScheme.onBackground)
                     .fillMaxHeight()
             ) {
                 Row(
@@ -249,7 +260,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                 launchSingleTop = true
                             }
                         },
-                        border = BorderStroke(1.dp, Color.White),
+                        border = BorderStroke(1.dp,MaterialTheme.colorScheme.surfaceTint),
                         shape = CircleShape,
                         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
@@ -257,13 +268,13 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowLeft,
                                 contentDescription = "",
-                                tint = Color.White
+                                tint = MaterialTheme.colorScheme.surfaceTint
                             )
                         }
                     }
                     Text(
                         text = "Photo",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 17.sp,
                         textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                     )
@@ -278,14 +289,17 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp, horizontal = 22.dp)
-                                .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                                .background(
+                                    MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(10.dp)
+                                ),
                             verticalArrangement = Arrangement.spacedBy(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Spacer(modifier = Modifier.height(30.dp))
                             Text(
                                 text = "Take a photo of part of your morning routine",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 21.sp,
                                 textAlign = TextAlign.Center,
                                 fontWeight = FontWeight.W500,
@@ -315,9 +329,9 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                 }
                             },
                             text = "Take a Photo",
-                            width = 0.8f,
-                            backgroundColor = Color.White,
-                            textColor = Color.Black.copy(alpha = 0.9f)
+                            width = 0.85f,
+                            backgroundColor = signatureBlue,
+                            textColor = Color.White
                         )
                     }
                 } else {
@@ -345,9 +359,9 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                         .height(130.dp),
                                     shape = RoundedCornerShape(10.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color(
+                                        containerColor = if(isDarkMode) Color(
                                             0xff3F434F
-                                        )
+                                        ) else Color.LightGray
                                     )
                                 ) {
                                     Box(
@@ -362,12 +376,12 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                             Icon(
                                                 imageVector = Icons.Filled.Add,
                                                 contentDescription = "",
-                                                tint = Color(0xffA6ACB5),
+                                                tint = MaterialTheme.colorScheme.surfaceTint,
                                                 modifier = Modifier.size(25.dp)
                                             )
                                             Text(
                                                 text = "Add",
-                                                color = Color.White,
+                                                color =  MaterialTheme.colorScheme.surfaceTint,
                                                 textAlign = TextAlign.Center,
                                                 modifier = Modifier.padding(start = 4.dp)
                                             )

@@ -146,6 +146,18 @@ fun StepMission(
                                 launchSingleTop = true
                             }
                         }
+                        "Step" -> {
+                            controller.navigate(Routes.StepDetectorScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "Squat" -> {
+                            controller.navigate(Routes.SquatMissionScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
 
                         "Shake" -> {
                             controller.navigate(Routes.MissionShakeScreen.route) {

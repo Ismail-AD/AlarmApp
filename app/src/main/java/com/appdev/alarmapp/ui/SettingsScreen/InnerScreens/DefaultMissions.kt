@@ -27,9 +27,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,12 +63,14 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
     val scrollStateRow = rememberScrollState()
     val stateFlowObject = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
 
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
+
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
                 .fillMaxHeight()
         ) {
             Row(
@@ -85,7 +89,7 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                         )
                         controller.popBackStack()
                     },
-                    border = BorderStroke(1.dp, Color.White),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
@@ -93,14 +97,14 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
 
                 Text(
                     text = "Default Setting for New Alarms",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
@@ -109,7 +113,7 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp, start = 10.dp)
-                    .background(elementBack, RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp)),
                 verticalArrangement = Arrangement.Center
             ) {
                 Row(
@@ -121,13 +125,13 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                     ) {
                         Text(
                             text = "Mission",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 16.sp,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                         Text(
                             text = stateFlowObject.value.listOfMissions.size.toString()+ "/5",
-                            color = Color.White.copy(alpha = 0.7f), fontSize = 15.sp
+                            color = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.7f), fontSize = 15.sp
                         )
                     }
                     Spacer(modifier = Modifier.width(20.dp))
@@ -191,7 +195,7 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                                                     missionMemory = true,
                                                     missionMath = false,
                                                     missionShake = false,
-                                                    isSteps = false
+                                                    isSteps = false, isSquat = false
                                                 )
                                             )
                                             controller.navigate(Routes.CommonMissionScreen.route) {
@@ -232,7 +236,7 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                                                     missionMemory = false,
                                                     missionMath = false,
                                                     missionShake = true,
-                                                    isSteps = false
+                                                    isSteps = false, isSquat = false
                                                 )
                                             )
                                             controller.navigate(Routes.CommonMissionScreen.route) {
@@ -270,13 +274,93 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                                                     missionMemory = false,
                                                     missionMath = true,
                                                     missionShake = false,
-                                                    isSteps = false
+                                                    isSteps = false, isSquat = false
                                                 )
                                             )
                                             controller.navigate(Routes.CommonMissionScreen.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
+
+                                        }
+
+                                        "Step" -> {
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.MissionId(misData.missionID)
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.MissionLevel(
+                                                    misData.missionLevel
+                                                )
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.MissionName(
+                                                    misData.missionName
+                                                )
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.RepeatTimes(
+                                                    misData.repeatTimes
+                                                )
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.IsSelectedMission(
+                                                    misData.isSelected
+                                                )
+                                            )
+                                            mainViewModel.whichMissionHandle(
+                                                whichMissionHandler.thisMission(
+                                                    missionMemory = false,
+                                                    missionMath = false,
+                                                    missionShake = false,
+                                                    isSteps = true, isSquat = false
+                                                )
+                                            )
+                                            controller.navigate(Routes.CommonMissionScreen.route) {
+                                                popUpTo(controller.graph.startDestinationId)
+                                                launchSingleTop = true
+                                            }
+
+
+                                        }
+
+                                        "Squat" -> {
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.MissionId(misData.missionID)
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.MissionLevel(
+                                                    misData.missionLevel
+                                                )
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.MissionName(
+                                                    misData.missionName
+                                                )
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.RepeatTimes(
+                                                    misData.repeatTimes
+                                                )
+                                            )
+                                            mainViewModel.missionData(
+                                                MissionDataHandler.IsSelectedMission(
+                                                    misData.isSelected
+                                                )
+                                            )
+                                            mainViewModel.whichMissionHandle(
+                                                whichMissionHandler.thisMission(
+                                                    missionMemory = false,
+                                                    missionMath = false,
+                                                    missionShake = false,
+                                                    isSteps = false, isSquat = true
+                                                )
+                                            )
+                                            controller.navigate(Routes.CommonMissionScreen.route) {
+                                                popUpTo(controller.graph.startDestinationId)
+                                                launchSingleTop = true
+                                            }
+
 
                                         }
 
@@ -400,7 +484,7 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp, start = 10.dp)
-                    .background(elementBack, RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp)),
                 verticalArrangement = Arrangement.Center
             ) {
                 DefaultSingleOption(
@@ -419,7 +503,7 @@ fun DefaultAlarmMissions(controller: NavHostController, mainViewModel: MainViewM
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp, start = 10.dp)
-                    .background(elementBack, RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp)),
                 verticalArrangement = Arrangement.Center
             ) {
                 DefaultSingleOption(
@@ -457,7 +541,7 @@ fun DefaultSingleOption(
         Column {
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surfaceTint,
                 textAlign = TextAlign.Start, fontSize = 16.sp
             )
             Text(
@@ -471,7 +555,7 @@ fun DefaultSingleOption(
                 Icon(
                     imageVector = Icons.Filled.ArrowForwardIos,
                     contentDescription = "",
-                    tint = Color.White.copy(
+                    tint = MaterialTheme.colorScheme.surfaceTint.copy(
                         alpha = 0.6f
                     ),
                     modifier = Modifier.size(15.dp)

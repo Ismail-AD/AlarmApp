@@ -1,9 +1,11 @@
 package com.appdev.alarmapp.ui.MainScreen
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -14,6 +16,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +38,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CameraEnhance
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Card
@@ -47,6 +53,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -54,6 +61,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,8 +80,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.AlarmManagement.AlarmCancelAccess
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
@@ -105,6 +115,7 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     var showSheetState by remember {
         mutableStateOf(false)
     }
@@ -133,9 +144,10 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
 
     var upcomingAlarm by remember {
-        mutableStateOf(alarmList
-            .filter { it.isActive && it.timeInMillis > System.currentTimeMillis() }
-            .minByOrNull { it.timeInMillis })
+        mutableStateOf(findUpcomingAlarm(alarmList))
+    }
+    var alarmToPreview by remember {
+        mutableStateOf(AlarmEntity())
     }
     var timeUntilNextAlarm by remember {
         mutableStateOf(upcomingAlarm?.let { calculateTimeUntil(it.timeInMillis) })
@@ -180,6 +192,9 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                 .show()
         }
     }
+
+
+
     LaunchedEffect(key1 = Unit) {
         if (!Settings.canDrawOverlays(context)) {
             val intent = Intent(
@@ -188,6 +203,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
             )
             requestOverlayPermissionLauncher.launch(intent)
         }
+
         if (mainViewModel.missionDetails.repeatProgress > 1) {
             mainViewModel.missionData(MissionDataHandler.MissionProgress(1))
         }
@@ -200,7 +216,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backColor)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Box(
                 modifier = Modifier
@@ -212,7 +228,10 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                 Box(
                     modifier = Modifier
                         .size(45.dp)
-                        .background(Color(0xff222325), CircleShape)
+                        .background(
+                            if (isDarkMode) Color(0xff222325) else Color(0xFFDDF4FA),
+                            CircleShape
+                        )
                         .clickable {
                             controller.navigate(Routes.Purchase.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -233,7 +252,10 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                     .fillMaxWidth()
                     .fillMaxHeight(0.3f),
                 onClick = { /*TODO*/ },
-                border = BorderStroke(2.dp, color = Color(0xff272729)),
+                border = if (isDarkMode) BorderStroke(
+                    2.dp,
+                    color = Color(0xff272729)
+                ) else BorderStroke(2.dp, color = Color.LightGray.copy(alpha = 0.5f)),
                 enabled = false,
                 colors = CardDefaults.cardColors(disabledContainerColor = Color.Transparent)
             ) {
@@ -249,9 +271,11 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             .padding(15.dp), verticalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Text(
-                            "Next Alarm", fontSize = 17.sp,
+                            "Next Alarm",
+                            fontSize = 17.sp,
                             letterSpacing = 0.sp,
-                            color = Color.LightGray, textAlign = TextAlign.Center
+                            color = if (isDarkMode) Color.LightGray else Color.Gray,
+                            textAlign = TextAlign.Center
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -262,15 +286,17 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                     (timeUntilNextAlarm?.days ?: 0) > 0 -> {
                                         Row(verticalAlignment = Alignment.Bottom) {
                                             Text(
-                                                "${timeUntilNextAlarm!!.days}", fontSize = 30.sp,
+                                                "${timeUntilNextAlarm!!.days}",
+                                                fontSize = 30.sp,
                                                 letterSpacing = 0.sp,
-                                                color = Color.White, fontWeight = FontWeight.W600
+                                                color = MaterialTheme.colorScheme.surfaceTint,
+                                                fontWeight = FontWeight.W600
                                             )
                                             Text(
                                                 "days",
                                                 fontSize = 16.sp,
                                                 letterSpacing = 0.sp,
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.surfaceTint,
                                                 modifier = Modifier.padding(
                                                     bottom = 4.dp,
                                                     start = 4.dp
@@ -287,14 +313,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                                     "${tu.hours}",
                                                     fontSize = 25.sp,
                                                     letterSpacing = 0.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.surfaceTint,
                                                     fontWeight = FontWeight.W600
                                                 )
                                                 Text(
                                                     "hr",
                                                     fontSize = 14.sp,
                                                     letterSpacing = 0.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.surfaceTint,
                                                     modifier = Modifier.padding(
                                                         bottom = 4.dp,
                                                         start = 4.dp
@@ -306,14 +332,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                                     "${tu.minutes}",
                                                     fontSize = 25.sp,
                                                     letterSpacing = 0.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.surfaceTint,
                                                     fontWeight = FontWeight.W600
                                                 )
                                                 Text(
                                                     "min",
                                                     fontSize = 14.sp,
                                                     letterSpacing = 0.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.surfaceTint,
                                                     modifier = Modifier.padding(
                                                         bottom = 4.dp,
                                                         start = 4.dp
@@ -331,14 +357,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                                         "${tu.minutes}",
                                                         fontSize = 25.sp,
                                                         letterSpacing = 0.sp,
-                                                        color = Color.White,
+                                                        color = MaterialTheme.colorScheme.surfaceTint,
                                                         fontWeight = FontWeight.W600
                                                     )
                                                     Text(
                                                         "min",
                                                         fontSize = 14.sp,
                                                         letterSpacing = 0.sp,
-                                                        color = Color.White,
+                                                        color = MaterialTheme.colorScheme.surfaceTint,
                                                         modifier = Modifier.padding(
                                                             bottom = 4.dp,
                                                             start = 4.dp
@@ -351,14 +377,14 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                                     "${tu.seconds}",
                                                     fontSize = 25.sp,
                                                     letterSpacing = 0.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.surfaceTint,
                                                     fontWeight = FontWeight.W600
                                                 )
                                                 Text(
                                                     "sec",
                                                     fontSize = 14.sp,
                                                     letterSpacing = 0.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.surfaceTint,
                                                     modifier = Modifier.padding(
                                                         bottom = 4.dp,
                                                         start = 4.dp
@@ -373,7 +399,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             } else {
                                 Text(
                                     text = "No Upcoming alarms",
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.surfaceTint,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(bottom = 10.dp)
@@ -381,12 +407,57 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             }
                         }
                         CustomButton(
-                            onClick = { /*TODO*/ },
+                            onClick = {
+                                upcomingAlarm?.let { alarm ->
+                                    mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarm.customVolume))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarm.isLabel))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarm.labelTextForSpeech))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarm.isActive))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarm.isLoudEffect))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.TimeReminder(isTimeReminderOrNot = alarm.isTimeReminder))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarm.isGentleWakeUp))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarm.wakeUpTime))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getTime(
+                                            time = alarm.localTime
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.AddList(
+                                            missionsList = alarm.listOfMissions
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.requestCode(
+                                            reqCode = alarm.reqCode
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.isOneTime(
+                                            isOneTime = alarm.isOneTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getSnoozeTime(
+                                            getSnoozeTime = alarm.snoozeTime
+                                        )
+                                    )
+                                    mainViewModel.isOld(isOldOrNew.isOld(true))
+                                    controller.navigate(Routes.Preview.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
                             text = "Alarm Details",
                             backgroundColor = Color(0xff7B70FF),
                             width = 0.9f,
                             height = 40.dp,
-                            fontSize = 15.sp
+                            fontSize = 15.sp, isEnabled = upcomingAlarm != null
                         )
                     }
 
@@ -396,7 +467,11 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             .weight(1f)
                             .fillMaxHeight()
                             .padding(vertical = 10.dp), enabled = false,
-                        colors = CardDefaults.cardColors(disabledContainerColor = Color(0xff222325))
+                        colors = CardDefaults.cardColors(
+                            disabledContainerColor = if (isDarkMode) Color(0xff222325) else Color(
+                                0xFFBDEAF5
+                            )
+                        )
                     ) {
                         Column(
                             modifier = Modifier
@@ -408,7 +483,12 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(Color(0xff333436), CircleShape)
+                                    .background(
+                                        if (isDarkMode) Color(0xff333436) else Color(
+                                            0xFFDDF4FA
+                                        ),
+                                        CircleShape
+                                    )
                                     .clickable {
                                         controller.navigate(Routes.Purchase.route) {
                                             popUpTo(controller.graph.startDestinationId)
@@ -424,13 +504,13 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             }
                             Text(
                                 text = "Invite friends and",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp)
                             )
 
                             Text(
                                 text = "Unlock Premium",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(bottom = 10.dp)
@@ -453,9 +533,17 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
 
             LazyColumn() {
                 items(allAlarms, key = { alarm -> alarm.id }) { alarm ->
-                    AlarmBox(delete = {
+                    AlarmBox(isDarkMode, delete = {
                         mainViewModel.deleteAlarm(it)
                     }, onAlarmCLick = {
+                        mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
+                        mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarm.customVolume))
+                        mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarm.isLabel))
+                        mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarm.labelTextForSpeech))
+                        mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarm.isLoudEffect))
+                        mainViewModel.updateHandler(EventHandlerAlarm.TimeReminder(isTimeReminderOrNot = alarm.isTimeReminder))
+                        mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarm.isGentleWakeUp))
+                        mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarm.wakeUpTime))
                         mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarm.isActive))
                         mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
                         mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
@@ -476,12 +564,21 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         }
                     }, onAlarmBoxClick = { clickedAlarmId ->
                         clickAlarmId = clickedAlarmId
+                        alarmToPreview = alarm
                         showSheetState = true
                     }, alarm) { on ->
-//                        stateChanges = true
+                        stateChanges = true
                         mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
                         mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
                         mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
+                        mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarm.isLoudEffect))
+                        mainViewModel.updateHandler(EventHandlerAlarm.TimeReminder(isTimeReminderOrNot = alarm.isTimeReminder))
+                        mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarm.isGentleWakeUp))
+                        mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarm.wakeUpTime))
+                        mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
+                        mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarm.customVolume))
+                        mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarm.isLabel))
+                        mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarm.labelTextForSpeech))
                         mainViewModel.updateHandler(
                             EventHandlerAlarm.getTime(
                                 time = alarm.localTime
@@ -516,7 +613,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
             onDismissRequest = { showSheetState = false },
             sheetState = sheetState,
             dragHandle = {}) {
-            Column(modifier = Modifier.background(Color(0xff1C1F26))) {
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.onBackground)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(0.96f),
                     horizontalArrangement = Arrangement.End
@@ -530,7 +627,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
@@ -542,13 +639,40 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                     showSheetState = false
                 }
                 singleSheetItem(name = "Preview Alarm", icon = Icons.Filled.Alarm) {
-
+                    val newIntent = Intent(context, AlarmCancelAccess::class.java)
+                    newIntent.putExtra("Alarm", alarmToPreview)
+                    newIntent.putExtra("Preview", true)
+                    context.startActivity(newIntent)
                 }
-                singleSheetItem(name = "Skip next alarm", icon = Icons.Filled.SkipNext) {
-
-                }
+//                singleSheetItem(name = "Skip next alarm", icon = Icons.Filled.SkipNext) {
+//
+//                }
                 singleSheetItem(name = "Duplicate alarm", icon = Icons.Filled.ContentCopy) {
 
+                    mainViewModel.insertAlarm(
+                        AlarmEntity(
+                            id = alarmToPreview.timeInMillis + (0..19992).random(),
+                            timeInMillis = alarmToPreview.timeInMillis,
+                            snoozeTime = alarmToPreview.snoozeTime,
+                            snoozeTimeInMillis = 0,
+                            localTime = alarmToPreview.localTime,
+                            listOfDays = alarmToPreview.listOfDays,
+                            isActive = alarmToPreview.isActive,
+                            isOneTime = alarmToPreview.isOneTime,
+                            ringtone = alarmToPreview.ringtone,
+                            listOfMissions = alarmToPreview.listOfMissions,
+                            labelTextForSpeech = alarmToPreview.labelTextForSpeech,
+                            wakeUpTime = alarmToPreview.wakeUpTime,
+                            isTimeReminder = alarmToPreview.isTimeReminder,
+                            isLoudEffect = alarmToPreview.isLoudEffect,
+                            isGentleWakeUp = alarmToPreview.isGentleWakeUp,
+                            isLabel = alarmToPreview.isLabel,
+                            customVolume = alarmToPreview.customVolume,
+                            willVibrate = alarmToPreview.willVibrate,
+                            reqCode = (0..19992).random()
+                        )
+                    )
+                    showSheetState = false
                 }
                 Spacer(modifier = Modifier.height(30.dp))
             }
@@ -559,6 +683,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmBox(
+    isDarkMode: Boolean,
     delete: (Long) -> Unit,
     onAlarmCLick: () -> Unit,
     onAlarmBoxClick: (Long) -> Unit,
@@ -600,19 +725,19 @@ fun AlarmBox(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xff222325))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(start = 15.dp, end = 15.dp, top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = formattedTheTime(alarm.localTime.hour, alarm.localTime.minute),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 30.sp, fontWeight = FontWeight.Medium
                     )
                     alarm.localTime.let {
                         Text(
                             text = getAMPM(it),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 25.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(start = 5.dp)
@@ -630,10 +755,18 @@ fun AlarmBox(
                                 // Handle the new switch state
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White, // Color when switch is ON
-                                checkedTrackColor = Color(0xff7358F5), // Track color when switch is ON
-                                uncheckedThumbColor = Color(0xff949495), // Color when switch is OFF
-                                uncheckedTrackColor = Color(0xff343435) // Track color when switch is OFF
+                                checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                    0xff13A7CB
+                                ), // Color when switch is ON
+                                checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                    0xff7FCFE1
+                                ), // Track color when switch is ON
+                                uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                    0xff656D7D
+                                ), // Color when switch is OFF
+                                uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                    0xff9E9E9E
+                                ) // Track color when switch is OFF
                             ), modifier = Modifier.scale(0.8f)
                         )
                     }
@@ -641,7 +774,7 @@ fun AlarmBox(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xff222325))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(start = 15.dp, end = 15.dp, bottom = 8.dp, top = 4.dp)
                 ) {
                     Text(
@@ -659,13 +792,13 @@ fun AlarmBox(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xff2A2A2C))
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant)
                         .padding(start = 15.dp, end = 25.dp, bottom = 8.dp, top = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Mission ",
-                        color = Color(0xFF8572EB),
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontSize = 15.sp
                     )
                     alarm.listOfMissions.forEach {
@@ -675,7 +808,7 @@ fun AlarmBox(
                                 Icon(
                                     imageVector = Icons.Filled.AutoAwesomeMosaic,
                                     contentDescription = "",
-                                    tint = Color(0xFF8572EB),
+                                    tint = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -684,7 +817,7 @@ fun AlarmBox(
                                 Icon(
                                     imageVector = Icons.Filled.ScreenRotation,
                                     contentDescription = "",
-                                    tint = Color(0xFF8572EB),
+                                    tint = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -693,7 +826,34 @@ fun AlarmBox(
                                 Icon(
                                     imageVector = Icons.Filled.Calculate,
                                     contentDescription = "",
-                                    tint = Color(0xFF8572EB),
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            "Photo" -> {
+                                Icon(
+                                    imageVector = Icons.Filled.CameraEnhance,
+                                    contentDescription = "",
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            "QR/Barcode" -> {
+                                Icon(
+                                    imageVector = Icons.Filled.QrCode2,
+                                    contentDescription = "",
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            "Typing" -> {
+                                Icon(
+                                    imageVector = Icons.Filled.Keyboard,
+                                    contentDescription = "",
+                                    tint = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -703,7 +863,7 @@ fun AlarmBox(
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "",
-                            tint = Color(0xFF8572EB),
+                            tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -720,7 +880,7 @@ fun AlarmBox(
                                 }, contentAlignment = Alignment.Center
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.dots),
+                                painter = painterResource(id = if (isDarkMode) R.drawable.dots else R.drawable.dotsblack),
                                 contentDescription = "",
                                 modifier = Modifier
                                     .size(25.dp)
@@ -754,11 +914,15 @@ fun singleSheetItem(name: String, icon: ImageVector, onCLick: () -> Unit) {
             .clickable { onCLick() }
             .padding(vertical = 10.dp, horizontal = 20.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = "", tint = Color.White.copy(alpha = 0.75f))
+        Icon(
+            imageVector = icon,
+            contentDescription = "",
+            tint = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.75f)
+        )
         Text(
             text = name,
             modifier = Modifier.padding(start = 10.dp),
-            color = Color.White.copy(alpha = 0.75f)
+            color = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.75f)
         )
     }
 }

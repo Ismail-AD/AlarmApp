@@ -1,11 +1,13 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,9 +36,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +79,7 @@ fun TypingMissionScreen(
     mainViewModel: MainViewModel,
     controller: NavHostController
 ) {
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
@@ -101,6 +106,12 @@ fun TypingMissionScreen(
             mainViewModel.missionData(MissionDataHandler.MissionProgress(1))
         }
     }
+    BackHandler {
+        controller.navigate(Routes.MissionMenuScreen.route) {
+            popUpTo(controller.graph.startDestinationId)
+            launchSingleTop = true
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
@@ -108,7 +119,7 @@ fun TypingMissionScreen(
 
         Column(
             modifier = Modifier
-                .background(backColor)
+                .background( MaterialTheme.colorScheme.background)
                 .fillMaxHeight()
         ) {
             Row(
@@ -125,7 +136,7 @@ fun TypingMissionScreen(
                             launchSingleTop = true
                         }
                     },
-                    border = BorderStroke(1.dp, Color.White),
+                    border = BorderStroke(1.dp,  MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
@@ -133,14 +144,14 @@ fun TypingMissionScreen(
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
 
                 Text(
                     text = "Typing",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 17.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
@@ -154,7 +165,7 @@ fun TypingMissionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp, horizontal = 22.dp)
-                        .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(10.dp)),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -196,7 +207,7 @@ fun TypingMissionScreen(
                             horizontal = 22.dp,
                             vertical = 5.dp
                         )
-                        .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(10.dp)),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -237,7 +248,7 @@ fun TypingMissionScreen(
 
                                 Text(
                                     text = "${index + 1}",
-                                    color = if (index == currentIndex) Color.White else Color.Gray,
+                                    color =  if(isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
                                     fontSize = 27.sp,
                                     fontWeight = FontWeight.W600
                                 )
@@ -245,7 +256,7 @@ fun TypingMissionScreen(
                         }
                         Text(
                             text = "times",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.W400,
@@ -264,13 +275,13 @@ fun TypingMissionScreen(
                                 launchSingleTop = true
                             }
                         }
-                        .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(10.dp)),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Select the sentences",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         textAlign = TextAlign.Start,
                         fontSize = 15.sp,
                         modifier = Modifier.padding(vertical = 24.dp, horizontal = 16.dp)
@@ -288,9 +299,7 @@ fun TypingMissionScreen(
                             Icon(
                                 imageVector = Icons.Filled.ArrowForwardIos,
                                 contentDescription = "",
-                                tint = Color.White.copy(
-                                    alpha = 0.8f
-                                ),
+                                tint = MaterialTheme.colorScheme.surfaceTint,
                                 modifier = Modifier.size(15.dp)
                             )
                         }
@@ -313,9 +322,9 @@ fun TypingMissionScreen(
                             },
                             text = "Preview",
                             width = 0.3f,
-                            backgroundColor = backColor,
+                            backgroundColor = MaterialTheme.colorScheme.background,
                             isBorderPreview = true,
-                            textColor = Color.LightGray
+                            textColor = if(isDarkMode) Color.LightGray else Color.Black
                         )
                         Spacer(modifier = Modifier.width(14.dp))
                         CustomButton(

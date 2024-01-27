@@ -3,13 +3,16 @@ package com.appdev.alarmapp.ui.MainScreen
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Embedded
 import androidx.room.PrimaryKey
+import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
@@ -49,7 +52,8 @@ import kotlin.random.Random
 @HiltViewModel
 class MainViewModel @Inject constructor(
     val ringtoneRepository: RingtoneRepository,
-    val alarmRepository: AlarmRepository
+    val alarmRepository: AlarmRepository,
+    val tokenManagement: TokenManagement
 ) : ViewModel() {
 
     private var _defaultSettings = MutableStateFlow(DefaultSettings())
@@ -61,6 +65,9 @@ class MainViewModel @Inject constructor(
 
     private var _dismissSettings = MutableStateFlow(DismissSettings())
     val dismissSettings: StateFlow<DismissSettings> get() = _dismissSettings
+
+    private var _themeSettings = MutableStateFlow(false)
+    val themeSettings: StateFlow<Boolean> get() = _themeSettings
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -78,6 +85,11 @@ class MainViewModel @Inject constructor(
                 _dismissSettings.value = it
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            tokenManagement.getTheme().collect {
+                _themeSettings.value = it
+            }
+        }
     }
 
     var selectedDataAlarm by mutableStateOf(AlarmEntity())
@@ -91,11 +103,15 @@ class MainViewModel @Inject constructor(
     var selectedImage by mutableStateOf(ImageData())
     var selectedCode by mutableStateOf(QrCodeData(qrCodeString = ""))
     var flashLight by mutableStateOf(false)
+    var previewMode by mutableStateOf(false)
+    var hasSnoozed by mutableStateOf(false)
+    var dataSent by mutableStateOf(FeedbackUpdate())
     var tabValue by mutableStateOf(0)
 
     fun tabChange(value: Int) {
         tabValue = value
     }
+
 
     var managingDefault by mutableStateOf(false)
 
@@ -105,6 +121,19 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<QrScanUIState> = _uiState
     var detectedQrCodeState by mutableStateOf(ProcessingState())
     var newAlarm by mutableStateOf(getAlarmEntityWithDefaultSettings())
+    fun sendFeedback(data: String, onComplete: (Boolean, String) -> Unit) {
+        ringtoneRepository.sendFeedbackInfo(data) { DoneOrNot, Message ->
+            onComplete(DoneOrNot, Message)
+        }
+    }
+
+    fun previewModeUpdate(value: Boolean) {
+        previewMode = value
+    }
+
+    fun snoozeUpdate(value: Boolean) {
+        hasSnoozed = value
+    }
 
     fun getAlarmEntityWithDefaultSettings(): AlarmEntity {
         val alarmEntity = AlarmEntity()
@@ -115,6 +144,13 @@ class MainViewModel @Inject constructor(
     fun basicSettingsInsertion(alarmSettingEntity: AlarmSetting) {
         viewModelScope.launch {
             ringtoneRepository.insertBasicSettings(alarmSettingEntity)
+        }
+    }
+
+    fun updateThemeSettings(themeUpdated: Boolean) {
+        _themeSettings.value = themeUpdated
+        viewModelScope.launch {
+            tokenManagement.saveTheme(themeSettings.value)
         }
     }
 
@@ -285,7 +321,7 @@ class MainViewModel @Inject constructor(
             is whichMissionHandler.thisMission -> whichMission = whichMission.copy(
                 isMath = whichMissionHandler.missionMath,
                 isShake = whichMissionHandler.missionShake,
-                isMemory = whichMissionHandler.missionMemory, isSteps = whichMissionHandler.isSteps
+                isMemory = whichMissionHandler.missionMemory, isSteps = whichMissionHandler.isSteps, isSquat = whichMissionHandler.isSquat
             )
         }
     }
@@ -344,6 +380,30 @@ class MainViewModel @Inject constructor(
 
             is EventHandlerAlarm.getSnoozeTime -> selectedDataAlarm =
                 selectedDataAlarm.copy(snoozeTime = eventHandlerAlarm.getSnoozeTime)
+
+            is EventHandlerAlarm.GetWakeUpTime -> selectedDataAlarm =
+                selectedDataAlarm.copy(wakeUpTime = eventHandlerAlarm.getWUTime)
+
+            is EventHandlerAlarm.IsGentleWakeUp -> selectedDataAlarm =
+                selectedDataAlarm.copy(isGentleWakeUp = eventHandlerAlarm.isGentleWakeUp)
+
+            is EventHandlerAlarm.LoudEffect -> selectedDataAlarm =
+                selectedDataAlarm.copy(isLoudEffect = eventHandlerAlarm.isLoudEffectOrNot)
+
+            is EventHandlerAlarm.TimeReminder -> selectedDataAlarm =
+                selectedDataAlarm.copy(isTimeReminder = eventHandlerAlarm.isTimeReminderOrNot)
+
+            is EventHandlerAlarm.CustomVolume -> selectedDataAlarm =
+                selectedDataAlarm.copy(customVolume = eventHandlerAlarm.customVolume)
+
+            is EventHandlerAlarm.IsLabel -> selectedDataAlarm =
+                selectedDataAlarm.copy(isLabel = eventHandlerAlarm.isLabelOrNot)
+
+            is EventHandlerAlarm.LabelText -> selectedDataAlarm =
+                selectedDataAlarm.copy(labelTextForSpeech = eventHandlerAlarm.getLabelText)
+
+            is EventHandlerAlarm.Vibrator -> selectedDataAlarm =
+                selectedDataAlarm.copy(willVibrate = eventHandlerAlarm.setVibration)
         }
 
     }
@@ -382,6 +442,30 @@ class MainViewModel @Inject constructor(
 
             is newAlarmHandler.getSnoozeTime -> newAlarm =
                 newAlarm.copy(snoozeTime = newAlarmHandler.getSnoozeTime)
+
+            is newAlarmHandler.GetWakeUpTime -> newAlarm =
+                newAlarm.copy(wakeUpTime = newAlarmHandler.getWUTime)
+
+            is newAlarmHandler.IsGentleWakeUp -> newAlarm =
+                newAlarm.copy(isGentleWakeUp = newAlarmHandler.isGentleWakeUp)
+
+            is newAlarmHandler.LoudEffect -> newAlarm =
+                newAlarm.copy(isLoudEffect = newAlarmHandler.isLoudEffectOrNot)
+
+            is newAlarmHandler.TimeReminder -> newAlarm =
+                newAlarm.copy(isTimeReminder = newAlarmHandler.isTimeReminderOrNot)
+
+            is newAlarmHandler.CustomVolume -> newAlarm =
+                newAlarm.copy(customVolume = newAlarmHandler.customVolume)
+
+            is newAlarmHandler.IsLabel -> newAlarm =
+                newAlarm.copy(isLabel = newAlarmHandler.isLabelOrNot)
+
+            is newAlarmHandler.LabelText -> newAlarm =
+                newAlarm.copy(labelTextForSpeech = newAlarmHandler.getLabelText)
+
+            is newAlarmHandler.Vibrator -> newAlarm =
+                newAlarm.copy(willVibrate = newAlarmHandler.setVibration)
         }
 
     }
@@ -435,7 +519,7 @@ class MainViewModel @Inject constructor(
 
             is MissionDataHandler.AddList -> {
                 missionDetailsList = missionDataHandler.missionsList
-                if (isRealAlarm) {
+                if (isRealAlarm || previewMode) {
                     dummyMissionList = missionDetailsList
                 }
             }
@@ -531,12 +615,17 @@ class MainViewModel @Inject constructor(
         val isMath: Boolean = false,
         val isShake: Boolean = false,
         val isMemory: Boolean = false,
-        val isSteps: Boolean = false
+        val isSteps: Boolean = false,val isSquat:Boolean=false
     )
 
     data class ProcessingState(
         val qrCode: String = "",
         val startProcess: Boolean = true
+    )
+
+    data class FeedbackUpdate(
+        val msg: String = "",
+        val completeOrNot: Boolean = false
     )
 
     data class QrScanUIState(

@@ -9,7 +9,7 @@ class ObjectsGlobal {
         const val Alarm_Table="alarms_table_"
         const val TOKEN_FILE_TO_STORE_TOKEN="token_file_to_store_token"
         const val USER_TOKEN= "USER_token"
-        const val DAYS= "Days"
+        const val THEME_SET= "ThemeKey"
         const val Selected_Puzzle= "SELECTED_PUZZLE_01"
         const val Newly_Selected_Puzzle= "NEW_SELECTED_PUZZLE_01"
     }

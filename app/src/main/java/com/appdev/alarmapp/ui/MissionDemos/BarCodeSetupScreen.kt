@@ -1,12 +1,11 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
 import android.Manifest
-import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,31 +39,26 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -78,11 +72,9 @@ import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
-import com.appdev.alarmapp.ui.CustomImageButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
-import com.appdev.alarmapp.ui.StartingScreens.DemoScreens.buttonToPlay
-import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.ui.theme.elementBack
 import com.appdev.alarmapp.ui.theme.signatureBlue
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
@@ -100,6 +92,7 @@ import kotlinx.coroutines.launch
 )
 @Composable
 fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
@@ -194,6 +187,12 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
             guideOrNot = permissionState.status.isGranted
         }
     }
+    BackHandler {
+        controller.navigate(Routes.MissionMenuScreen.route) {
+            popUpTo(controller.graph.startDestinationId)
+            launchSingleTop = true
+        }
+    }
 
     Scaffold(bottomBar = {
         if (guideOrNot) {
@@ -219,9 +218,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                     },
                     text = "Preview",
                     width = 0.3f,
-                    backgroundColor = backColor,
+                    backgroundColor = MaterialTheme.colorScheme.background,
                     isBorderPreview = true,
-                    textColor = Color.LightGray
+                    textColor = if (isDarkMode) Color.LightGray else Color.Black
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 CustomButton(
@@ -306,7 +305,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
 
             Column(
                 modifier = Modifier
-                    .background(backColor)
+                    .background(MaterialTheme.colorScheme.onBackground)
                     .fillMaxHeight()
             ) {
                 Row(
@@ -323,7 +322,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 launchSingleTop = true
                             }
                         },
-                        border = BorderStroke(1.dp, Color.White),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                         shape = CircleShape,
                         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
@@ -331,13 +330,13 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowLeft,
                                 contentDescription = "",
-                                tint = Color.White
+                                tint = MaterialTheme.colorScheme.surfaceTint
                             )
                         }
                     }
                     Text(
                         text = "QR/Barcode",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 17.sp,
                         textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                     )
@@ -352,14 +351,17 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 10.dp, horizontal = 22.dp)
-                                .background(Color(0xff2F333E), shape = RoundedCornerShape(10.dp)),
+                                .background(
+                                    MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(10.dp)
+                                ),
                             verticalArrangement = Arrangement.spacedBy(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Spacer(modifier = Modifier.height(30.dp))
                             Text(
                                 text = "Scan a code of a part of your morning routine",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 fontSize = 21.sp,
                                 textAlign = TextAlign.Center,
                                 fontWeight = FontWeight.W500,
@@ -415,9 +417,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                         }
                                     }, shape = RoundedCornerShape(10.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color(
+                                        containerColor = if(isDarkMode) Color(
                                             0xff3F434F
-                                        )
+                                        ) else Color.LightGray
                                     ), modifier = Modifier
                                         .fillMaxWidth()
                                         .height(55.dp)
@@ -432,12 +434,12 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                         Icon(
                                             imageVector = Icons.Filled.Add,
                                             contentDescription = "",
-                                            tint = Color(0xffA6ACB5),
+                                            tint = MaterialTheme.colorScheme.surfaceTint,
                                             modifier = Modifier.size(25.dp)
                                         )
                                         Text(
                                             text = "Add",
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.surfaceTint,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.padding(start = 4.dp)
                                         )
@@ -448,7 +450,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 Spacer(modifier = Modifier.height(20.dp))
                             }
                             items(codesList) { qrCodeData ->
-                                singleEntry(
+                                singleEntry(isDarkMode,
                                     qrCodeData = qrCodeData,
                                     isSelected = selectedCodeIndex == qrCodeData.codeId,
                                     changeSheetState = {
@@ -491,7 +493,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         sheetState = sheetState,
                         dragHandle = {}) {
                         Column(
-                            modifier = Modifier.background(Color(0xff1C1F26)),
+                            modifier = Modifier.background(MaterialTheme.colorScheme.onBackground),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Row(
@@ -502,7 +504,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             ) {
                                 Text(
                                     text = "QR/Barcode name",
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.surfaceTint,
                                     fontSize = 18.sp,
                                     modifier = Modifier.fillMaxWidth(0.73f),
                                     textAlign = TextAlign.End, fontWeight = FontWeight.W500
@@ -537,7 +539,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                         Icon(
                                             imageVector = Icons.Filled.Close,
                                             contentDescription = "",
-                                            tint = Color.White
+                                            tint = MaterialTheme.colorScheme.surfaceTint
                                         )
                                     }
                                 }
@@ -549,11 +551,11 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     onValueChange = {
                                         filename = it
                                     },
-                                    cursorBrush = SolidColor(Color.White),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.surfaceTint),
                                     singleLine = true,
                                     modifier = Modifier
                                         .fillMaxWidth(0.8f),
-                                    textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.surfaceTint, fontSize = 16.sp),
                                     maxLines = 1,
                                     decorationBox = { innerTextField ->
                                         Box(
@@ -618,7 +620,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         },
                         sheetState = sheetState,
                         dragHandle = {}) {
-                        Column(modifier = Modifier.background(Color(0xff1C1F26))) {
+                        Column(modifier = Modifier.background(MaterialTheme.colorScheme.onBackground)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(0.96f),
                                 horizontalArrangement = Arrangement.End
@@ -633,7 +635,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     Icon(
                                         imageVector = Icons.Filled.Close,
                                         contentDescription = "",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.surfaceTint
                                     )
                                 }
                             }
@@ -701,6 +703,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun singleEntry(
+    isDarkMode: Boolean,
     qrCodeData: QrCodeData,
     isSelected: Boolean,
     changeSheetState: () -> Unit,
@@ -721,8 +724,8 @@ fun singleEntry(
                 color = if (isSelected) Color(0xff0FAACB) else Color.Transparent
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (isSelected) Color(0xff2F333E) else Color(0xff24272E)
-            )
+                containerColor = if (isSelected && isDarkMode) Color(0xff2F333E) else MaterialTheme.colorScheme.secondaryContainer)
+
         ) {
             Row(
                 modifier = Modifier
@@ -733,7 +736,7 @@ fun singleEntry(
 
                 Text(
                     text = qrCodeData.qrCodeString,
-                    color = Color.White,
+                    color =MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
                 )
                 Box(
@@ -750,7 +753,7 @@ fun singleEntry(
                             }, contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.dots),
+                            painter = painterResource(id = if(isDarkMode)  R.drawable.dots else R.drawable.dotsblack),
                             contentDescription = "",
                             modifier = Modifier
                                 .size(22.dp)
