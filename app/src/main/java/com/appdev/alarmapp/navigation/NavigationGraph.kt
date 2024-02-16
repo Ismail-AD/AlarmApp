@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.navigation
 
+import android.content.Context
 import android.os.Build
 import android.speech.tts.TextToSpeech
 import androidx.annotation.RequiresApi
@@ -12,6 +13,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MainUI.MainUiScreen
@@ -31,10 +33,11 @@ fun navGraph(
     textToSpeech: TextToSpeech,
     controller: NavHostController,
     isToken: TokenManagement,
-    inAppPurchaseClick: () -> Unit
+    applicationContext: Context
 ) {
 
     val mainViewModel: MainViewModel = hiltViewModel()
+    val alarmScheduler = AlarmScheduler(applicationContext,mainViewModel)
     val start = if (isToken.getToken() != null) {
         Routes.MainUIScreen.route
     } else {
@@ -86,7 +89,7 @@ fun navGraph(
             NotificationScreen(controller)
         }
         composable(route = Routes.MainUIScreen.route) {
-            MainUiScreen(textToSpeech,isToken, mainViewModel = mainViewModel ,inAppPurchaseClick = { inAppPurchaseClick() })
+            MainUiScreen(alarmScheduler,textToSpeech,isToken, mainViewModel = mainViewModel)
         }
     }
 }

@@ -12,16 +12,18 @@ sealed interface EventHandlerSearchBar {
 
 
 sealed interface EventHandlerAlarm {
+    data class skipAlarm(val skipped: Boolean) : EventHandlerAlarm
     data class getMilli(val timeInMilli: Long) : EventHandlerAlarm
+    data class getNextMilli(val upcomingMilli: Long) : EventHandlerAlarm
     data class getDays(val days: Set<String>) : EventHandlerAlarm
     data class getTime(val time: LocalTime) : EventHandlerAlarm
     data class isActive(val isactive: Boolean) : EventHandlerAlarm
     data class isOneTime(val isOneTime: Boolean) : EventHandlerAlarm
     data class idAlarm(val iD: Long) : EventHandlerAlarm
     data class ringtone(val ringtone: Ringtone) : EventHandlerAlarm
-    data class requestCode(val reqCode: Int) : EventHandlerAlarm
     data class getSnoozeTime(val getSnoozeTime: Int) : EventHandlerAlarm
     data class getMissions(val missions:List<Missions>) : EventHandlerAlarm
+
     data class IsGentleWakeUp(val isGentleWakeUp: Boolean) : EventHandlerAlarm
     data class LoudEffect(val isLoudEffectOrNot: Boolean) : EventHandlerAlarm
     data class TimeReminder(val isTimeReminderOrNot: Boolean) : EventHandlerAlarm
@@ -37,11 +39,12 @@ sealed interface EventHandlerAlarm {
 sealed interface newAlarmHandler {
     data class getDays(val days: Set<String>) : newAlarmHandler
     data class getMilli(val timeInMilli: Long) : newAlarmHandler
+    data class getNextMilli(val upcomingMilli: Long) : newAlarmHandler
     data class getTime(val time: LocalTime) : newAlarmHandler
     data class isActive(val isactive: Boolean) : newAlarmHandler
     data class isOneTime(val isOneTime: Boolean) : newAlarmHandler
+    data class skipAlarm(val skipAlarm: Boolean) : newAlarmHandler
     data class ringtone(val ringtone: Ringtone) : newAlarmHandler
-    data class requestCode(val reqCode: Int) : newAlarmHandler
     data class getSnoozeTime(val getSnoozeTime: Int) : newAlarmHandler
     data class getMissions(val missions:List<Missions>) : newAlarmHandler
     data class IsGentleWakeUp(val isGentleWakeUp: Boolean) : newAlarmHandler

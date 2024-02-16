@@ -265,7 +265,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
                                 )
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
-                                controller.navigate(Routes.MissionMenuScreen.route) {
+                                controller.navigate(Routes.Preview.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }

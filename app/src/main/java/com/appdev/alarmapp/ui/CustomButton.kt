@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,11 +38,12 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomButton(
+    isLock: Boolean = false,
     onClick: () -> Unit,
     text: String,
     textColor: Color = Color.White,
     width: Float = 0.8f,
-    backgroundColor: Color = Color(0xffBC243B),
+    backgroundColor: Color = Color(0xff7B70FF),
     height: Dp = 50.dp,
     fontSize: TextUnit = 18.sp,
     isBorderPreview: Boolean = false,
@@ -69,11 +71,28 @@ fun CustomButton(
                 .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text, fontSize = fontSize,
-                letterSpacing = 0.sp,
-                color = textColor, textAlign = TextAlign.Center
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = backgroundColor),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text, fontSize = fontSize,
+                    letterSpacing = 0.sp,
+                    color = textColor, textAlign = TextAlign.Center
+                )
+               if(isLock){
+                   Spacer(modifier = Modifier.width(4.dp))
+                   Icon(
+                       imageVector = Icons.Filled.Lock,
+                       contentDescription = "",
+                       tint = Color.White,
+                       modifier = Modifier.size(15.dp)
+                   )
+               }
+            }
         }
     }
 }

@@ -202,7 +202,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                     MissionDataHandler.ImageId(mainViewModel.selectedImage.id)
                                 )
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
-                                controller.navigate(Routes.MissionMenuScreen.route) {
+                                controller.navigate(Routes.Preview.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }

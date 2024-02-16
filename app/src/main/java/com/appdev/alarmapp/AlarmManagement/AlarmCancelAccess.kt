@@ -1,20 +1,19 @@
 package com.appdev.alarmapp.AlarmManagement
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.PowerManager
 import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -39,6 +38,8 @@ import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
+import com.appdev.alarmapp.utils.newAlarmHandler
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
 import java.time.OffsetTime
@@ -51,16 +52,32 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class AlarmCancelAccess : ComponentActivity() {
     val mainViewModel by viewModels<MainViewModel>()
-    var dismissSettings: DismissSettings = DismissSettings()
+    var dismissSettings: DismissSettings? = null
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
+    private var receivedAlarm: AlarmEntity? = null
+    private var previewMode: Boolean = false
+    private var notify: Boolean = false
+    private var lastPressedKeyCode: Int = -1
+    private var isScreenOnBeforeAlarm = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val callback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Do nothing to disable the back button
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, callback)
+
         setContent {
             AlarmAppTheme {
+                Log.d("CHKSM", "ON CREATE CALLED and state is ${mainViewModel.isRealAlarm}")
                 val alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
-                val previewMode = intent.getBooleanExtra("Preview", false)
+                previewMode = intent.getBooleanExtra("Preview", false)
+                isScreenOnBeforeAlarm = isScreenOn()
 
                 if (!previewMode) {
                     mainViewModel.updateIsReal(true)
@@ -70,10 +87,11 @@ class AlarmCancelAccess : ComponentActivity() {
                 }
                 mainViewModel.previewModeUpdate(true)
                 mainViewModel.snoozeUpdate(false)
-                val notify = intent.getBooleanExtra("notify", false)
+                notify = intent.getBooleanExtra("notify", false)
 
                 if (intent?.hasExtra("Alarm") == true) {
-                    val receivedAlarm: AlarmEntity? = intent.getParcelableExtra("Alarm")
+                    receivedAlarm = intent.getParcelableExtra("Alarm")
+                    dismissSettings = intent.getParcelableExtra("dismissSet")
                     receivedAlarm?.let { alarm ->
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
 
@@ -92,6 +110,9 @@ class AlarmCancelAccess : ComponentActivity() {
                                         EventHandlerAlarm.Vibrator(
                                             setVibration = alarm.willVibrate
                                         )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.isOneTime(isOneTime = alarm.isOneTime)
                                     )
                                     mainViewModel.updateHandler(
                                         EventHandlerAlarm.CustomVolume(
@@ -141,11 +162,7 @@ class AlarmCancelAccess : ComponentActivity() {
                                             timeInMilli = alarm.timeInMillis
                                         )
                                     )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.requestCode(
-                                            reqCode = alarm.reqCode
-                                        )
-                                    )
+
                                     mainViewModel.updateHandler(
                                         EventHandlerAlarm.getMissions(
                                             missions = alarm.listOfMissions
@@ -154,6 +171,11 @@ class AlarmCancelAccess : ComponentActivity() {
                                     mainViewModel.updateHandler(
                                         EventHandlerAlarm.getSnoozeTime(
                                             getSnoozeTime = alarm.snoozeTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.CustomVolume(
+                                            customVolume = alarm.customVolume
                                         )
                                     )
                                     mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = false))
@@ -167,8 +189,8 @@ class AlarmCancelAccess : ComponentActivity() {
                                         snoozeTimeInMillis = 0,
                                         listOfMissions = alarm.listOfMissions,
                                         listOfDays = alarm.listOfDays,
-                                        reqCode = (0..19992).random(),
                                         ringtone = alarm.ringtone,
+                                        isActive = true,
                                         localTime = alarm.localTime,
                                         isGentleWakeUp = alarm.isGentleWakeUp,
                                         isTimeReminder = alarm.isTimeReminder,
@@ -178,8 +200,38 @@ class AlarmCancelAccess : ComponentActivity() {
                                         customVolume = alarm.customVolume,
                                         willVibrate = alarm.willVibrate,
                                         labelTextForSpeech = alarm.labelTextForSpeech,
+                                        skipTheAlarm = false, isOneTime = false
                                     )
-                                    scheduleTheAlarm(alarmEntity, alarmScheduler, notify)
+                                    mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmEntity.id))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmEntity.listOfDays))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmEntity.ringtone))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarmEntity.skipTheAlarm))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarmEntity.isLoudEffect))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.TimeReminder(
+                                            isTimeReminderOrNot = alarmEntity.isTimeReminder
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarmEntity.isGentleWakeUp))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarmEntity.wakeUpTime))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarmEntity.willVibrate))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarmEntity.customVolume))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarmEntity.isLabel))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarmEntity.labelTextForSpeech))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getTime(
+                                            time = alarmEntity.localTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.isOneTime(isOneTime = alarmEntity.isOneTime)
+                                    )
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarmEntity.listOfMissions))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarmEntity.snoozeTime))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmEntity.isActive))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarmEntity.timeInMillis))
+                                    scheduleTheAlarm(alarmEntity, alarmScheduler, notify,true,mainViewModel)
+
                                 }
                                 mainViewModel.updateIsReal(false)
                                 mainViewModel.previewModeUpdate(false)
@@ -188,103 +240,17 @@ class AlarmCancelAccess : ComponentActivity() {
                                     Helper.stopIncreasingVolume()
                                 }
                                 Helper.updateCustomValue(100f)
+                                Helper.stopStream()
                                 startActivity(Intent(this, MainActivity::class.java))
                                 finish()
                             }
                         }
                     }
                 }
-
-//                if (intent?.hasExtra("ringtoneObj") == true) {
-//                    val receivedRingtone: Ringtone? = intent.getParcelableExtra("ringtoneObj")
-//                    receivedRingtone?.let { ringtone ->
-//
-//                        if (intent?.hasExtra("list") == true) {
-//
-//                            val receivedList =
-//                                intent.getSerializableExtra("list") as? List<Missions>
-//
-//                            receivedList?.let { listOfMissions ->
-//
-//                                mainViewModel.missionData(MissionDataHandler.AddList(missionsList = listOfMissions))
-//
-//                                AlarmNavGraph(intent, mainViewModel = mainViewModel) {
-//                                    if (mainViewModel.dummyMissionList.isEmpty()) {
-//                                        if (intent.hasExtra("listOfDays")) {
-//                                            val listOfDaysJson = intent.getStringExtra("listOfDays")
-//
-//                                            // Convert the JSON string back to a Set
-//                                            val gson = Gson()
-//                                            val type = object : TypeToken<Set<String>>() {}.type
-//                                            val listOfDays =
-//                                                gson.fromJson<Set<String>>(listOfDaysJson, type)
-//                                            timeInM?.let { tIM ->
-//                                                id?.let { ID ->
-//                                                    val alarmEntity = AlarmEntity(
-//                                                        id = ID.toLong(),
-//                                                        snoozeTime = snoozeTime?.toInt() ?: 5,
-//                                                        timeInMillis = tIM.toLong(),
-//                                                        listOfMissions = listOfMissions,
-//                                                        listOfDays = listOfDays,
-//                                                        reqCode = (0..19992).random(),
-//                                                        ringtone = ringtone,
-//                                                        localTime = localTime
-//                                                    )
-//                                                    scheduleTheAlarm(
-//                                                        alarmEntity,
-//                                                        alarmScheduler,
-//                                                        notify
-//                                                    )
-//                                                }
-//                                            }
-//                                        }
-//                                        startActivity(Intent(this, MainActivity::class.java))
-//                                        mainViewModel.updateIsReal(false)
-//                                        finish()
-//                                    }
-//                                }
-//                            }
-//                        } else {
-//                            AlarmNavGraph(intent, mainViewModel = mainViewModel) {
-//                                if (mainViewModel.dummyMissionList.isEmpty()) {
-//                                    if (intent.hasExtra("listOfDays")) {
-//                                        val listOfDaysJson = intent.getStringExtra("listOfDays")
-//
-//                                        // Convert the JSON string back to a Set
-//                                        val gson = Gson()
-//                                        val type = object : TypeToken<Set<String>>() {}.type
-//                                        val listOfDays =
-//                                            gson.fromJson<Set<String>>(listOfDaysJson, type)
-//                                        timeInM?.let { tIM ->
-//                                            id?.let { ID ->
-//                                                val alarmEntity = AlarmEntity(
-//                                                    id = ID.toLong(),
-//                                                    snoozeTime = snoozeTime?.toInt() ?: 5,
-//                                                    timeInMillis = tIM.toLong(),
-//                                                    listOfDays = listOfDays,
-//                                                    reqCode = (0..19992).random(),
-//                                                    ringtone = ringtone,
-//                                                    localTime = localTime
-//                                                )
-//                                                scheduleTheAlarm(
-//                                                    alarmEntity,
-//                                                    alarmScheduler,
-//                                                    notify
-//                                                )
-//                                            }
-//                                        }
-//                                    }
-//                                    startActivity(Intent(this, MainActivity::class.java))
-//                                    mainViewModel.updateIsReal(false)
-//                                    finish()
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
             }
         }
     }
+
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         if (event?.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event?.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
@@ -293,12 +259,38 @@ class AlarmCancelAccess : ComponentActivity() {
             // or perform a custom action on volume key press
             return true // Consume the event to prevent the system volume change
         }
+        if (event?.keyCode == KeyEvent.KEYCODE_POWER) {
+            // Store the last pressed key code
+            lastPressedKeyCode = event.keyCode
+        }
         return super.dispatchKeyEvent(event)
     }
 
+
     override fun onStop() {
+        Log.d(
+            "CHKSM",
+            "ON STOP CALLED and state is ${mainViewModel.isRealAlarm} , $lastPressedKeyCode , ${KeyEvent.KEYCODE_POWER != lastPressedKeyCode}"
+        )
+        val isScreenOnNow = isScreenOn()
+        if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
+        ) {
+            // Power button not pressed, bring the app to the foreground
+            val newIntent = Intent(this, javaClass)
+            newIntent.putExtra("Alarm", receivedAlarm)
+            newIntent.putExtra("Preview", previewMode)
+            newIntent.putExtra("notify", notify)
+            newIntent.putExtra("dismissSet", dismissSettings)
+            startActivity(newIntent)
+        }
         super.onStop()
     }
+
+    private fun isScreenOn(): Boolean {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isInteractive
+    }
+
 
     override fun onDestroy() {
         Helper.stopStream()
@@ -310,6 +302,7 @@ fun scheduleTheAlarm(
     alarmEntity: AlarmEntity,
     alarmScheduler: AlarmScheduler,
     notify: Boolean,
+    resetUpcoming:Boolean=false,mainViewModel:MainViewModel
 ) {
     val selectedTimeMillis = localTimeToMillis(alarmEntity.localTime)
 
@@ -324,7 +317,6 @@ fun scheduleTheAlarm(
             .minOrNull()!!
 
         val daysUntilNextOccurrence = nextOccurrence - calendar.get(Calendar.DAY_OF_WEEK)
-
         if (daysUntilNextOccurrence < 0) {
             val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrence)
             calendar.timeInMillis =
@@ -336,20 +328,43 @@ fun scheduleTheAlarm(
             calendar.timeInMillis =
                 selectedTimeMillis + TimeUnit.DAYS.toMillis(daysUntilNextOccurrence.toLong())
         }
-
         alarmEntity.timeInMillis = calendar.timeInMillis
+
+        Log.d(
+            "CHKALARM",
+            "Calculated Time in millis to trigger: ${convertMillisToLocalTime(alarmEntity.timeInMillis)}"
+        )
 
         val instant = Instant.ofEpochMilli(calendar.timeInMillis)
         val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
         alarmEntity.localTime = offsetTime.toLocalTime()
-        alarmEntity.reqCode = (0..19992).random()
 
+        Log.d("CHKZ","Scheduling FROM Main screen with list of days ....  Id is ${alarmEntity.id}")
         alarmScheduler.schedule(alarmEntity, notify)
+        if(resetUpcoming){
+            Log.d("CHKITO","${calendar.timeInMillis} before new alarm set for another day")
+            mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = calendar.timeInMillis))
+            mainViewModel.updateHandler(EventHandlerAlarm.update)
+        }
 
+
+    } else if (alarmEntity.isOneTime) {
+        Log.d("CHKZ","Scheduling FROM Main screen with One time.... Id is ${alarmEntity.id}")
+
+        if (alarmEntity.timeInMillis > System.currentTimeMillis()) {
+            alarmScheduler.schedule(alarmEntity, notify)
+        } else {
+            val calendar = Calendar.getInstance().apply {
+                timeInMillis = alarmEntity.timeInMillis
+                add(Calendar.DAY_OF_YEAR, 1) // Add one day
+            }
+            alarmEntity.timeInMillis = calendar.timeInMillis
+            alarmScheduler.schedule(alarmEntity, notify)
+        }
     }
 }
 
-private fun getDayOfWeek(day: String): Int {
+fun getDayOfWeek(day: String): Int {
     val daysOfWeek =
         listOf("sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday")
     return daysOfWeek.indexOf(day.lowercase(Locale.ROOT)) + 1

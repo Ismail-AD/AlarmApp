@@ -162,8 +162,9 @@ fun RingtoneSelection(
     }
 
     var loading by remember { mutableStateOf(false) }
+    Log.d("CHKDI","Retrieved Default Ringtone: ${stateObject.value.ringtone }")
     var selectedRingtone by remember { mutableStateOf(if (mainViewModel.managingDefault)  stateObject.value.ringtone else if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.ringtone else mainViewModel.newAlarm.ringtone) }
-
+    Log.d("CHKDI","Now Selected Variable Ringtone: $selectedRingtone")
     val recordingsList by mainViewModel.recordingsList.collectAsStateWithLifecycle(initialValue = emptyList())
     val ringtoneDeviceList by mainViewModel.ringtoneSystemList.collectAsStateWithLifecycle(
         initialValue = emptyList()
@@ -178,15 +179,18 @@ fun RingtoneSelection(
 
     LaunchedEffect(ringtoneDeviceList) {
         loading = ringtoneDeviceList.isEmpty()
+
         if (mainViewModel.managingDefault) {
-            selectedRingtone = mainViewModel.defaultSettings.value.ringtone
-            selectedTabIndex = when (selectedRingtone) {
-                in recordingsList -> 2
-                in ringtoneDeviceList -> 1
-                in ringtoneList -> 0
-                else -> 0
+
+            if (!loading) {
+                selectedRingtone = mainViewModel.defaultSettings.value.ringtone
+                selectedTabIndex = when (selectedRingtone) {
+                    in recordingsList -> 2
+                    in ringtoneDeviceList -> 1
+                    in ringtoneList -> 0
+                    else -> 0
+                }
             }
-            Log.d("PGR","$selectedTabIndex and ${mainViewModel.defaultSettings.value.ringtone}")
         } else {
             if (!loading) {
                 selectedTabIndex = when (selectedRingtone) {

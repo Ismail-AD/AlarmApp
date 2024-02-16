@@ -1,11 +1,9 @@
 package com.appdev.alarmapp.ui.MainScreen
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -16,7 +14,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,9 +29,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.Calculate
@@ -48,9 +43,7 @@ import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,6 +63,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -80,41 +74,48 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmCancelAccess
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.AlarmManagement.getDayOfWeek
+import com.appdev.alarmapp.AlarmManagement.scheduleTheAlarm
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
-import com.appdev.alarmapp.ui.CustomImageButton
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
-import com.appdev.alarmapp.ui.PreivewScreen.localTimeToMillis
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.findUpcomingAlarm
-import com.appdev.alarmapp.ui.theme.backColor
-import com.appdev.alarmapp.ui.theme.linear
-import com.appdev.alarmapp.ui.theme.redOne
 import com.appdev.alarmapp.utils.EventHandlerAlarm
+import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
-import com.appdev.alarmapp.utils.Updating
 import com.appdev.alarmapp.utils.calculateTimeUntil
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.getRepeatText
 import com.appdev.alarmapp.utils.isOldOrNew
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.saket.swipe.SwipeAction
 import me.saket.swipe.SwipeableActionsBox
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalTime
 import java.time.OffsetTime
 import java.time.ZoneId
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
+fun MainScreen(
+    alarmSchedule: AlarmScheduler,
+    controller: NavHostController,
+    mainViewModel: MainViewModel
+) {
+    if (Helper.isPlaying()) {
+        Helper.stopStream()
+    }
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
     var showSheetState by remember {
         mutableStateOf(false)
@@ -126,21 +127,21 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
     var clickAlarmId by remember {
         mutableLongStateOf(0)
     }
+
     val scope = rememberCoroutineScope()
     val alarmList by mainViewModel.alarmList.collectAsStateWithLifecycle(initialValue = emptyList())
     val alarmSettings by mainViewModel.basicSettings.collectAsStateWithLifecycle()
     var allAlarms by remember {
         mutableStateOf(emptyList<AlarmEntity>())
     }
-    val context = LocalContext.current
-    val alarmScheduler by remember {
-        mutableStateOf(
-            AlarmScheduler(
-                context,
-                mainViewModel
-            )
-        )
+    var showToast by remember {
+        mutableStateOf(false)
     }
+    var showToast2 by remember {
+        mutableStateOf(false)
+    }
+    val context = LocalContext.current
+
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
 
     var upcomingAlarm by remember {
@@ -152,18 +153,45 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
     var timeUntilNextAlarm by remember {
         mutableStateOf(upcomingAlarm?.let { calculateTimeUntil(it.timeInMillis) })
     }
+
+    val alarmScheduler by remember {
+        mutableStateOf(AlarmScheduler(context, mainViewModel))
+    }
+    LaunchedEffect(key1 = showToast, key2 = showToast2) {
+        if (showToast) {
+            Toast.makeText(context, "you can only skip enabled alarms", Toast.LENGTH_SHORT).show()
+            showToast = false
+        } else if (showToast2) {
+            Toast.makeText(context, "you can only skip repeated alarms", Toast.LENGTH_SHORT).show()
+            showToast2 = false
+        }
+    }
     LaunchedEffect(key1 = alarmList, key2 = stateChanges) {
         allAlarms = if (alarmSettings.activeSort) {
             val activeAlarms = alarmList.filter { it.isActive }
             val inactiveAlarms = alarmList.filter { !it.isActive }
             activeAlarms + inactiveAlarms
         } else {
-            alarmList.sortedBy { it.timeInMillis }
+            alarmList.sortedBy { it.nextTimeInMillis }
         }
+
         upcomingAlarm = alarmList
-            .filter { it.isActive && it.timeInMillis > System.currentTimeMillis() }
-            .minByOrNull { it.timeInMillis }
-        timeUntilNextAlarm = upcomingAlarm?.let { calculateTimeUntil(it.timeInMillis) }
+            .filter { it.isActive }
+            .minByOrNull {
+                if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                    checkForNextOccur(it)
+                } else {
+                    it.nextTimeInMillis
+                }
+            }
+        timeUntilNextAlarm = upcomingAlarm?.let {
+            if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                Log.d("CHJ", "${it.isOneTime}")
+                calculateTimeUntil(checkForNextOccur(it))
+            } else {
+                calculateTimeUntil(it.nextTimeInMillis)
+            }
+        }
         if (mainViewModel.basicSettings.value.showInNotification) {
             if (upcomingAlarm != null) {
                 if (upcomingAlarm!!.isActive) {
@@ -228,6 +256,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                 Box(
                     modifier = Modifier
                         .size(45.dp)
+                        .clip(CircleShape) // Clip the Box with CircleShape
                         .background(
                             if (isDarkMode) Color(0xff222325) else Color(0xFFDDF4FA),
                             CircleShape
@@ -409,15 +438,47 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         CustomButton(
                             onClick = {
                                 upcomingAlarm?.let { alarm ->
-                                    mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarm.customVolume))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarm.isLabel))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarm.labelTextForSpeech))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.Vibrator(
+                                            setVibration = alarm.willVibrate
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.CustomVolume(
+                                            customVolume = alarm.customVolume
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.IsLabel(
+                                            isLabelOrNot = alarm.isLabel
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.LabelText(
+                                            getLabelText = alarm.labelTextForSpeech
+                                        )
+                                    )
                                     mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarm.isActive))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarm.isLoudEffect))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.TimeReminder(isTimeReminderOrNot = alarm.isTimeReminder))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarm.isGentleWakeUp))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarm.wakeUpTime))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.LoudEffect(
+                                            isLoudEffectOrNot = alarm.isLoudEffect
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.TimeReminder(
+                                            isTimeReminderOrNot = alarm.isTimeReminder
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.IsGentleWakeUp(
+                                            isGentleWakeUp = alarm.isGentleWakeUp
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.GetWakeUpTime(
+                                            getWUTime = alarm.wakeUpTime
+                                        )
+                                    )
                                     mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
                                     mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
                                     mainViewModel.updateHandler(
@@ -431,11 +492,6 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                         )
                                     )
                                     mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.requestCode(
-                                            reqCode = alarm.reqCode
-                                        )
-                                    )
                                     mainViewModel.updateHandler(
                                         EventHandlerAlarm.isOneTime(
                                             isOneTime = alarm.isOneTime
@@ -534,6 +590,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
             LazyColumn() {
                 items(allAlarms, key = { alarm -> alarm.id }) { alarm ->
                     AlarmBox(isDarkMode, delete = {
+                        alarmScheduler.cancel(alarm)
                         mainViewModel.deleteAlarm(it)
                     }, onAlarmCLick = {
                         mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
@@ -541,12 +598,20 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarm.isLabel))
                         mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarm.labelTextForSpeech))
                         mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarm.isLoudEffect))
-                        mainViewModel.updateHandler(EventHandlerAlarm.TimeReminder(isTimeReminderOrNot = alarm.isTimeReminder))
+                        mainViewModel.updateHandler(
+                            EventHandlerAlarm.TimeReminder(
+                                isTimeReminderOrNot = alarm.isTimeReminder
+                            )
+                        )
                         mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarm.isGentleWakeUp))
                         mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarm.wakeUpTime))
                         mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarm.isActive))
                         mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
                         mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
+                        mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarm.skipTheAlarm))
+                        mainViewModel.updateHandler(
+                            EventHandlerAlarm.isOneTime(isOneTime = alarm.isOneTime)
+                        )
                         mainViewModel.updateHandler(
                             EventHandlerAlarm.getTime(
                                 time = alarm.localTime
@@ -554,9 +619,11 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         )
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
                         mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
-                        mainViewModel.updateHandler(EventHandlerAlarm.requestCode(reqCode = alarm.reqCode))
                         mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(isOneTime = alarm.isOneTime))
+                        mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarm.timeInMillis))
+                        mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = alarm.nextTimeInMillis))
                         mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarm.snoozeTime))
+
                         mainViewModel.isOld(isOldOrNew.isOld(true))
                         controller.navigate(Routes.Preview.route) {
                             popUpTo(controller.graph.startDestinationId)
@@ -572,7 +639,11 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                         mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
                         mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
                         mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarm.isLoudEffect))
-                        mainViewModel.updateHandler(EventHandlerAlarm.TimeReminder(isTimeReminderOrNot = alarm.isTimeReminder))
+                        mainViewModel.updateHandler(
+                            EventHandlerAlarm.TimeReminder(
+                                isTimeReminderOrNot = alarm.isTimeReminder
+                            )
+                        )
                         mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarm.isGentleWakeUp))
                         mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarm.wakeUpTime))
                         mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
@@ -584,20 +655,39 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                                 time = alarm.localTime
                             )
                         )
+                        mainViewModel.updateHandler(
+                            EventHandlerAlarm.isOneTime(isOneTime = alarm.isOneTime)
+                        )
                         mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarm.timeInMillis))
-                        mainViewModel.updateHandler(EventHandlerAlarm.requestCode(reqCode = alarm.reqCode))
+                        mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = alarm.nextTimeInMillis))
                         mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarm.listOfMissions))
                         mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarm.snoozeTime))
                         mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = on))
-                        mainViewModel.updateHandler(EventHandlerAlarm.update)
+                        mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = false))
+                        Log.d("CHKW", "At main active on : ${convertMillisToLocalTime(alarm.nextTimeInMillis)} ")
+                        Log.d("CHKW", "At main active on mpt upcome : ${convertMillisToLocalTime(alarm.timeInMillis)} ")
+
                         if (on) {
-                            alarmScheduler.schedule(
-                                alarm,
-                                mainViewModel.basicSettings.value.showInNotification
-                            )
+                            mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarm.skipTheAlarm))
+                            com.appdev.alarmapp.ui.PreivewScreen.scheduleTheAlarm(
+                                mainViewModel,
+                                mainViewModel.basicSettings.value.showInNotification,
+                                mainViewModel.selectedDataAlarm,
+                                alarmScheduler,
+                                true
+                            ) { l, l1 ->
+                            }
+//                            scheduleTheAlarm(
+//                                mainViewModel.selectedDataAlarm,
+//                                alarmScheduler,
+//                                mainViewModel.basicSettings.value.showInNotification,
+//                                mainViewModel
+//                            )
                         } else {
-                            alarmScheduler.cancel(alarm)
+
+                            alarmScheduler.cancel(mainViewModel.selectedDataAlarm)
                         }
+                        mainViewModel.updateHandler(EventHandlerAlarm.update)
                     }
 
                 }
@@ -632,6 +722,7 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                     }
                 }
                 singleSheetItem(name = "Delete", icon = Icons.Filled.Delete) {
+                    alarmScheduler.cancel(alarmToPreview)
                     mainViewModel.deleteAlarm(clickAlarmId)
                     scope.launch {
                         sheetState.hide()
@@ -644,9 +735,263 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                     newIntent.putExtra("Preview", true)
                     context.startActivity(newIntent)
                 }
-//                singleSheetItem(name = "Skip next alarm", icon = Icons.Filled.SkipNext) {
-//
-//                }
+                singleSheetItem(
+                    name = if (alarmToPreview.skipTheAlarm) "Unskip next alarm" else "Skip next alarm",
+                    icon = Icons.Filled.SkipNext
+                ) {
+                    if (alarmToPreview.isActive) {
+                        if (alarmToPreview.listOfDays.isNotEmpty()) {
+                            if (alarmToPreview.skipTheAlarm) {
+                                alarmScheduler.cancel(alarmToPreview)
+
+                                com.appdev.alarmapp.ui.PreivewScreen.scheduleTheAlarm(
+                                    mainViewModel,
+                                    mainViewModel.basicSettings.value.showInNotification,
+                                    alarmToPreview,
+                                    alarmScheduler,
+                                    true
+                                ) { l, l1 ->
+                                    mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmToPreview.id))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmToPreview.listOfDays))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmToPreview.ringtone))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = false))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.LoudEffect(
+                                            isLoudEffectOrNot = alarmToPreview.isLoudEffect
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.TimeReminder(
+                                            isTimeReminderOrNot = alarmToPreview.isTimeReminder
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.IsGentleWakeUp(
+                                            isGentleWakeUp = alarmToPreview.isGentleWakeUp
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.GetWakeUpTime(
+                                            getWUTime = alarmToPreview.wakeUpTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.Vibrator(
+                                            setVibration = alarmToPreview.willVibrate
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.CustomVolume(
+                                            customVolume = alarmToPreview.customVolume
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.IsLabel(
+                                            isLabelOrNot = alarmToPreview.isLabel
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.LabelText(
+                                            getLabelText = alarmToPreview.labelTextForSpeech
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getTime(
+                                            time = alarmToPreview.localTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.isOneTime(isOneTime = alarmToPreview.isOneTime)
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getMissions(
+                                            missions = alarmToPreview.listOfMissions
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.getSnoozeTime(
+                                            getSnoozeTime = alarmToPreview.snoozeTime
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmToPreview.isActive))
+                                    mainViewModel.updateHandler(EventHandlerAlarm.update)
+                                }
+//                                scheduleTheAlarm(
+//                                    alarmToPreview,
+//                                    alarmScheduler,
+//                                    mainViewModel.basicSettings.value.showInNotification,
+//                                    mainViewModel
+//                                )
+                            } else {
+                                alarmScheduler.cancel(alarmToPreview)
+                                val selectedTimeMillis = alarmToPreview.nextTimeInMillis
+                                Log.d("CHKITO", "${selectedTimeMillis} tim milli")
+                                val calendar = Calendar.getInstance()
+
+                                val date = Date(selectedTimeMillis)
+
+                                // Create a calendar instance and set the time to the given Date
+
+                                calendar.time = date
+
+                                // Get the day of the week from the calendar
+                                var dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+
+                                // Convert day of week to day index starting from 1 for Sunday
+                                dayOfWeek = if (dayOfWeek == Calendar.SUNDAY) {
+                                    1
+                                } else {
+                                    dayOfWeek - Calendar.SUNDAY + 2
+                                }
+
+                                val nextOccurrence = alarmToPreview.listOfDays
+                                    .map { getDayOfWeek(it) }
+                                    .filter { it > dayOfWeek }
+                                    .minOrNull() ?: alarmToPreview.listOfDays
+                                    .map { getDayOfWeek(it) }
+                                    .minOrNull()!!
+                                Log.d("CHKITO", "${nextOccurrence} upcoming indez")
+                                val daysUntilNextOccurrence =
+                                    nextOccurrence - dayOfWeek
+                                if (daysUntilNextOccurrence < 0) {
+                                    val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrence)
+                                    calendar.timeInMillis =
+                                        selectedTimeMillis + TimeUnit.DAYS.toMillis(correctDay.toLong())
+                                } else if (daysUntilNextOccurrence == 0) {
+                                    calendar.timeInMillis =
+                                        selectedTimeMillis + TimeUnit.DAYS.toMillis(7L)
+                                } else {
+                                    calendar.timeInMillis =
+                                        selectedTimeMillis + TimeUnit.DAYS.toMillis(
+                                            daysUntilNextOccurrence.toLong()
+                                        )
+                                }
+
+
+                                val instant = Instant.ofEpochMilli(calendar.timeInMillis)
+                                val offsetTime =
+                                    OffsetTime.ofInstant(instant, ZoneId.systemDefault())
+                                alarmToPreview.localTime = offsetTime.toLocalTime()
+
+                                mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmToPreview.id))
+                                mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmToPreview.listOfDays))
+                                mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmToPreview.ringtone))
+                                mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = !alarmToPreview.skipTheAlarm))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.LoudEffect(
+                                        isLoudEffectOrNot = alarmToPreview.isLoudEffect
+                                    )
+                                )
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.TimeReminder(
+                                        isTimeReminderOrNot = alarmToPreview.isTimeReminder
+                                    )
+                                )
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.IsGentleWakeUp(
+                                        isGentleWakeUp = alarmToPreview.isGentleWakeUp
+                                    )
+                                )
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.GetWakeUpTime(
+                                        getWUTime = alarmToPreview.wakeUpTime
+                                    )
+                                )
+                                mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarmToPreview.willVibrate))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.CustomVolume(
+                                        customVolume = alarmToPreview.customVolume
+                                    )
+                                )
+                                mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarmToPreview.isLabel))
+                                mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarmToPreview.labelTextForSpeech))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.getTime(
+                                        time = alarmToPreview.localTime
+                                    )
+                                )
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.isOneTime(isOneTime = alarmToPreview.isOneTime)
+                                )
+                                mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarmToPreview.timeInMillis))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.getNextMilli(
+                                        upcomingMilli = calendar.timeInMillis
+                                    )
+                                )
+                                mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarmToPreview.listOfMissions))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.getSnoozeTime(
+                                        getSnoozeTime = alarmToPreview.snoozeTime
+                                    )
+                                )
+                                mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmToPreview.isActive))
+                                mainViewModel.updateHandler(EventHandlerAlarm.update)
+                                alarmToPreview.timeInMillis = calendar.timeInMillis
+
+                                alarmScheduler.schedule(
+                                    alarmToPreview,
+                                    mainViewModel.basicSettings.value.showInNotification
+                                )
+
+
+                            }
+                        } else {
+                            showToast2 = true
+                        }
+                    } else {
+                        showToast = true
+//                        if (alarmToPreview.listOfDays.isNotEmpty()) {
+//                            alarmScheduler.cancel(alarmToPreview)
+//                            mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmToPreview.id))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmToPreview.listOfDays))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmToPreview.ringtone))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = false))
+//                            mainViewModel.updateHandler(
+//                                EventHandlerAlarm.LoudEffect(
+//                                    isLoudEffectOrNot = alarmToPreview.isLoudEffect
+//                                )
+//                            )
+//                            mainViewModel.updateHandler(
+//                                EventHandlerAlarm.TimeReminder(
+//                                    isTimeReminderOrNot = alarmToPreview.isTimeReminder
+//                                )
+//                            )
+//                            mainViewModel.updateHandler(
+//                                EventHandlerAlarm.IsGentleWakeUp(
+//                                    isGentleWakeUp = alarmToPreview.isGentleWakeUp
+//                                )
+//                            )
+//                            mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarmToPreview.wakeUpTime))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarmToPreview.willVibrate))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarmToPreview.customVolume))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarmToPreview.isLabel))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarmToPreview.labelTextForSpeech))
+//                            mainViewModel.updateHandler(
+//                                EventHandlerAlarm.getTime(
+//                                    time = alarmToPreview.localTime
+//                                )
+//                            )
+//                            mainViewModel.updateHandler(
+//                                EventHandlerAlarm.isOneTime(isOneTime = alarmToPreview.isOneTime)
+//                            )
+//                            mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarmToPreview.timeInMillis))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = alarmToPreview.nextTimeInMillis))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarmToPreview.listOfMissions))
+//                            mainViewModel.updateHandler(
+//                                EventHandlerAlarm.getSnoozeTime(
+//                                    getSnoozeTime = alarmToPreview.snoozeTime
+//                                )
+//                            )
+//                            mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmToPreview.isActive))
+//                            mainViewModel.updateHandler(EventHandlerAlarm.update)
+//                        }
+                    }
+                    scope.launch {
+                        sheetState.hide()
+                    }
+                    showSheetState = false
+                }
                 singleSheetItem(name = "Duplicate alarm", icon = Icons.Filled.ContentCopy) {
 
                     mainViewModel.insertAlarm(
@@ -669,15 +1014,55 @@ fun MainScreen(controller: NavHostController, mainViewModel: MainViewModel) {
                             isLabel = alarmToPreview.isLabel,
                             customVolume = alarmToPreview.customVolume,
                             willVibrate = alarmToPreview.willVibrate,
-                            reqCode = (0..19992).random()
+                            skipTheAlarm = alarmToPreview.skipTheAlarm
                         )
                     )
+                    scope.launch {
+                        sheetState.hide()
+                    }
                     showSheetState = false
                 }
                 Spacer(modifier = Modifier.height(30.dp))
             }
         }
     }
+}
+
+fun checkForNextOccur(it: AlarmEntity): Long {
+    val remainingTime: Long
+    if (it.isOneTime) {
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = it.timeInMillis
+            add(Calendar.DAY_OF_YEAR, 1)
+        }
+        Log.d("CHKJ", "One time so ${calendar.timeInMillis}")
+        remainingTime = calendar.timeInMillis
+    } else {
+        val calendar = Calendar.getInstance()
+        val nextOccurrence = it.listOfDays
+            .map { getDayOfWeek(it) }
+            .filter { it > calendar.get(Calendar.DAY_OF_WEEK) }
+            .minOrNull() ?: it.listOfDays
+            .map { getDayOfWeek(it) }
+            .minOrNull()!!
+
+        val daysUntilNextOccurrence = nextOccurrence - calendar.get(Calendar.DAY_OF_WEEK)
+
+        if (daysUntilNextOccurrence < 0) {
+            val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrence)
+            remainingTime =
+                it.timeInMillis + TimeUnit.DAYS.toMillis(correctDay.toLong())
+        } else if (daysUntilNextOccurrence == 0) {
+            remainingTime =
+                it.timeInMillis + TimeUnit.DAYS.toMillis(7L)
+        } else {
+            remainingTime =
+                it.timeInMillis + TimeUnit.DAYS.toMillis(daysUntilNextOccurrence.toLong())
+        }
+    }
+
+    return remainingTime
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -701,7 +1086,7 @@ fun AlarmBox(
         icon = {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = "Delete chat",
+                contentDescription = "Delete alarm",
                 modifier = Modifier.padding(16.dp),
                 tint = Color.White
             )
@@ -927,3 +1312,19 @@ fun singleSheetItem(name: String, icon: ImageVector, onCLick: () -> Unit) {
     }
 }
 
+private fun isNextAlarmOnDifferentDay(alarmTimeInMillis: Long): Boolean {
+    val calendar = Calendar.getInstance()
+    val currentDay = calendar.get(Calendar.DAY_OF_YEAR)
+
+    calendar.timeInMillis = alarmTimeInMillis
+    val alarmDay = calendar.get(Calendar.DAY_OF_YEAR)
+
+    return currentDay != alarmDay
+}
+
+private fun isAlarmDayMatch(alarm: AlarmEntity): Boolean {
+    val calendar = Calendar.getInstance()
+    val currentDayName = SimpleDateFormat("EEEE", Locale.getDefault()).format(calendar.time)
+
+    return alarm.listOfDays.contains(currentDayName)
+}

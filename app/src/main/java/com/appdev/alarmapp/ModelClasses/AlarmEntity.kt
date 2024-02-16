@@ -19,10 +19,12 @@ data class AlarmEntity(
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0,
     var timeInMillis: Long = 0,
+    var nextTimeInMillis: Long = 0,
     var snoozeTimeInMillis: Long = 0,
     var localTime: LocalTime = LocalTime.now(),
     val listOfDays: Set<String> = emptySet(),
     val isActive: Boolean = true,
+    val skipTheAlarm: Boolean = false,
     val isOneTime: Boolean = false,
     var snoozeTime: Int = 5,
     var isGentleWakeUp: Boolean = true,
@@ -30,7 +32,6 @@ data class AlarmEntity(
     @Embedded
     var ringtone: Ringtone = ringtoneList[1],
     var listOfMissions: List<Missions> = emptyList(),
-    var reqCode: Int = 0,
     var isTimeReminder: Boolean = false,
     var isLoudEffect: Boolean = false,
     var customVolume: Float = 100f,

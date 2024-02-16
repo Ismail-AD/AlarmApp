@@ -36,35 +36,14 @@ class AlarmScheduler(
 //            }
 //    }
 
-    @SuppressLint("MissingPermission")
-    fun schedule(alarmData: AlarmEntity, showNotify: Boolean) {
 
+    fun schedule(alarmData: AlarmEntity, showNotify: Boolean) {
+        Log.d(
+            "CHKZ",
+            "In Schedule Method .... Id is ${alarmData.id.toInt()}"
+        )
         val intent = Intent(context, AlarmTriggerHandler::class.java)
-//
-//
-//        if (alarmData.ringtone.rawResourceId != -1) {
-//            intent.putExtra("tonetype", 0)
-//            intent.putExtra("ringtone", alarmData.ringtone.rawResourceId.toString())
-//        } else if (alarmData.ringtone.uri != null) {
-//            intent.putExtra("tonetype", 1)
-//            intent.putExtra("ringtone", alarmData.ringtone.uri.toString())
-//        } else if (alarmData.ringtone.file != null) {
-//            intent.putExtra("tonetype", 2)
-//            intent.putExtra("ringtone", alarmData.ringtone.file!!.absolutePath)
-//        }
-//        if (alarmData.listOfMissions.isNotEmpty()) {
-//            intent.putExtra("list", alarmData.listOfMissions as Serializable)
-//        }
-//        if (alarmData.listOfDays.isNotEmpty()) {
-//            intent.putExtra("listOfDays", Gson().toJson(alarmData.listOfDays))
-//        }
-//        if (alarmData.snoozeTime != -1) {
-//            intent.putExtra("snooze", alarmData.snoozeTime.toString())
-//        }
-//        intent.putExtra("ringtoneObj", alarmData.ringtone)
-//        intent.putExtra("tInM", alarmData.timeInMillis.toString())
-//        intent.putExtra("id", alarmData.id.toString())
-//        intent.putExtra("localTime", alarmData.localTime.toString())
+
         intent.putExtra("notify", showNotify)
         intent.putExtra("dismissSet", mainVM.dismissSettings.value)
         intent.putExtra("Alarm", alarmData)
@@ -76,7 +55,7 @@ class AlarmScheduler(
                 alarmData.snoozeTimeInMillis,
                 PendingIntent.getBroadcast(
                     context,
-                    alarmData.reqCode,
+                    alarmData.id.toInt(),
                     intent,
                     PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
@@ -87,7 +66,7 @@ class AlarmScheduler(
                 alarmData.timeInMillis,
                 PendingIntent.getBroadcast(
                     context,
-                    alarmData.reqCode,
+                    alarmData.id.toInt(),
                     intent,
                     PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
@@ -96,11 +75,21 @@ class AlarmScheduler(
     }
 
     fun cancel(alarmData: AlarmEntity) {
+        Log.d(
+            "CHKZ",
+            "In Cancel Method ....  Id is ${alarmData.id.toInt()}"
+        )
+        val intent = Intent(context, AlarmTriggerHandler::class.java)
+
+        intent.putExtra("notify", mainVM.basicSettings.value.showInNotification)
+        intent.putExtra("dismissSet", mainVM.dismissSettings.value)
+        intent.putExtra("Alarm", alarmData)
+        intent.action = "${context.packageName}.ACTION_ALARM"
         alarmManager.cancel(
             PendingIntent.getBroadcast(
                 context,
-                alarmData.reqCode,
-                Intent(context, AlarmTriggerHandler::class.java),
+                alarmData.id.toInt(),
+                intent,
                 PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         )

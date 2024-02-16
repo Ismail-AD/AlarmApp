@@ -15,8 +15,8 @@ android {
         applicationId = "com.appdev.alarmapp"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 5
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -56,6 +56,7 @@ android {
 dependencies {
 
     implementation("androidx.core:core-ktx:1.9.0")
+
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.8.1")
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
@@ -76,6 +77,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx:22.3.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("com.google.android.engage:engage-core:1.3.1")
+    implementation("com.google.firebase:firebase-crashlytics-buildtools:2.9.9")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
@@ -93,6 +95,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-exoplayer-dash:1.2.0")
     implementation("com.exyte:animated-navigation-bar:1.0.0")
+
 
     implementation("com.google.android.gms:play-services-wallet:19.2.1")
     implementation("com.google.pay.button:compose-pay-button:0.1.1")
@@ -127,6 +130,8 @@ dependencies {
 
     implementation("com.google.mlkit:barcode-scanning:17.0.0")
 
-
+    //Pay System
+    implementation("com.android.billingclient:billing:6.1.0")
+    implementation("com.android.billingclient:billing-ktx:6.1.0")
 
 }

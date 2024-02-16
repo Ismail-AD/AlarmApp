@@ -14,7 +14,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +26,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,7 +47,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
@@ -54,10 +63,14 @@ import com.appdev.alarmapp.ui.CustomImageButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
+import com.appdev.alarmapp.ui.theme.linear
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
+import com.appdev.alarmapp.utils.convertMillisToHoursAndMinutes
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.appdev.alarmapp.utils.getFormattedToday
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -136,7 +149,7 @@ fun AlarmCancelScreen(
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clampedVolume, 0)
         }
         onDispose {
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,currentVolume, 0)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
             textToSpeech.stop()
             vibrator.cancel()
             if (isDarkMode) {
@@ -166,6 +179,9 @@ fun AlarmCancelScreen(
             }
         }
     }
+    BackHandler {
+
+    }
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
 
 
@@ -173,9 +189,11 @@ fun AlarmCancelScreen(
             override fun onStart(utteranceId: String?) {
 
             }
+
             override fun onDone(utteranceId: String?) {
                 startItNow = true
             }
+
             override fun onError(utteranceId: String?) {
             }
         })
@@ -408,16 +426,35 @@ fun AlarmCancelScreen(
             .background(backColor), contentAlignment = Alignment.TopCenter
     ) {
 
+
         Column(
             modifier = Modifier
-                .fillMaxHeight(0.7f)
+                .fillMaxHeight(0.9f)
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.SpaceAround,
+                .padding(horizontal = 20.dp, vertical = 35.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(75.dp))
             alarmEntity?.let {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        convertMillisToHoursAndMinutes(System.currentTimeMillis()),
+                        fontSize = 80.sp,
+                        letterSpacing = 0.sp,
+                        color = Color(0xffb5c7ca),
+                        textAlign = TextAlign.Center, fontWeight = FontWeight.W600
+                    )
+                    Text(
+                        getFormattedToday(), fontSize = 25.sp,
+                        letterSpacing = 0.sp,
+                        color = Color(0xffb5c7ca), textAlign = TextAlign.Center
+                    )
+
+                }
+
                 if (it.snoozeTime != -1 && mainViewModel.isRealAlarm) {
                     CustomButton(
                         onClick = {
@@ -435,13 +472,13 @@ fun AlarmCancelScreen(
                             snoozeTrigger()
                         },
                         text = "Snooze",
-                        backgroundColor = Color.White,
-                        textColor = Color.Black,
-                        width = 0.6f
+                        backgroundColor = Color(0xfff18d44),
+                        textColor = Color.White,
+                        width = 0.6f, height = 60.dp
                     )
                 }
             }
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
                 CustomButton(
                     onClick = {
                         if (mainViewModel.isRealAlarm || previewMode) {
@@ -509,6 +546,7 @@ fun AlarmCancelScreen(
                                     launchSingleTop = true
                                 }
                             }
+
                             "Squat" -> {
                                 controller.navigate(Routes.SquatMissionScreen.route) {
                                     popUpTo(Routes.PreviewAlarm.route) {
@@ -547,31 +585,87 @@ fun AlarmCancelScreen(
                     },
                     text = if (mainViewModel.dummyMissionList.isNotEmpty()) "Start the mission" else "Dismiss",
                     height = 70.dp,
-                    width = 0.9f
+                    width = 0.9f, textColor = Color.White
                 )
             }
         }
-        if (!mainViewModel.isRealAlarm && !previewMode) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                CustomImageButton(
-                    onClick = {
-                        Helper.stopStream()
-                        textToSpeech.stop()
-                        vibrator.cancel()
-                        controller.navigate(Routes.MissionMenuScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
+        if (!mainViewModel.isRealAlarm) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 30.dp), contentAlignment = Alignment.BottomCenter) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(), contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(50.dp)
+                            .padding(horizontal = 20.dp),
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        border = BorderStroke(width = 2.dp, color = Color(0xffA6ACB5))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Transparent, CircleShape)
+                                .clickable {
+                                    Helper.stopStream()
+                                    textToSpeech.stop()
+                                    vibrator.cancel()
+                                    if (previewMode) {
+                                        controller.navigate(Routes.MainScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    } else {
+                                        controller.navigate(Routes.MissionMenuScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Exit Preview Mode",
+                                fontSize = 16.sp,
+                                letterSpacing = 0.sp,
+                                color = Color.White,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W500
+                            )
                         }
-                    },
-                    text = "Exit Preview Mode",
-                    height = 60.dp,
-                    width = 1.0f,
-                    icon = Icons.Filled.Close,
-                    iconColor = Color.Red,
-                    backgroundColor = Color.White,
-                    textColor = Color.Black,
-                    roundedCornerShape = RoundedCornerShape(0.dp)
-                )
+                    }
+                }
+
+//                CustomImageButton(
+//                    onClick = {
+//                        Helper.stopStream()
+//                        textToSpeech.stop()
+//                        vibrator.cancel()
+//                        if (previewMode) {
+//                            controller.navigate(Routes.MainScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
+//                        } else {
+//                            controller.navigate(Routes.MissionMenuScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
+//                        }
+//                    },
+//                    text = "Exit Preview Mode",
+//                    height = 60.dp,
+//                    width = 1.0f,
+//                    icon = Icons.Filled.Close,
+//                    iconColor = Color.Red,
+//                    backgroundColor = Color.White,
+//                    textColor = Color.Black,
+//                    roundedCornerShape = RoundedCornerShape(0.dp)
+//                )
             }
         }
     }

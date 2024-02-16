@@ -354,6 +354,7 @@ fun SoundPreferScreen(controller: NavHostController, mainViewModel: MainViewMode
                         3 -> "Loud Sound"
                         2 -> "Cheerful Sound"
                         1 -> "Peaceful Sound"
+                        4 -> "Silent"
                         else -> {
                             "Alarm Bell"
                         }
@@ -363,6 +364,7 @@ fun SoundPreferScreen(controller: NavHostController, mainViewModel: MainViewMode
                         3 -> R.raw.loudsound
                         2 -> R.raw.cheerfulsound
                         1 -> R.raw.peacefulsound
+                        4 -> R.raw.silenceplease
                         else -> {
                             R.raw.alarmsound
                         }

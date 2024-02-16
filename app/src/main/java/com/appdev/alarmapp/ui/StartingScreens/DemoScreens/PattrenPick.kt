@@ -121,66 +121,71 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                 contentAlignment = Alignment.BottomCenter
             ) {
                 CustomButton(onClick = {
-                    mainViewModel.missionData(
-                        MissionDataHandler.MissionProgress(
-                            repeatProgress = 1
+                    if(selectedCard!=3){
+                        mainViewModel.missionData(
+                            MissionDataHandler.MissionProgress(
+                                repeatProgress = 1
+                            )
                         )
-                    )
-                    mainViewModel.missionData(
-                        MissionDataHandler.IsSelectedMission(
-                            true
+                        mainViewModel.missionData(
+                            MissionDataHandler.IsSelectedMission(
+                                true
+                            )
                         )
-                    )
-                    mainViewModel.missionData(
-                        MissionDataHandler.MissionLevel(
-                            missionLevel = "Very Easy"
+                        mainViewModel.missionData(
+                            MissionDataHandler.MissionLevel(
+                                missionLevel = "Very Easy"
+                            )
                         )
-                    )
-                    when(selectedCard){
-                        0-> {
-                            mainViewModel.missionData(
-                                MissionDataHandler.MissionName(
-                                    missionName = "Math"
+                        when(selectedCard){
+                            0-> {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.MissionName(
+                                        missionName = "Math"
+                                    )
                                 )
-                            )
-                            mainViewModel.missionData(
-                                MissionDataHandler.RepeatTimes(
-                                    repeat = 1
+                                mainViewModel.missionData(
+                                    MissionDataHandler.RepeatTimes(
+                                        repeat = 1
+                                    )
                                 )
-                            )
+                            }
+                            1-> {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.MissionName(
+                                        missionName = "Memory"
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.RepeatTimes(
+                                        repeat = 1
+                                    )
+                                )
+                            }
+                            2-> {
+                                mainViewModel.missionData(
+                                    MissionDataHandler.MissionName(
+                                        missionName = "Shake"
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.RepeatTimes(
+                                        repeat = 5
+                                    )
+                                )
+                            }
                         }
-                        1-> {
-                            mainViewModel.missionData(
-                                MissionDataHandler.MissionName(
-                                    missionName = "Memory"
-                                )
-                            )
-                            mainViewModel.missionData(
-                                MissionDataHandler.RepeatTimes(
-                                    repeat = 1
-                                )
-                            )
-                        }
-                        2-> {
-                            mainViewModel.missionData(
-                                MissionDataHandler.MissionName(
-                                    missionName = "Shake"
-                                )
-                            )
-                            mainViewModel.missionData(
-                                MissionDataHandler.RepeatTimes(
-                                    repeat = 5
-                                )
-                            )
-                        }
-                    }
 
-                    mainViewModel.missionData(MissionDataHandler.SubmitData)
+                        mainViewModel.missionData(MissionDataHandler.SubmitData)
+                    }
                     mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(true))
                     mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = mainViewModel.missionDetailsList))
                     scheduleTheAlarm(
+                        mainViewModel,
                         false,
-                        mainViewModel.newAlarm, alarmScheduler, mainViewModel.whichAlarm.isOld,
+                        mainViewModel.newAlarm,
+                        alarmScheduler,
+                        mainViewModel.whichAlarm.isOld,
                     ) { tomorrowTimeMillis, currentTimeMillis ->
                         remainingTime = tomorrowTimeMillis - currentTimeMillis
                     }

@@ -3,9 +3,7 @@ package com.appdev.alarmapp.ui.MainUI
 import android.content.Context
 import android.media.RingtoneManager
 import android.net.Uri
-import android.os.Build
 import android.speech.tts.TextToSpeech
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.Image
@@ -38,6 +36,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
@@ -77,6 +76,7 @@ import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.UsabilityScreen
 import com.appdev.alarmapp.ui.Snooze.SnoozeScreen
 import com.appdev.alarmapp.ui.inappbuyScreen.InAppPurchase
 import com.appdev.alarmapp.utils.BottomNavItems
+import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.isOldOrNew
@@ -85,13 +85,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainUiScreen(
+    alarmScheduler: AlarmScheduler,
     textToSpeech: TextToSpeech,
     tokenManagement: TokenManagement,
     controller: NavHostController = rememberNavController(),
-    mainViewModel: MainViewModel, inAppPurchaseClick: () -> Unit
+    mainViewModel: MainViewModel
 ) {
     if (tokenManagement.getToken() == null) {
         tokenManagement.saveToken(System.currentTimeMillis().toString())
@@ -166,6 +166,7 @@ fun MainUiScreen(
                         mainViewModel.newAlarmHandler(newAlarmHandler.TimeReminder(isTimeReminderOrNot = false))
                         mainViewModel.newAlarmHandler(newAlarmHandler.IsGentleWakeUp(isGentleWakeUp = true))
                         mainViewModel.newAlarmHandler(newAlarmHandler.LoudEffect(isLoudEffectOrNot = false))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.skipAlarm(skipAlarm = false))
                         mainViewModel.newAlarmHandler(newAlarmHandler.IsLabel(isLabelOrNot = false))
                         mainViewModel.newAlarmHandler(newAlarmHandler.LabelText(getLabelText = ""))
                         mainViewModel.newAlarmHandler(newAlarmHandler.getTime(time = LocalTime.now()))
@@ -245,7 +246,7 @@ fun MainUiScreen(
             }
         ) {
             composable(route = Routes.MainScreen.route) {
-                MainScreen(controller, mainViewModel)
+                MainScreen(alarmScheduler,controller, mainViewModel)
             }
 
             composable(route = Routes.SquatMissionScreen.route) {
@@ -288,10 +289,10 @@ fun MainUiScreen(
                 DefaultAlarmMissions(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.Purchase.route) {
-                InAppPurchase(controller, onCLick = { inAppPurchaseClick() })
+                InAppPurchase(controller)
             }
             composable(route = Routes.Preview.route) {
-                PreviewScreen(
+                PreviewScreen(alarmScheduler,
                     controller,
                     mainViewModel
                 )

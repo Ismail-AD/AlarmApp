@@ -2,20 +2,21 @@ package com.appdev.alarmapp.utils
 
 import android.net.Uri
 import android.os.Build
-import android.util.Log
 import android.util.Patterns
 import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
-import androidx.room.TypeConverter
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.ui.inappbuyScreen.PurchaseOptions
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.net.URLDecoder
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
-import java.util.Date
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -305,7 +306,7 @@ fun calculateTimeUntil(timestamp: Long): TimeUntil {
 val weekDays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 val ringtoneList = listOf(
-    Ringtone("Silent"),
+    Ringtone("Silent", R.raw.silenceplease),
     Ringtone("Alarm Bell", R.raw.alarmsound),
     Ringtone("Peaceful Sound", R.raw.peacefulsound),
     Ringtone("Cheerful Sound", R.raw.cheerfulsound),
@@ -351,9 +352,12 @@ fun Ringtone.toSystemRingtoneEntity(): SystemRingtone {
 fun SystemRingtone.toRingtoneFromSystem(): Ringtone {
     val decodedUriString = this.ringUri.let { URLDecoder.decode(it, "UTF-8") }
     val decodedUri = Uri.parse(decodedUriString)
-    return Ringtone(name = this.name, uri = decodedUri, ringId = this.id)
+    return Ringtone(name = this.name, uri = decodedUri)
 }
 
+fun Ringtone.isSameAs(other: Ringtone): Boolean {
+    return this.name == other.name
+}
 
 fun fromLocalTime(localTime: LocalTime?): String {
     return localTime.toString()
@@ -372,3 +376,45 @@ fun toStringSet(value: String?): Set<String> {
     return value?.split(",")?.toSet() ?: emptySet()
 }
 
+fun convertMillisToLocalTime(millis: Long): String {
+    // Convert milliseconds to Instant
+    val instant = Instant.ofEpochMilli(millis)
+
+    // Define the desired time zone (e.g., "America/New_York")
+    val zoneId = ZoneId.systemDefault()
+
+    // Convert Instant to LocalDateTime in the given time zone
+    val localDateTime = LocalDateTime.ofInstant(instant, zoneId)
+
+    // Format the LocalDateTime as a string (optional)
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+    return localDateTime.format(formatter)
+}
+
+fun convertMillisToHoursAndMinutes(millis: Long): String {
+    // Convert milliseconds to Instant
+    val instant = Instant.ofEpochMilli(millis)
+
+    // Define the desired time zone (e.g., "America/New_York")
+    val zoneId = ZoneId.systemDefault()
+
+    // Convert Instant to LocalDateTime in the given time zone
+    val localDateTime = LocalDateTime.ofInstant(instant, zoneId)
+
+    // Format the LocalDateTime as a string with only hours and minutes
+    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    return localDateTime.format(formatter)
+}
+
+fun getFormattedToday(): String {
+    // Get the current date
+    val currentDate = LocalDate.now()
+
+    // Define the desired format for day name and date
+    val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.ENGLISH)
+
+    // Format the current date as a string
+    return currentDate.format(formatter)
+}

@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,9 +55,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.EventHandlerAlarm
@@ -74,9 +80,13 @@ import java.util.Locale
 fun SoundPowerUp(
     textToSpeech: TextToSpeech,
     controller: NavHostController,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    checkOutViewModel: checkOutViewModel = hiltViewModel()
 ) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
+    var loading by remember { mutableStateOf(true) }
     var playing by remember { mutableStateOf(false) }
     var playing2 by remember { mutableStateOf(false) }
     var playing3 by remember { mutableStateOf(false) }
@@ -87,17 +97,20 @@ fun SoundPowerUp(
     var showWakeSheet by remember { mutableStateOf(false) }
     var selectedOptionLimit by remember { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.wakeUpTime.toString() else mainViewModel.newAlarm.wakeUpTime.toString()) }
     val context = LocalContext.current
-
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
+        loading = false
+    }
     DisposableEffect(textToSpeech) {
         onDispose {
             textToSpeech.stop()
         }
     }
 
-    LaunchedEffect(key1 = startItNow){
-        if(startItNow){
+    LaunchedEffect(key1 = startItNow) {
+        if (startItNow) {
             Helper.playStream(context, R.raw.alarmsound)
-        } else{
+        } else {
             Helper.stopStream()
         }
     }
@@ -144,6 +157,21 @@ fun SoundPowerUp(
             }
         }
     }) {
+        if (loading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Dialog(onDismissRequest = { /*TODO*/ }) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -156,7 +184,7 @@ fun SoundPowerUp(
                     .padding(vertical = 10.dp, horizontal = 11.dp)
                     .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp))
             ) {
-                SingleFeature(title = "Gentle wake-up", isDarkMode, wakeUpSwitch) {
+                SingleFeature(isLock = false,title = "Gentle wake-up", isDarkMode, wakeUpSwitch) {
                     wakeUpSwitch = it
                 }
                 if (wakeUpSwitch) {
@@ -191,8 +219,17 @@ fun SoundPowerUp(
                     .padding(vertical = 10.dp, horizontal = 11.dp)
                     .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp))
             ) {
-                SingleFeature(title = "Time Reminder", isDarkMode, timeReminderSwitch) {
-                    timeReminderSwitch = it
+                SingleFeature(currentState !is BillingResultState.Success,title = "Time Reminder", isDarkMode, timeReminderSwitch) {
+                    if(currentState is BillingResultState.Success) {
+                        timeReminderSwitch = it
+                    } else{
+                        controller.navigate(Routes.Purchase.route) {
+                            popUpTo(Routes.SoundPowerUpScreen.route){
+                                inclusive=false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
                 }
 
             }
@@ -202,12 +239,12 @@ fun SoundPowerUp(
             ) {
                 playing2 = !playing2
                 if (playing2) {
-                        playCurrentTimeAndDate(
-                            textToSpeech,
-                            System.currentTimeMillis().toString()
-                        ) { endOrNot ->
-                            startItNow = endOrNot
-                        }
+                    playCurrentTimeAndDate(
+                        textToSpeech,
+                        System.currentTimeMillis().toString()
+                    ) { endOrNot ->
+                        startItNow = endOrNot
+                    }
                 } else {
                     startItNow = false
                     textToSpeech.stop()
@@ -220,8 +257,18 @@ fun SoundPowerUp(
                     .padding(vertical = 10.dp, horizontal = 11.dp)
                     .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp))
             ) {
-                SingleFeature(title = "Extra Loud Effect", isDarkMode, loudEffectSwitch) {
-                    loudEffectSwitch = it
+                SingleFeature(currentState !is BillingResultState.Success,title = "Extra Loud Effect", isDarkMode, loudEffectSwitch) {
+                    if(currentState is BillingResultState.Success){
+                        loudEffectSwitch = it
+                    } else{
+                        controller.navigate(Routes.Purchase.route) {
+                            popUpTo(Routes.SoundPowerUpScreen.route){
+                                inclusive=false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+
                 }
 
             }
@@ -310,6 +357,7 @@ fun SoundPowerUp(
 
 @Composable
 fun SingleFeature(
+    isLock: Boolean = false,
     title: String,
     isDarkMode: Boolean,
     switchState: Boolean,
@@ -323,17 +371,33 @@ fun SingleFeature(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.surfaceTint,
-            textAlign = TextAlign.Start, fontSize = 16.sp
-        )
+        Row {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.surfaceTint,
+                textAlign = TextAlign.Start,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(end = 5.dp)
+            )
+            if(isLock){
+                Icon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = "",
+                    tint = MaterialTheme.colorScheme.surfaceTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         Switch(
             checked = switchState,
             onCheckedChange = { newSwitchState ->
-                switchState = newSwitchState
-                update(switchState)
+                if(isLock){
+                    update(false)
+                } else{
+                    switchState = newSwitchState
+                    update(switchState)
+                }
                 // Handle the new switch state
             },
             colors = SwitchDefaults.colors(
@@ -440,6 +504,7 @@ fun playCurrentTimeAndDate(textToSpeech: TextToSpeech, id: String, startItNow: (
     // Play the formatted time and date as audio
     textToSpeech.speak(formattedTimeAndDate, TextToSpeech.QUEUE_FLUSH, params, id)
 }
+
 fun setMaxVolume(context: Context) {
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)

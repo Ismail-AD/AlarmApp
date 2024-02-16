@@ -72,6 +72,7 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             ringtoneRepository.getDefaultSettings.collect {
+                Log.d("CHKDI","Received Default Setting : $it")
                 _defaultSettings.value = it
             }
         }
@@ -361,8 +362,6 @@ class MainViewModel @Inject constructor(
             is EventHandlerAlarm.ringtone -> selectedDataAlarm =
                 selectedDataAlarm.copy(ringtone = eventHandlerAlarm.ringtone)
 
-            is EventHandlerAlarm.requestCode -> selectedDataAlarm =
-                selectedDataAlarm.copy(reqCode = eventHandlerAlarm.reqCode)
 
             is EventHandlerAlarm.isOneTime -> {
                 selectedDataAlarm =
@@ -404,6 +403,13 @@ class MainViewModel @Inject constructor(
 
             is EventHandlerAlarm.Vibrator -> selectedDataAlarm =
                 selectedDataAlarm.copy(willVibrate = eventHandlerAlarm.setVibration)
+
+            is EventHandlerAlarm.skipAlarm -> selectedDataAlarm =
+                selectedDataAlarm.copy(skipTheAlarm = eventHandlerAlarm.skipped)
+
+            is EventHandlerAlarm.getNextMilli -> selectedDataAlarm =
+                selectedDataAlarm.copy(nextTimeInMillis = eventHandlerAlarm.upcomingMilli)
+
         }
 
     }
@@ -427,8 +433,6 @@ class MainViewModel @Inject constructor(
             is newAlarmHandler.getMilli -> newAlarm =
                 newAlarm.copy(timeInMillis = newAlarmHandler.timeInMilli)
 
-            is newAlarmHandler.requestCode -> newAlarm =
-                newAlarm.copy(reqCode = newAlarmHandler.reqCode)
 
             is newAlarmHandler.isOneTime -> {
                 newAlarm =
@@ -466,6 +470,10 @@ class MainViewModel @Inject constructor(
 
             is newAlarmHandler.Vibrator -> newAlarm =
                 newAlarm.copy(willVibrate = newAlarmHandler.setVibration)
+
+            is newAlarmHandler.getNextMilli -> newAlarm = newAlarm.copy(nextTimeInMillis = newAlarmHandler.upcomingMilli)
+            is newAlarmHandler.skipAlarm -> newAlarm =
+                newAlarm.copy(skipTheAlarm = newAlarmHandler.skipAlarm)
         }
 
     }

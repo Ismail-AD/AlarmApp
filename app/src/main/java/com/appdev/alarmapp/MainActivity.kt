@@ -3,34 +3,23 @@ package com.appdev.alarmapp
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
-import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.navigation.navGraph
-import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.Helper
-import com.appdev.alarmapp.utils.Ringtone
-import com.google.android.gms.wallet.AutoResolveHelper
-import com.google.android.gms.wallet.PaymentData
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -42,9 +31,6 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var textToSpeech: TextToSpeech
 
-    val checkViewModel by viewModels<checkOutViewModel>()
-
-    val MY_REQCODE =  (0..19992).random()
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -60,16 +46,12 @@ class MainActivity : ComponentActivity() {
             AlarmAppTheme {
                 val controller = rememberNavController()
 
-
-
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     val alarmManager: AlarmManager =
                         getSystemService(Context.ALARM_SERVICE) as AlarmManager
                     val hasPermission: Boolean = alarmManager.canScheduleExactAlarms()
                     if (hasPermission) {
-                        navGraph(textToSpeech,controller, tokenManagement) {
-                            AutoResolveHelper.resolveTask(checkViewModel.getPaymentData(), this, MY_REQCODE)
-                        }
+                        navGraph(textToSpeech,controller, tokenManagement,applicationContext)
                     } else {
                         val intent = Intent().apply {
                             action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
@@ -77,9 +59,7 @@ class MainActivity : ComponentActivity() {
                         startActivity(intent)
                     }
                 }else{
-                    navGraph(textToSpeech,controller, tokenManagement) {
-                        AutoResolveHelper.resolveTask(checkViewModel.getPaymentData(), this, MY_REQCODE)
-                    }
+                    navGraph(textToSpeech, controller, tokenManagement, applicationContext)
                 }
 
 
@@ -87,25 +67,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (MY_REQCODE == requestCode) {
-            when (resultCode) {
-                RESULT_OK -> {
-                    val paymentData = data?.let(PaymentData::getFromIntent)
-                    paymentData?.let(checkViewModel::setPaymentData)
-                }
 
-                RESULT_CANCELED -> {
-                    // The user cancelled without selecting a payment method.
-                }
-
-                AutoResolveHelper.RESULT_ERROR -> {
-
-                }
-            }
-        }
-    }
 
     override fun onDestroy() {
         super.onDestroy()

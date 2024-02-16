@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -65,10 +66,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.andyliu.compose_wheel_picker.HorizontalWheelPicker
 import com.andyliu.compose_wheel_picker.VerticalWheelPicker
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -85,9 +91,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun MemoryMissionScreen(
     mainViewModel: MainViewModel,
-    controller: NavHostController
+    controller: NavHostController,checkOutViewModel: checkOutViewModel = hiltViewModel()
 ) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
+    var loading by remember { mutableStateOf(true) }
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
@@ -115,9 +124,28 @@ fun MemoryMissionScreen(
             launchSingleTop = true
         }
     }
+    LaunchedEffect(key1 = billingState.value){
+        currentState = billingState.value
+        loading=false
+    }
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
     ) {
+        if (loading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Dialog(onDismissRequest = { /*TODO*/ }) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -272,7 +300,11 @@ fun MemoryMissionScreen(
                                                 selected = (item == selectedItem),
                                                 onClick = {
                                                     selectedItem = item
-                                                    mainViewModel.missionData(MissionDataHandler.MissionLevel(selectedItem))
+                                                    mainViewModel.missionData(
+                                                        MissionDataHandler.MissionLevel(
+                                                            selectedItem
+                                                        )
+                                                    )
                                                 },
                                                 colors = FilterChipDefaults.filterChipColors(
                                                     containerColor = Color.Transparent,
@@ -308,62 +340,96 @@ fun MemoryMissionScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
-                            .padding(vertical = 15.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                            .padding(vertical = 18.dp)
+                            .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(30.dp)
                     ) {
-                        VerticalWheelPicker(
-                            state = state,
-                            count = 3,
-                            itemHeight = 40.dp,
-                            visibleItemCount = 3,
-                            onScrollFinish = { currentIndex = it }
-                        ) { index ->
-                            val isFocus = index == currentIndex
-                            val targetAlpha = if (isFocus) 1.0f else 0.3f
-                            val targetScale = if (isFocus) 1.0f else 0.8f
-                            val animateScale by animateFloatAsState(targetScale)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .graphicsLayer {
-                                        this.alpha = targetAlpha
-                                        this.scaleX = animateScale
-                                        this.scaleY = animateScale
-                                    }
-                                    .clickable {
-                                        scope.launch {
-                                            state.animateScrollToItem(index)
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSquat) {
-                                    mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = (currentIndex + 1) * 5))
-                                } else if (mainViewModel.whichMission.isSteps) {
-                                    mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = (currentIndex + 1) * 10))
-                                } else {
-                                    mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = currentIndex + 1))
-                                }
-                                Text(
-                                    text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if(mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else "${(index + 1) * 5}",
-                                    color = if(isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
-                                    fontSize = 27.sp,
-                                    fontWeight = FontWeight.W600
-                                )
-                            }
-                        }
                         Text(
-                            text = "times",
+                            text = "Times count",
                             color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.W400,
                             modifier = Modifier.padding(start = 15.dp)
                         )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 10.dp, bottom = 20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            HorizontalWheelPicker(
+                                state = state,
+                                count = 3,
+                                itemWidth = 70.dp,
+                                visibleItemCount = 3,
+                                onScrollFinish = { currentIndex = it }
+                            ) { index ->
+                                val isFocus = index == currentIndex
+                                val targetAlpha = if (isFocus) 1.0f else 0.3f
+                                val targetScale = if (isFocus) 1.0f else 0.8f
+                                val animateScale by animateFloatAsState(targetScale)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer {
+                                            this.alpha = targetAlpha
+                                            this.scaleX = animateScale
+                                            this.scaleY = animateScale
+                                        }
+                                        .clickable {
+                                            scope.launch {
+                                                state.animateScrollToItem(index)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSquat) {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                repeat = (currentIndex + 1) * 5
+                                            )
+                                        )
+                                    } else if (mainViewModel.whichMission.isSteps) {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                repeat = (currentIndex + 1) * 10
+                                            )
+                                        )
+                                    } else {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                repeat = currentIndex + 1
+                                            )
+                                        )
+                                    }
+                                    Card(
+                                        onClick = {
+
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier
+                                            .height(70.dp)
+                                            .width(250.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color.Transparent
+                                        ),
+                                        border = BorderStroke(width = 2.dp, color = Color(0xffA6ACB5))
+                                    ){
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+                                            Text(
+                                                text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else "${(index + 1) * 5}",
+                                                color = if (isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
+                                                fontSize = 27.sp,
+                                                fontWeight = FontWeight.W600
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                     }
                 }
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
@@ -383,46 +449,57 @@ fun MemoryMissionScreen(
                             width = 0.3f,
                             backgroundColor = MaterialTheme.colorScheme.background,
                             isBorderPreview = true,
-                            textColor = if(isDarkMode) Color.LightGray else Color.Black
+                            textColor = if (isDarkMode) Color.LightGray else Color.Black
                         )
                         Spacer(modifier = Modifier.width(14.dp))
                         CustomButton(
+                            isLock = (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success,
                             onClick = {
-                                if (mainViewModel.managingDefault) {
-                                    mainViewModel.missionData(
-                                        MissionDataHandler.IsSelectedMission(
-                                            isSelected = true
-                                        )
-                                    )
-                                    mainViewModel.missionData(MissionDataHandler.SubmitData)
-                                    mainViewModel.setDefaultSettings(
-                                        DefaultSettingsHandler.GetNewObject(
-                                            defaultSettings = DefaultSettings(
-                                                id = mainViewModel.defaultSettings.value.id,
-                                                ringtone = mainViewModel.defaultSettings.value.ringtone,
-                                                snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
-                                                listOfMissions = mainViewModel.missionDetailsList
+                                if((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success){
+                                    controller.navigate(Routes.Purchase.route) {
+                                        popUpTo(Routes.CommonMissionScreen.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                } else{
+                                    if (mainViewModel.managingDefault) {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                isSelected = true
                                             )
                                         )
-                                    )
-                                    mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
-                                    controller.navigate(Routes.MissionMenuScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
-                                        launchSingleTop = true
-                                    }
-
-                                } else{
-                                    mainViewModel.missionData(
-                                        MissionDataHandler.IsSelectedMission(
-                                            isSelected = true
+                                        mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                        mainViewModel.setDefaultSettings(
+                                            DefaultSettingsHandler.GetNewObject(
+                                                defaultSettings = DefaultSettings(
+                                                    id = mainViewModel.defaultSettings.value.id,
+                                                    ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                                    snoozeTime = mainViewModel.defaultSettings.value.snoozeTime,
+                                                    listOfMissions = mainViewModel.missionDetailsList
+                                                )
+                                            )
                                         )
-                                    )
-                                    mainViewModel.missionData(MissionDataHandler.SubmitData)
-                                    controller.navigate(Routes.MissionMenuScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
-                                        launchSingleTop = true
+                                        mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                                        controller.navigate(Routes.Preview.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+
+                                    } else {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                isSelected = true
+                                            )
+                                        )
+                                        mainViewModel.missionData(MissionDataHandler.SubmitData)
+                                        controller.navigate(Routes.Preview.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
                                     }
                                 }
+
                             },
                             text = "Complete",
                             width = 0.75f,

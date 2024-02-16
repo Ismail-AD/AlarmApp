@@ -66,7 +66,7 @@ fun StepMission(
         mutableStateOf(context.getSystemService(Context.SENSOR_SERVICE) as SensorManager)
     }
     val stepSensor by remember {
-        mutableStateOf(sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR))
+        mutableStateOf(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
     }
     val stepDetector by remember {
         mutableStateOf(StepDetector())
@@ -110,9 +110,9 @@ fun StepMission(
         sensorManager.registerListener(
             stepDetector,
             stepSensor,
-            SensorManager.SENSOR_DELAY_FASTEST
+            SensorManager.SENSOR_DELAY_NORMAL
         )
-        Log.d("CHKST", "registered in main")
+        Log.d("CHKST", "registered in main and ${stepSensor!=null}")
 
         onDispose {
             sensorManager.unregisterListener(stepDetector)

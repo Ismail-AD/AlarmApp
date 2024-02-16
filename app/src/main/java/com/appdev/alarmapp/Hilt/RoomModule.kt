@@ -3,6 +3,7 @@ package com.appdev.alarmapp.Hilt
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import androidx.room.Room
+import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
 import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
 import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
@@ -50,6 +51,7 @@ object RoomModule {
             .fallbackToDestructiveMigration()
             .build()
     }
+
 
     @Singleton
     @Provides
