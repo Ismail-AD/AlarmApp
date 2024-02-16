@@ -386,6 +386,13 @@ fun AlarmNavGraph(
                 alarmEnds()
             }
         }
+
+        composable(route = Routes.SnoozeScr.route) {
+            SnoozeScreen(textToSpeech, controller, mainViewModel, intent, snoozeTrigger) {
+                alarmEnds()
+            }
+        }
+
         composable(route = Routes.MissionShakeScreen.route) {
             ShakeDetectionScreen(mainViewModel = mainViewModel, controller) {
                 alarmEnds()

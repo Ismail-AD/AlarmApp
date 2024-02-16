@@ -151,6 +151,7 @@ fun MainUiScreen(
         Routes.SoundPowerUpScreen.route,
         Routes.LabelScreen.route,
         Routes.SquatMissionScreen.route,
+        Routes.SnoozeScreen.route,
     )
 
     androidx.compose.material.Scaffold(

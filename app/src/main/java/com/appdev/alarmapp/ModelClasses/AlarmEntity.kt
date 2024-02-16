@@ -24,7 +24,7 @@ data class AlarmEntity(
     var localTime: LocalTime = LocalTime.now(),
     val listOfDays: Set<String> = emptySet(),
     val isActive: Boolean = true,
-    val skipTheAlarm: Boolean = false,
+    var skipTheAlarm: Boolean = false,
     val isOneTime: Boolean = false,
     var snoozeTime: Int = 5,
     var isGentleWakeUp: Boolean = true,

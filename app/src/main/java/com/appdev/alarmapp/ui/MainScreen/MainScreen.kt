@@ -79,7 +79,6 @@ import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmCancelAccess
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.AlarmManagement.getDayOfWeek
-import com.appdev.alarmapp.AlarmManagement.scheduleTheAlarm
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -151,7 +150,7 @@ fun MainScreen(
         mutableStateOf(AlarmEntity())
     }
     var timeUntilNextAlarm by remember {
-        mutableStateOf(upcomingAlarm?.let { calculateTimeUntil(it.timeInMillis) })
+        mutableStateOf(upcomingAlarm?.let { calculateTimeUntil(it.nextTimeInMillis) })
     }
 
     val alarmScheduler by remember {
@@ -322,7 +321,7 @@ fun MainScreen(
                                                 fontWeight = FontWeight.W600
                                             )
                                             Text(
-                                                "days",
+                                                if (timeUntilNextAlarm!!.days > 1) "days" else "day",
                                                 fontSize = 16.sp,
                                                 letterSpacing = 0.sp,
                                                 color = MaterialTheme.colorScheme.surfaceTint,
@@ -331,6 +330,26 @@ fun MainScreen(
                                                     start = 4.dp
                                                 )
                                             )
+                                        }
+                                        Row(verticalAlignment = Alignment.Bottom) {
+                                            Text(
+                                                "${timeUntilNextAlarm!!.hours}",
+                                                fontSize = 30.sp,
+                                                letterSpacing = 0.sp,
+                                                color = MaterialTheme.colorScheme.surfaceTint,
+                                                fontWeight = FontWeight.W600
+                                            )
+                                            Text(
+                                                "hr",
+                                                fontSize = 16.sp,
+                                                letterSpacing = 0.sp,
+                                                color = MaterialTheme.colorScheme.surfaceTint,
+                                                modifier = Modifier.padding(
+                                                    bottom = 4.dp,
+                                                    start = 4.dp
+                                                )
+                                            )
+
                                         }
                                     }
 
@@ -664,8 +683,14 @@ fun MainScreen(
                         mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarm.snoozeTime))
                         mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = on))
                         mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = false))
-                        Log.d("CHKW", "At main active on : ${convertMillisToLocalTime(alarm.nextTimeInMillis)} ")
-                        Log.d("CHKW", "At main active on mpt upcome : ${convertMillisToLocalTime(alarm.timeInMillis)} ")
+                        Log.d(
+                            "CHKW",
+                            "At main active on : ${convertMillisToLocalTime(alarm.nextTimeInMillis)} "
+                        )
+                        Log.d(
+                            "CHKW",
+                            "At main active on mpt upcome : ${convertMillisToLocalTime(alarm.timeInMillis)} "
+                        )
 
                         if (on) {
                             mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarm.skipTheAlarm))
@@ -743,6 +768,7 @@ fun MainScreen(
                         if (alarmToPreview.listOfDays.isNotEmpty()) {
                             if (alarmToPreview.skipTheAlarm) {
                                 alarmScheduler.cancel(alarmToPreview)
+                                alarmToPreview.skipTheAlarm = false
 
                                 com.appdev.alarmapp.ui.PreivewScreen.scheduleTheAlarm(
                                     mainViewModel,
@@ -836,13 +862,13 @@ fun MainScreen(
 
                                 // Get the day of the week from the calendar
                                 var dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-
+                                Log.d("CHKITO", "${dayOfWeek} today indez")
                                 // Convert day of week to day index starting from 1 for Sunday
-                                dayOfWeek = if (dayOfWeek == Calendar.SUNDAY) {
-                                    1
-                                } else {
-                                    dayOfWeek - Calendar.SUNDAY + 2
-                                }
+//                                dayOfWeek = if (dayOfWeek == Calendar.SUNDAY) {
+//                                    1
+//                                } else {
+//                                    dayOfWeek - Calendar.SUNDAY + 2
+//                                }
 
                                 val nextOccurrence = alarmToPreview.listOfDays
                                     .map { getDayOfWeek(it) }

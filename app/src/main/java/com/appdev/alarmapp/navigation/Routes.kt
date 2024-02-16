@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.navigation
 
 sealed class Routes(val route: String) {
+    object SnoozeScr : Routes("Snooze_Screen")
     object Pattern : Routes("Pattern_Screen")
     object GetStarted : Routes("GetStarted")
     object Welcome : Routes("Welcome_Screen")

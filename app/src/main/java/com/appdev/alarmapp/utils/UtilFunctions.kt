@@ -228,7 +228,11 @@ val basicPhrases = listOf(
 
 fun convertSetToString(set: Set<CustomPhrase>): String {
     val gson = Gson()
-    return gson.toJson(if(set.isEmpty()){ setOf(motivationalPhrases[0]) } else set) ?: ""
+    return gson.toJson(
+        if (set.isEmpty()) {
+            setOf(motivationalPhrases[0])
+        } else set
+    ) ?: ""
 }
 
 // Convert String to Set<CustomPhrase>
@@ -287,6 +291,7 @@ val listOfOptions: List<String> = listOf(
     "Suggestion",
     "Compliment",
 )
+
 fun isEmailValid(email: String): Boolean {
     return Patterns.EMAIL_ADDRESS.matcher(email).matches()
 }
@@ -294,13 +299,13 @@ fun isEmailValid(email: String): Boolean {
 data class TimeUntil(val days: Long, val hours: Long, val minutes: Long, val seconds: Long)
 
 fun calculateTimeUntil(timestamp: Long): TimeUntil {
-    val currentTime = System.currentTimeMillis()
-    val timeDifference = timestamp - currentTime
-    val days = TimeUnit.MILLISECONDS.toDays(timeDifference)
-    val hours = TimeUnit.MILLISECONDS.toHours(timeDifference) % 24
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(timeDifference) % 60
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(timeDifference) % 60
-    return TimeUntil(days, hours, minutes, seconds)
+        val currentTime = System.currentTimeMillis()
+        val timeDifference = timestamp - currentTime
+        val days = TimeUnit.MILLISECONDS.toDays(timeDifference)
+        val hours = TimeUnit.MILLISECONDS.toHours(timeDifference) % 24
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeDifference) % 60
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeDifference) % 60
+        return TimeUntil(days, hours, minutes, seconds)
 }
 
 val weekDays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")

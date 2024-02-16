@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.AlarmManagement.SnoozeService
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
@@ -137,6 +138,8 @@ fun AlarmCancelScreen(
     val alarmEntity: AlarmEntity? by remember {
         mutableStateOf(intent.getParcelableExtra("Alarm"))
     }
+
+
 
     DisposableEffect(key1 = Unit) {
         alarmEntity?.let {
@@ -680,9 +683,6 @@ fun snoozeAlarm(
         alarmEntity.snoozeTime // Set the snooze duration in minutes (adjust as needed)
     val currentTimeMillis = System.currentTimeMillis()
 
-//    val instant1 = Instant.ofEpochMilli(alarmEntity.timeInMillis)
-//    val offsetTime1 = OffsetTime.ofInstant(instant1, ZoneId.systemDefault())
-//    Log.d("RINGC","LOCAL TIME BEFORE SNOOZE ADD ${offsetTime1.toLocalTime()}")
 
     val snoozeTimeMillis = currentTimeMillis + (snoozeMinutes * 60 * 1000)
     alarmEntity.snoozeTimeInMillis = snoozeTimeMillis
@@ -694,6 +694,8 @@ fun snoozeAlarm(
     // Reschedule the alarm with the updated time
     alarmScheduler.schedule(alarmEntity, showInNotification)
 }
+
+
 
 
 fun playTextToSpeech(textToSpeech: TextToSpeech, id: String, text: String) {

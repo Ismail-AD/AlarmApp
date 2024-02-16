@@ -4,10 +4,13 @@ import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Embedded
@@ -42,6 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -109,10 +113,14 @@ class MainViewModel @Inject constructor(
     var dataSent by mutableStateOf(FeedbackUpdate())
     var tabValue by mutableStateOf(0)
 
-    fun tabChange(value: Int) {
-        tabValue = value
-    }
 
+    private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
+    val snoozeTime: StateFlow<Long> = _snoozeTime.asStateFlow()
+
+    // Function to update the snooze time
+    fun updateSnoozeTime(newTime: Long) {
+        _snoozeTime.value = newTime
+    }
 
     var managingDefault by mutableStateOf(false)
 

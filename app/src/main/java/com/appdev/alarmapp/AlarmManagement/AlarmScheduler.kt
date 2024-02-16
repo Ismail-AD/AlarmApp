@@ -38,10 +38,7 @@ class AlarmScheduler(
 
 
     fun schedule(alarmData: AlarmEntity, showNotify: Boolean) {
-        Log.d(
-            "CHKZ",
-            "In Schedule Method .... Id is ${alarmData.id.toInt()}"
-        )
+
         val intent = Intent(context, AlarmTriggerHandler::class.java)
 
         intent.putExtra("notify", showNotify)
@@ -49,7 +46,8 @@ class AlarmScheduler(
         intent.putExtra("Alarm", alarmData)
         intent.action = "${context.packageName}.ACTION_ALARM"
 
-        if (alarmData.snoozeTimeInMillis.toInt() != 0) {
+
+        if (millisToMinutes(alarmData.snoozeTimeInMillis) != 0L) {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 alarmData.snoozeTimeInMillis,
@@ -72,6 +70,9 @@ class AlarmScheduler(
                 )
             )
         }
+    }
+    fun millisToMinutes(millis: Long): Long {
+        return millis / 60000
     }
 
     fun cancel(alarmData: AlarmEntity) {

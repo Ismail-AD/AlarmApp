@@ -9,6 +9,7 @@ import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +18,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.navigation.navGraph
+import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.Helper
 import dagger.hilt.android.AndroidEntryPoint
@@ -31,12 +33,14 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var textToSpeech: TextToSpeech
 
+    val viewModel: MainViewModel by viewModels()
 
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         installSplashScreen()
+
 
         if(Helper.isPlaying()){
             Helper.stopStream()

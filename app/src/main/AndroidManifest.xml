@@ -81,7 +81,7 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
             </intent-filter>
         </receiver>
-
+        <service android:name=".AlarmManagement.SnoozeService" />
 
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
