@@ -33,7 +33,6 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var textToSpeech: TextToSpeech
 
-    val viewModel: MainViewModel by viewModels()
 
 
     @RequiresApi(Build.VERSION_CODES.O)

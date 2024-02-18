@@ -1,7 +1,9 @@
 package com.appdev.alarmapp.ui.MainScreen
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -122,9 +124,13 @@ fun MainScreen(
     var stateChanges by remember {
         mutableStateOf(false)
     }
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
     var clickAlarmId by remember {
         mutableLongStateOf(0)
+    }
+    var sharedPrefs by remember {
+        mutableStateOf(context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE))
     }
 
     val scope = rememberCoroutineScope()
@@ -139,7 +145,7 @@ fun MainScreen(
     var showToast2 by remember {
         mutableStateOf(false)
     }
-    val context = LocalContext.current
+
 
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
 
@@ -166,6 +172,17 @@ fun MainScreen(
         }
     }
     LaunchedEffect(key1 = alarmList, key2 = stateChanges) {
+        val deviceRestartedValue = sharedPrefs.getBoolean("device_restarted", false)
+        if (alarmList.isNotEmpty()) {
+            if (deviceRestartedValue) {
+                for (alarm in alarmList) {
+                    alarmScheduler.schedule(alarm,mainViewModel.basicSettings.value.showInNotification)
+                }
+                sharedPrefs.edit().putBoolean("device_restarted", false).apply()
+            } else {
+                notificationService.cancelRestartNotification()
+            }
+        }
         allAlarms = if (alarmSettings.activeSort) {
             val activeAlarms = alarmList.filter { it.isActive }
             val inactiveAlarms = alarmList.filter { !it.isActive }
@@ -233,6 +250,9 @@ fun MainScreen(
 
         if (mainViewModel.missionDetails.repeatProgress > 1) {
             mainViewModel.missionData(MissionDataHandler.MissionProgress(1))
+        }
+        if (mainViewModel.previewMode) {
+            mainViewModel.previewModeUpdate(false)
         }
     }
 

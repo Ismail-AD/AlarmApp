@@ -9,13 +9,18 @@ import android.os.Build
 import android.os.Parcelable
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.ringtoneList
 import com.google.gson.Gson
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import java.io.Serializable
 import java.util.Calendar
 import java.util.Locale
@@ -26,15 +31,6 @@ class AlarmScheduler(
 ) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val mainVM = mainViewModel
-//    fun reshedul() {
-    // Replace this with your logic to retrieve and reschedule alarms
-//        val alarmList =
-    // Fetch your alarm data (e.g., from a database)
-
-//            for (alarmData in alarmList) {
-//            schedule(alarmData)
-//            }
-//    }
 
 
     fun schedule(alarmData: AlarmEntity, showNotify: Boolean) {
@@ -46,6 +42,7 @@ class AlarmScheduler(
         intent.putExtra("Alarm", alarmData)
         intent.action = "${context.packageName}.ACTION_ALARM"
 
+        Log.d("CHKSM", "Scheduler on work")
 
         if (millisToMinutes(alarmData.snoozeTimeInMillis) != 0L) {
             alarmManager.setExactAndAllowWhileIdle(
@@ -95,4 +92,6 @@ class AlarmScheduler(
             )
         )
     }
+
+
 }

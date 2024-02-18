@@ -50,9 +50,11 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class AlarmCancelAccess : ComponentActivity() {
+class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
+
     val mainViewModel by viewModels<MainViewModel>()
     var dismissSettings: DismissSettings? = null
+
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
@@ -61,190 +63,51 @@ class AlarmCancelAccess : ComponentActivity() {
     private var notify: Boolean = false
     private var lastPressedKeyCode: Int = -1
     private var isScreenOnBeforeAlarm = false
+    lateinit var alarm: AlarmEntity
+    lateinit var alarmScheduler: AlarmScheduler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("CHKSM", "ON CREATE CALLED")
+
+        isScreenOnBeforeAlarm = isScreenOn()
+        alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
 
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Do nothing to disable the back button
+
             }
         }
         onBackPressedDispatcher.addCallback(this, callback)
+        previewMode = intent.getBooleanExtra("Preview", false)
+
+
+        if (!previewMode) {
+            Log.d("CHKSM", "---ALARM STATE UPDATED---")
+
+            mainViewModel.updateIsReal(true)
+            window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+
+        }
 
         setContent {
             AlarmAppTheme {
-                Log.d("CHKSM", "ON CREATE CALLED and state is ${mainViewModel.isRealAlarm}")
-                val alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
-                previewMode = intent.getBooleanExtra("Preview", false)
-                isScreenOnBeforeAlarm = isScreenOn()
-
-                if (!previewMode) {
-                    mainViewModel.updateIsReal(true)
-                    window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
-                    window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
-                    window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
-                }
                 mainViewModel.previewModeUpdate(true)
                 mainViewModel.snoozeUpdate(false)
                 notify = intent.getBooleanExtra("notify", false)
-
                 if (intent?.hasExtra("Alarm") == true) {
                     receivedAlarm = intent.getParcelableExtra("Alarm")
                     dismissSettings = intent.getParcelableExtra("dismissSet")
-                    receivedAlarm?.let { alarm ->
+                    receivedAlarm?.let { gotAlarm ->
+                        alarm = gotAlarm
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
-
-                        AlarmNavGraph(textToSpeech,
+                        AlarmNavGraph(
+                            onDismissCallback = this, snoozeCallback = this, textToSpeech,
                             intent,
                             mainViewModel = mainViewModel,
-                            snoozeTrigger = {
-                                mainViewModel.updateIsReal(false)
-                                mainViewModel.previewModeUpdate(false)
-                                startActivity(Intent(this, MainActivity::class.java))
-                                finish()
-                            }) {
-                            if (mainViewModel.dummyMissionList.isEmpty()) {
-                                if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.Vibrator(
-                                            setVibration = alarm.willVibrate
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.isOneTime(isOneTime = alarm.isOneTime)
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.CustomVolume(
-                                            customVolume = alarm.customVolume
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.IsLabel(
-                                            isLabelOrNot = alarm.isLabel
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.LabelText(
-                                            getLabelText = alarm.labelTextForSpeech
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.LoudEffect(
-                                            isLoudEffectOrNot = alarm.isLoudEffect
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.TimeReminder(
-                                            isTimeReminderOrNot = alarm.isTimeReminder
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.IsGentleWakeUp(
-                                            isGentleWakeUp = alarm.isGentleWakeUp
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.GetWakeUpTime(
-                                            getWUTime = alarm.wakeUpTime
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.getTime(
-                                            time = alarm.localTime
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.getMilli(
-                                            timeInMilli = alarm.timeInMillis
-                                        )
-                                    )
-
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.getMissions(
-                                            missions = alarm.listOfMissions
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.getSnoozeTime(
-                                            getSnoozeTime = alarm.snoozeTime
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.CustomVolume(
-                                            customVolume = alarm.customVolume
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = false))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.update)
-                                }
-                                if (alarm.listOfDays.isNotEmpty() && mainViewModel.isRealAlarm) {
-                                    val alarmEntity = AlarmEntity(
-                                        id = alarm.id,
-                                        snoozeTime = alarm.snoozeTime,
-                                        timeInMillis = alarm.timeInMillis,
-                                        snoozeTimeInMillis = 0,
-                                        listOfMissions = alarm.listOfMissions,
-                                        listOfDays = alarm.listOfDays,
-                                        ringtone = alarm.ringtone,
-                                        isActive = true,
-                                        localTime = alarm.localTime,
-                                        isGentleWakeUp = alarm.isGentleWakeUp,
-                                        isTimeReminder = alarm.isTimeReminder,
-                                        isLoudEffect = alarm.isLoudEffect,
-                                        wakeUpTime = alarm.wakeUpTime,
-                                        isLabel = alarm.isLabel,
-                                        customVolume = alarm.customVolume,
-                                        willVibrate = alarm.willVibrate,
-                                        labelTextForSpeech = alarm.labelTextForSpeech,
-                                        skipTheAlarm = false, isOneTime = false
-                                    )
-                                    mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmEntity.id))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmEntity.listOfDays))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmEntity.ringtone))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarmEntity.skipTheAlarm))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarmEntity.isLoudEffect))
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.TimeReminder(
-                                            isTimeReminderOrNot = alarmEntity.isTimeReminder
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarmEntity.isGentleWakeUp))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarmEntity.wakeUpTime))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarmEntity.willVibrate))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarmEntity.customVolume))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarmEntity.isLabel))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarmEntity.labelTextForSpeech))
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.getTime(
-                                            time = alarmEntity.localTime
-                                        )
-                                    )
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.isOneTime(isOneTime = alarmEntity.isOneTime)
-                                    )
-                                    mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarmEntity.listOfMissions))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarmEntity.snoozeTime))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmEntity.isActive))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarmEntity.timeInMillis))
-                                    scheduleTheAlarm(alarmEntity, alarmScheduler, notify,true,mainViewModel)
-
-                                }
-                                mainViewModel.updateIsReal(false)
-                                mainViewModel.previewModeUpdate(false)
-                                if (alarm.isGentleWakeUp) {
-                                    Helper.updateLow(false)
-                                    Helper.stopIncreasingVolume()
-                                }
-                                Helper.updateCustomValue(100f)
-                                Helper.stopStream()
-                                startActivity(Intent(this, MainActivity::class.java))
-                                finish()
-                            }
-                        }
+                        )
                     }
                 }
             }
@@ -268,14 +131,13 @@ class AlarmCancelAccess : ComponentActivity() {
 
 
     override fun onStop() {
-        Log.d(
-            "CHKSM",
-            "ON STOP CALLED and state is ${mainViewModel.isRealAlarm} , $lastPressedKeyCode , ${KeyEvent.KEYCODE_POWER != lastPressedKeyCode}"
-        )
         val isScreenOnNow = isScreenOn()
+        Log.d("CHKSM", "ON STOP TRIGGERED.............${mainViewModel.getRealUpdate()}")
+
+//        Log.d("CHKSM", "${isFinishing}")
         if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
-        ) {
-            // Power button not pressed, bring the app to the foreground
+        ) { // Power button not pressed, bring the app to the foreground
+            Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
             val newIntent = Intent(this, javaClass)
             newIntent.putExtra("Alarm", receivedAlarm)
             newIntent.putExtra("Preview", previewMode)
@@ -283,6 +145,7 @@ class AlarmCancelAccess : ComponentActivity() {
             newIntent.putExtra("dismissSet", dismissSettings)
             startActivity(newIntent)
         }
+        Log.d("CHKSM", "ON STOP CALLED.............")
         super.onStop()
     }
 
@@ -293,8 +156,161 @@ class AlarmCancelAccess : ComponentActivity() {
 
 
     override fun onDestroy() {
-        Helper.stopStream()
+        Log.d("CHKSM", "ON DESTROY CALLED.............")
         super.onDestroy()
+    }
+
+    override fun onSnoozeClicked() {
+        mainViewModel.updateIsReal(false)
+        Log.d("CHKSM", "SNOOZE IS CALLED.............GOING TO FINISH ACTIVITY... and real state is ${mainViewModel.isRealAlarm}")
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+
+    override fun onDismissClicked() {
+        Log.d("CHKSM", "ON ALARM WORK FINISH IS CALLED.............")
+        if (mainViewModel.dummyMissionList.isEmpty()) {
+            if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.Vibrator(
+                        setVibration = alarm.willVibrate
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.isOneTime(isOneTime = alarm.isOneTime)
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.CustomVolume(
+                        customVolume = alarm.customVolume
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.IsLabel(
+                        isLabelOrNot = alarm.isLabel
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.LabelText(
+                        getLabelText = alarm.labelTextForSpeech
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.LoudEffect(
+                        isLoudEffectOrNot = alarm.isLoudEffect
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.TimeReminder(
+                        isTimeReminderOrNot = alarm.isTimeReminder
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.IsGentleWakeUp(
+                        isGentleWakeUp = alarm.isGentleWakeUp
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.GetWakeUpTime(
+                        getWUTime = alarm.wakeUpTime
+                    )
+                )
+                mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarm.id))
+                mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarm.listOfDays))
+                mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarm.ringtone))
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.getTime(
+                        time = alarm.localTime
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.getMilli(
+                        timeInMilli = alarm.timeInMillis
+                    )
+                )
+
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.getMissions(
+                        missions = alarm.listOfMissions
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.getSnoozeTime(
+                        getSnoozeTime = alarm.snoozeTime
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.CustomVolume(
+                        customVolume = alarm.customVolume
+                    )
+                )
+                mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = false))
+                mainViewModel.updateHandler(EventHandlerAlarm.update)
+            }
+            if (alarm.listOfDays.isNotEmpty() && mainViewModel.isRealAlarm) {
+                val alarmEntity = AlarmEntity(
+                    id = alarm.id,
+                    snoozeTime = alarm.snoozeTime,
+                    timeInMillis = alarm.timeInMillis,
+                    snoozeTimeInMillis = 0,
+                    listOfMissions = alarm.listOfMissions,
+                    listOfDays = alarm.listOfDays,
+                    ringtone = alarm.ringtone,
+                    isActive = true,
+                    localTime = alarm.localTime,
+                    isGentleWakeUp = alarm.isGentleWakeUp,
+                    isTimeReminder = alarm.isTimeReminder,
+                    isLoudEffect = alarm.isLoudEffect,
+                    wakeUpTime = alarm.wakeUpTime,
+                    isLabel = alarm.isLabel,
+                    customVolume = alarm.customVolume,
+                    willVibrate = alarm.willVibrate,
+                    labelTextForSpeech = alarm.labelTextForSpeech,
+                    skipTheAlarm = false, isOneTime = false
+                )
+                mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmEntity.id))
+                mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmEntity.listOfDays))
+                mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmEntity.ringtone))
+                mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarmEntity.skipTheAlarm))
+                mainViewModel.updateHandler(EventHandlerAlarm.LoudEffect(isLoudEffectOrNot = alarmEntity.isLoudEffect))
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.TimeReminder(
+                        isTimeReminderOrNot = alarmEntity.isTimeReminder
+                    )
+                )
+                mainViewModel.updateHandler(EventHandlerAlarm.IsGentleWakeUp(isGentleWakeUp = alarmEntity.isGentleWakeUp))
+                mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = alarmEntity.wakeUpTime))
+                mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarmEntity.willVibrate))
+                mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarmEntity.customVolume))
+                mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarmEntity.isLabel))
+                mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarmEntity.labelTextForSpeech))
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.getTime(
+                        time = alarmEntity.localTime
+                    )
+                )
+                mainViewModel.updateHandler(
+                    EventHandlerAlarm.isOneTime(isOneTime = alarmEntity.isOneTime)
+                )
+                mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarmEntity.listOfMissions))
+                mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarmEntity.snoozeTime))
+                mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmEntity.isActive))
+                mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarmEntity.timeInMillis))
+                scheduleTheAlarm(alarmEntity, alarmScheduler, notify, true, mainViewModel)
+
+            }
+            mainViewModel.updateIsReal(false)
+            if (alarm.isGentleWakeUp) {
+                Helper.updateLow(false)
+                Helper.stopIncreasingVolume()
+            }
+            Helper.updateCustomValue(100f)
+            Helper.stopStream()
+            startActivity(Intent(this, MainActivity::class.java))
+            Log.d("CHKSM", "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}")
+            finish()
+        }
+
+
     }
 }
 
@@ -302,7 +318,7 @@ fun scheduleTheAlarm(
     alarmEntity: AlarmEntity,
     alarmScheduler: AlarmScheduler,
     notify: Boolean,
-    resetUpcoming:Boolean=false,mainViewModel:MainViewModel
+    resetUpcoming: Boolean = false, mainViewModel: MainViewModel
 ) {
     val selectedTimeMillis = localTimeToMillis(alarmEntity.localTime)
 
@@ -339,17 +355,17 @@ fun scheduleTheAlarm(
         val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
         alarmEntity.localTime = offsetTime.toLocalTime()
 
-        Log.d("CHKZ","Scheduling FROM Main screen with list of days ....  Id is ${alarmEntity.id}")
+        Log.d("CHKZ", "Scheduling FROM Main screen with list of days ....  Id is ${alarmEntity.id}")
         alarmScheduler.schedule(alarmEntity, notify)
-        if(resetUpcoming){
-            Log.d("CHKITO","${calendar.timeInMillis} before new alarm set for another day")
+        if (resetUpcoming) {
+            Log.d("CHKITO", "${calendar.timeInMillis} before new alarm set for another day")
             mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = calendar.timeInMillis))
             mainViewModel.updateHandler(EventHandlerAlarm.update)
         }
 
 
     } else if (alarmEntity.isOneTime) {
-        Log.d("CHKZ","Scheduling FROM Main screen with One time.... Id is ${alarmEntity.id}")
+        Log.d("CHKZ", "Scheduling FROM Main screen with One time.... Id is ${alarmEntity.id}")
 
         if (alarmEntity.timeInMillis > System.currentTimeMillis()) {
             alarmScheduler.schedule(alarmEntity, notify)
@@ -372,66 +388,50 @@ fun getDayOfWeek(day: String): Int {
 
 @Composable
 fun AlarmNavGraph(
+    onDismissCallback: DismissCallback,
+    snoozeCallback: SnoozeCallback,
     textToSpeech: TextToSpeech,
     intent: Intent,
     controller: NavHostController = rememberNavController(),
-    mainViewModel: MainViewModel, snoozeTrigger: () -> Unit, alarmEnds: () -> Unit
+    mainViewModel: MainViewModel
 ) {
     NavHost(
         navController = controller,
         startDestination = Routes.PreviewAlarm.route,
     ) {
         composable(route = Routes.PreviewAlarm.route) {
-            AlarmCancelScreen(textToSpeech, controller, mainViewModel, intent, snoozeTrigger) {
-                alarmEnds()
-            }
+            AlarmCancelScreen(onDismissCallback,snoozeCallback,textToSpeech, controller, mainViewModel, intent)
         }
 
         composable(route = Routes.SnoozeScr.route) {
-            SnoozeScreen(textToSpeech, controller, mainViewModel, intent, snoozeTrigger) {
-                alarmEnds()
-            }
+            SnoozeScreen(textToSpeech, controller, mainViewModel, intent)
         }
 
         composable(route = Routes.MissionShakeScreen.route) {
-            ShakeDetectionScreen(mainViewModel = mainViewModel, controller) {
-                alarmEnds()
-            }
+            ShakeDetectionScreen(mainViewModel = mainViewModel, controller,onDismissCallback)
         }
         composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-            BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller) {
-                alarmEnds()
-            }
+            BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
         }
         composable(route = Routes.StepDetectorScreen.route) {
-            StepMission(mainViewModel = mainViewModel, controller) {
-                alarmEnds()
-            }
+            StepMission(mainViewModel = mainViewModel, controller,onDismissCallback)
         }
         composable(route = Routes.SquatMissionScreen.route) {
-            SquatMission(mainViewModel = mainViewModel, controller) {
-                alarmEnds()
-            }
+            SquatMission(mainViewModel = mainViewModel, controller,onDismissCallback)
         }
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
-            PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller) {
-                alarmEnds()
-            }
+            PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
         }
 
         composable(route = Routes.TypingPreviewScreen.route) {
-            TypingMissionHandler(mainViewModel = mainViewModel, controller = controller) {
-                alarmEnds()
-            }
+            TypingMissionHandler(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
         }
         composable(route = Routes.MissionMathScreen.route) {
             MathMissionHandler(
                 mainViewModel,
                 missionLevel = mainViewModel.missionDetails.missionLevel,
-                controller = controller
-            ) {
-                alarmEnds()
-            }
+                controller = controller, dismissCallback = onDismissCallback
+            )
         }
         composable(route = Routes.MissionScreen.route) {
             val sizeOfBlocks = when (mainViewModel.missionDetails.missionLevel) {
@@ -465,10 +465,8 @@ fun AlarmNavGraph(
             MissionHandlerScreen(
                 cubeHeightWidth, columnPadding, lazyRowHeight,
                 controller, totalSize = sizeOfBlocks,
-                mainViewModel = mainViewModel
-            ) {
-                alarmEnds()
-            }
+                mainViewModel = mainViewModel, dismissCallback = onDismissCallback
+            )
         }
     }
 }

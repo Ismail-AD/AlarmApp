@@ -70,6 +70,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -93,7 +94,7 @@ import kotlin.math.sqrt
 fun PhotoMissionScreen(
     mainViewModel: MainViewModel,
     controller: NavHostController,
-    alarmEndHandle: () -> Unit = {}
+    dismissCallback: DismissCallback
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
@@ -241,11 +242,11 @@ fun PhotoMissionScreen(
                         }
 
                         else -> {
-                            alarmEndHandle()
+                            dismissCallback.onDismissClicked()
                         }
                     }
                 } else {
-                    alarmEndHandle()
+                    dismissCallback.onDismissClicked()
                 }
             } else {
                 controller.navigate(Routes.CameraRoutineScreen.route) {

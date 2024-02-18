@@ -37,6 +37,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.SnoozeCallback
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
@@ -166,6 +168,7 @@ fun MainUiScreen(
                         mainViewModel.newAlarmHandler(newAlarmHandler.GetWakeUpTime(getWUTime = 30))
                         mainViewModel.newAlarmHandler(newAlarmHandler.TimeReminder(isTimeReminderOrNot = false))
                         mainViewModel.newAlarmHandler(newAlarmHandler.IsGentleWakeUp(isGentleWakeUp = true))
+                        mainViewModel.newAlarmHandler(newAlarmHandler.CustomVolume(customVolume = 100f))
                         mainViewModel.newAlarmHandler(newAlarmHandler.LoudEffect(isLoudEffectOrNot = false))
                         mainViewModel.newAlarmHandler(newAlarmHandler.skipAlarm(skipAlarm = false))
                         mainViewModel.newAlarmHandler(newAlarmHandler.IsLabel(isLabelOrNot = false))
@@ -251,14 +254,22 @@ fun MainUiScreen(
             }
 
             composable(route = Routes.SquatMissionScreen.route) {
-                SquatMission(mainViewModel = mainViewModel, controller = controller)
+                SquatMission(mainViewModel = mainViewModel, controller = controller, dismissCallback = object : DismissCallback {
+                override fun onDismissClicked() {
+                    // Provide implementation here if needed
+                }
+            })
             }
             composable(route = Routes.LabelScreen.route) {
                 LabelScreen(textToSpeech,controller,mainViewModel)
             }
 
             composable(route = Routes.TypingPreviewScreen.route) {
-                TypingMissionHandler(mainViewModel = mainViewModel, controller = controller)
+                TypingMissionHandler(mainViewModel = mainViewModel, controller = controller,dismissCallback = object : DismissCallback {
+                    override fun onDismissClicked() {
+                        // Provide implementation here if needed
+                    }
+                })
             }
 
             composable(route = Routes.FeedbackScreen.route) {
@@ -305,16 +316,33 @@ fun MainUiScreen(
                 )
             }
             composable(route = Routes.PreviewAlarm.route) {
-                AlarmCancelScreen(textToSpeech,controller, mainViewModel)
+                AlarmCancelScreen(onDismissCallback = object : DismissCallback {
+                    override fun onDismissClicked() {
+                        // Provide implementation here if needed
+                    }
+                }, snoozeCallback = object : SnoozeCallback {
+                    override fun onSnoozeClicked() {
+                        TODO("Not yet implemented")
+                    }
+
+                },textToSpeech,controller, mainViewModel)
             }
             composable(route = Routes.MissionShakeScreen.route) {
-                ShakeDetectionScreen(mainViewModel = mainViewModel, controller)
+                ShakeDetectionScreen(mainViewModel = mainViewModel, controller, dismissCallback = object : DismissCallback {
+                    override fun onDismissClicked() {
+                        // Provide implementation here if needed
+                    }
+                })
             }
             composable(route = Routes.CameraRoutineScreen.route) {
                 CameraMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.PhotoMissionPreviewScreen.route) {
-                PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller)
+                PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller, dismissCallback = object : DismissCallback {
+                    override fun onDismissClicked() {
+                        // Provide implementation here if needed
+                    }
+                })
             }
             composable(route = Routes.PhotoClickScreen.route) {
                 PhotoClickScreen(mainViewModel = mainViewModel, controller = controller)
@@ -326,10 +354,18 @@ fun MainUiScreen(
                 ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-                BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller)
+                BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller, dismissCallback = object : DismissCallback {
+                    override fun onDismissClicked() {
+                        // Provide implementation here if needed
+                    }
+                })
             }
             composable(route = Routes.StepDetectorScreen.route) {
-                StepMission(mainViewModel = mainViewModel, controller)
+                StepMission(mainViewModel = mainViewModel, controller, dismissCallback = object : DismissCallback {
+                    override fun onDismissClicked() {
+                        // Provide implementation here if needed
+                    }
+                })
             }
             composable(route = Routes.SnoozeScreen.route) {
                 SnoozeScreen(mainViewModel = mainViewModel, controller = controller)
@@ -350,7 +386,11 @@ fun MainUiScreen(
                 MathMissionHandler(
                     mainViewModel,
                     missionLevel = mainViewModel.missionDetails.missionLevel,
-                    controller = controller
+                    controller = controller, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
                 )
             }
             composable(route = Routes.MissionScreen.route) {
@@ -386,7 +426,11 @@ fun MainUiScreen(
                 MissionHandlerScreen(
                     cubeHeightWidth, columnPadding, lazyRowHeight,
                     controller, totalSize = sizeOfBlocks,
-                    mainViewModel = mainViewModel
+                    mainViewModel = mainViewModel, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
                 )
             }
         }

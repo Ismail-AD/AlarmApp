@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -60,7 +61,7 @@ import kotlin.math.min
 fun SquatMission(
     mainViewModel: MainViewModel,
     controller: NavHostController,
-    alarmEndHandle: () -> Unit = {}
+    dismissCallback: DismissCallback,
 ) {
     if (Helper.isPlaying()) {
         Helper.pauseStream()
@@ -217,11 +218,11 @@ fun SquatMission(
                         }
 
                         else -> {
-                            alarmEndHandle()
+                            dismissCallback.onDismissClicked()
                         }
                     }
                 } else {
-                    alarmEndHandle()
+                    dismissCallback.onDismissClicked()
                 }
             } else {
                 controller.navigate(Routes.Preview.route) {

@@ -12,7 +12,6 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -20,16 +19,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -51,25 +46,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
-import com.appdev.alarmapp.AlarmManagement.SnoozeService
+import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.SnoozeCallback
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
-import com.appdev.alarmapp.ui.CustomImageButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
-import com.appdev.alarmapp.ui.theme.linear
+import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.convertMillisToHoursAndMinutes
-import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getFormattedToday
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -81,12 +74,12 @@ import java.util.Locale
 
 @Composable
 fun AlarmCancelScreen(
+    onDismissCallback: DismissCallback,
+    snoozeCallback: SnoozeCallback ,
     textToSpeech: TextToSpeech,
     controller: NavHostController,
     mainViewModel: MainViewModel,
-    intent: Intent = Intent(),
-    snoozeTrigger: () -> Unit = {},
-    alarmEndHandle: () -> Unit = {},
+    intent: Intent = Intent()
 ) {
     val context = LocalContext.current
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
@@ -218,7 +211,10 @@ fun AlarmCancelScreen(
             if (dset.dismissTime > 0 && mainViewModel.isRealAlarm) {
                 delay(dset.dismissTime * 60 * 1000L) // Convert minutes to milliseconds
                 Helper.stopStream()
-                alarmEndHandle()
+                textToSpeech.stop()
+                vibrator.cancel()
+                textToSpeech.shutdown()
+                onDismissCallback.onDismissClicked()
             }
         }
     }
@@ -438,32 +434,77 @@ fun AlarmCancelScreen(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            alarmEntity?.let {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        convertMillisToHoursAndMinutes(System.currentTimeMillis()),
-                        fontSize = 80.sp,
-                        letterSpacing = 0.sp,
-                        color = Color(0xffb5c7ca),
-                        textAlign = TextAlign.Center, fontWeight = FontWeight.W600
-                    )
-                    Text(
-                        getFormattedToday(), fontSize = 25.sp,
-                        letterSpacing = 0.sp,
-                        color = Color(0xffb5c7ca), textAlign = TextAlign.Center
-                    )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    convertMillisToHoursAndMinutes(System.currentTimeMillis()),
+                    fontSize = 80.sp,
+                    letterSpacing = 0.sp,
+                    color = Color(0xffb5c7ca),
+                    textAlign = TextAlign.Center, fontWeight = FontWeight.W600
+                )
+                Text(
+                    getFormattedToday(), fontSize = 25.sp,
+                    letterSpacing = 0.sp,
+                    color = Color(0xffb5c7ca), textAlign = TextAlign.Center
+                )
 
-                }
+            }
+
+            alarmEntity?.let {
 
                 if (it.snoozeTime != -1 && mainViewModel.isRealAlarm) {
                     CustomButton(
                         onClick = {
                             val notifyIt = intent.getBooleanExtra("notify", false)
+
+                            mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = it.willVibrate))
+                            mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = it.customVolume))
+                            mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = it.isLabel))
+                            mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = it.labelTextForSpeech))
+                            mainViewModel.updateHandler(
+                                EventHandlerAlarm.LoudEffect(
+                                    isLoudEffectOrNot = it.isLoudEffect
+                                )
+                            )
+                            mainViewModel.updateHandler(
+                                EventHandlerAlarm.TimeReminder(
+                                    isTimeReminderOrNot = it.isTimeReminder
+                                )
+                            )
+                            mainViewModel.updateHandler(
+                                EventHandlerAlarm.IsGentleWakeUp(
+                                    isGentleWakeUp = it.isGentleWakeUp
+                                )
+                            )
+                            mainViewModel.updateHandler(EventHandlerAlarm.GetWakeUpTime(getWUTime = it.wakeUpTime))
+                            mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = it.isActive))
+                            mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = it.listOfDays))
+                            mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = it.ringtone))
+                            mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = it.skipTheAlarm))
+                            mainViewModel.updateHandler(
+                                EventHandlerAlarm.isOneTime(isOneTime = it.isOneTime)
+                            )
+                            mainViewModel.updateHandler(
+                                EventHandlerAlarm.getTime(
+                                    time = it.localTime
+                                )
+                            )
+                            mainViewModel.missionData(MissionDataHandler.AddList(missionsList = it.listOfMissions))
+                            mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = it.id))
+                            mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(isOneTime = it.isOneTime))
+                            mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = it.timeInMillis))
+                            mainViewModel.updateHandler(
+                                EventHandlerAlarm.getSnoozeTime(
+                                    getSnoozeTime = it.snoozeTime
+                                )
+                            )
+
+
                             snoozeAlarm(
-                                it, alarmScheduler, notifyIt
+                                it, alarmScheduler, notifyIt, mainViewModel
                             )
                             startItNow = false
                             showSnoozed = true
@@ -472,7 +513,7 @@ fun AlarmCancelScreen(
                             textToSpeech.shutdown()
                             vibrator.cancel()
                             Helper.stopStream()
-                            snoozeTrigger()
+                            snoozeCallback.onSnoozeClicked()
                         },
                         text = "Snooze",
                         backgroundColor = Color(0xfff18d44),
@@ -580,8 +621,13 @@ fun AlarmCancelScreen(
                             else -> {
                                 Helper.stopStream()
                                 textToSpeech.stop()
+                                vibrator.cancel()
                                 textToSpeech.shutdown()
-                                alarmEndHandle()
+                                Log.d(
+                                    "CHKSM",
+                                    "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
+                                )
+                                onDismissCallback.onDismissClicked()
                             }
                         }
 
@@ -593,9 +639,11 @@ fun AlarmCancelScreen(
             }
         }
         if (!mainViewModel.isRealAlarm) {
-            Box(modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 30.dp), contentAlignment = Alignment.BottomCenter) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 30.dp), contentAlignment = Alignment.BottomCenter
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(), contentAlignment = Alignment.Center
@@ -677,15 +725,18 @@ fun AlarmCancelScreen(
 fun snoozeAlarm(
     alarmEntity: AlarmEntity,
     alarmScheduler: AlarmScheduler,
-    showInNotification: Boolean
+    showInNotification: Boolean,
+    mainViewModel: MainViewModel
 ) {
     val snoozeMinutes =
         alarmEntity.snoozeTime // Set the snooze duration in minutes (adjust as needed)
     val currentTimeMillis = System.currentTimeMillis()
-
-
     val snoozeTimeMillis = currentTimeMillis + (snoozeMinutes * 60 * 1000)
+    mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = snoozeTimeMillis))
+    mainViewModel.updateHandler(EventHandlerAlarm.update)
+
     alarmEntity.snoozeTimeInMillis = snoozeTimeMillis
+
 //    val instant = Instant.ofEpochMilli(snoozeTimeMillis)
 //    val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
 //    alarmEntity.localTime = offsetTime.toLocalTime()
@@ -694,8 +745,6 @@ fun snoozeAlarm(
     // Reschedule the alarm with the updated time
     alarmScheduler.schedule(alarmEntity, showInNotification)
 }
-
-
 
 
 fun playTextToSpeech(textToSpeech: TextToSpeech, id: String, text: String) {

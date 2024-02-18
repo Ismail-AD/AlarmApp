@@ -65,6 +65,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -87,7 +88,7 @@ fun MathMissionHandler(
     mainViewModel: MainViewModel,
     missionLevel: String = "Very Easy",
     controller: NavHostController,
-    missionViewModel: MissionViewModel = hiltViewModel(),alarmEndHandle:()->Unit={}
+    missionViewModel: MissionViewModel = hiltViewModel(),dismissCallback: DismissCallback
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
@@ -200,11 +201,11 @@ fun MathMissionHandler(
                             }
                         }
                         else -> {
-                            alarmEndHandle()
+                            dismissCallback.onDismissClicked()
                         }
                     }
                 } else {
-                    alarmEndHandle()
+                    dismissCallback.onDismissClicked()
                 }
             } else {
                 controller.navigate(Routes.CommonMissionScreen.route) {

@@ -76,7 +76,7 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             ringtoneRepository.getDefaultSettings.collect {
-                Log.d("CHKDI","Received Default Setting : $it")
+                Log.d("CHKDI", "Received Default Setting : $it")
                 _defaultSettings.value = it
             }
         }
@@ -110,8 +110,7 @@ class MainViewModel @Inject constructor(
     var flashLight by mutableStateOf(false)
     var previewMode by mutableStateOf(false)
     var hasSnoozed by mutableStateOf(false)
-    var dataSent by mutableStateOf(FeedbackUpdate())
-    var tabValue by mutableStateOf(0)
+
 
 
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
@@ -312,6 +311,10 @@ class MainViewModel @Inject constructor(
         isRealAlarm = isReal
     }
 
+    fun getRealUpdate() : Boolean {
+        return isRealAlarm
+    }
+
     fun insertSystemList(systemRingtone: List<Ringtone>) {
         viewModelScope.launch {
             val systemRingtoneEntityList = systemRingtone.map { it.toSystemRingtoneEntity() }
@@ -330,7 +333,9 @@ class MainViewModel @Inject constructor(
             is whichMissionHandler.thisMission -> whichMission = whichMission.copy(
                 isMath = whichMissionHandler.missionMath,
                 isShake = whichMissionHandler.missionShake,
-                isMemory = whichMissionHandler.missionMemory, isSteps = whichMissionHandler.isSteps, isSquat = whichMissionHandler.isSquat
+                isMemory = whichMissionHandler.missionMemory,
+                isSteps = whichMissionHandler.isSteps,
+                isSquat = whichMissionHandler.isSquat
             )
         }
     }
@@ -479,7 +484,9 @@ class MainViewModel @Inject constructor(
             is newAlarmHandler.Vibrator -> newAlarm =
                 newAlarm.copy(willVibrate = newAlarmHandler.setVibration)
 
-            is newAlarmHandler.getNextMilli -> newAlarm = newAlarm.copy(nextTimeInMillis = newAlarmHandler.upcomingMilli)
+            is newAlarmHandler.getNextMilli -> newAlarm =
+                newAlarm.copy(nextTimeInMillis = newAlarmHandler.upcomingMilli)
+
             is newAlarmHandler.skipAlarm -> newAlarm =
                 newAlarm.copy(skipTheAlarm = newAlarmHandler.skipAlarm)
         }
@@ -631,7 +638,7 @@ class MainViewModel @Inject constructor(
         val isMath: Boolean = false,
         val isShake: Boolean = false,
         val isMemory: Boolean = false,
-        val isSteps: Boolean = false,val isSquat:Boolean=false
+        val isSteps: Boolean = false, val isSquat: Boolean = false
     )
 
     data class ProcessingState(
