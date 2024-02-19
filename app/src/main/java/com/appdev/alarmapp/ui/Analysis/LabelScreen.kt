@@ -25,10 +25,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -63,8 +65,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.EventHandlerAlarm
@@ -76,7 +83,8 @@ import com.appdev.alarmapp.utils.newAlarmHandler
 fun LabelScreen(
     textToSpeech: TextToSpeech,
     controller: NavHostController,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    checkOutViewModel: checkOutViewModel = hiltViewModel()
 ) {
     var filename by remember {
         mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.labelTextForSpeech else mainViewModel.newAlarm.labelTextForSpeech)
@@ -86,6 +94,9 @@ fun LabelScreen(
     var startItNow by remember { mutableStateOf(false) }
     var showToast by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var loading by remember { mutableStateOf(true) }
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
 
     var playing by remember { mutableStateOf(false) }
 
@@ -96,6 +107,11 @@ fun LabelScreen(
                 selection = TextRange(filename.length)
             )
         )
+    }
+
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
+        loading = false
     }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -173,6 +189,21 @@ fun LabelScreen(
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
     ) {
+        if (loading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Dialog(onDismissRequest = { /*TODO*/ }) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+        }
         Column(
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.background)
@@ -366,12 +397,22 @@ fun LabelScreen(
                                 .padding(horizontal = 15.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-
-                            Text(
-                                text = "Label Reminder",
-                                color = MaterialTheme.colorScheme.surfaceTint,
-                                fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
-                            )
+                            Row(modifier = Modifier.fillMaxWidth(0.85f), verticalAlignment = Alignment.CenterVertically){
+                                Text(
+                                    text = "Label Reminder",
+                                    color = MaterialTheme.colorScheme.surfaceTint,
+                                    fontSize = 16.sp,
+                                )
+                                if (currentState !is BillingResultState.Success) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Filled.Lock,
+                                        contentDescription = "",
+                                        tint = MaterialTheme.colorScheme.surfaceTint,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
                             Box(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.CenterEnd
@@ -382,7 +423,16 @@ fun LabelScreen(
                                         if (textFieldValueState.text.trim().isEmpty()) {
                                             showToast = true
                                         } else {
-                                            switchState = newSwitchState
+                                            if (currentState !is BillingResultState.Success) {
+                                                controller.navigate(Routes.Purchase.route) {
+                                                    popUpTo(Routes.LabelScreen.route) {
+                                                        inclusive = false
+                                                    }
+                                                    launchSingleTop = true
+                                                }
+                                            } else {
+                                                switchState = newSwitchState
+                                            }
                                             // Handle the new switch state
                                         }
                                     },
