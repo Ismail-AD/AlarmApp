@@ -88,7 +88,6 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
     var showDialog by remember {
         mutableStateOf(false)
     }
-
     val deviceAdminComponent by remember {
         mutableStateOf(ComponentName(context, DeviceAdminReceiver::class.java))
     }
@@ -97,11 +96,14 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
         mutableStateOf(context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager)
     }
 
+    var switchStatePrevention by remember { mutableStateOf(alarmSettings.value.preventUninstall && devicePolicyManager.isAdminActive(deviceAdminComponent)) }
+
     val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         showDialog = false
         if (result.resultCode == Activity.RESULT_OK) {
+            switchStatePrevention = true
             mainViewModel.updateBasicSettings(
                 AlarmSetting(
                     id = mainViewModel.basicSettings.value.id,
@@ -113,7 +115,11 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
         }
 
         if (!devicePolicyManager.isAdminActive(deviceAdminComponent)) {
-            Toast.makeText(context, "This Activation is Required to prevent un-installation of app", Toast.LENGTH_SHORT)
+            Toast.makeText(
+                context,
+                "This Activation is Required to prevent un-installation of app",
+                Toast.LENGTH_SHORT
+            )
                 .show()
         }
     }
@@ -157,15 +163,20 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
                 )
             }
-            settingsElement(isDarkMode, title = "Default Setting for New Alarms", onClick = {
-                mainViewModel.setDefaultSettings(DefaultSettingsHandler.GoingToSetDefault(true))
-                controller.navigate(Routes.DefaultSettingsScreen.route) {
-                    popUpTo(Routes.SettingsOfAlarmScreen.route) {
-                        inclusive = false
+            settingsElement(
+                devicePolicyManager,
+                deviceAdminComponent,
+                isDarkMode,
+                title = "Default Setting for New Alarms",
+                onClick = {
+                    mainViewModel.setDefaultSettings(DefaultSettingsHandler.GoingToSetDefault(true))
+                    controller.navigate(Routes.DefaultSettingsScreen.route) {
+                        popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
                     }
-                    launchSingleTop = true
-                }
-            })
+                })
             Text(
                 "Set by default in editor when setting alarms",
                 fontSize = 13.sp,
@@ -187,6 +198,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                     .padding(start = 20.dp, top = 30.dp)
             )
             settingsElement(
+                devicePolicyManager, deviceAdminComponent,
                 isDarkMode = isDarkMode,
                 title = "Show next alarm in notification drawer",
                 onClick = {
@@ -213,6 +225,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 }
             }
             settingsElement(
+                devicePolicyManager, deviceAdminComponent,
                 isDarkMode = isDarkMode,
                 title = "Sort by enabled alarm first",
                 onClick = { /*TODO*/ },
@@ -237,14 +250,70 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                     .fillMaxWidth()
                     .padding(start = 20.dp, top = 30.dp)
             )
-            settingsElement(
-                isDarkMode = isDarkMode,
-                title = "Prevent app uninstall during alarm",
-                onClick = { /*TODO*/ },
-                isSwitch = true, switchState = alarmSettings.value.preventUninstall
-            ) {
-                if(it){
-                    showDialog = true
+            Column {
+                Spacer(modifier = Modifier.height(9.dp))
+                Card(
+                    onClick = {},
+                    modifier = Modifier
+                        .height(68.dp)
+                        .padding(horizontal = 15.dp),
+                    shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.inverseOnSurface
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Prevent app uninstall during alarm",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
+                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Switch(
+                                checked = switchStatePrevention,
+                                onCheckedChange = { newSwitchState ->
+                                    Log.d("CHKSB", "$newSwitchState")
+                                    if (!devicePolicyManager.isAdminActive(deviceAdminComponent)) {
+                                        showDialog = true
+                                    } else {
+                                        switchStatePrevention = newSwitchState
+                                        devicePolicyManager.removeActiveAdmin(deviceAdminComponent)
+                                        mainViewModel.updateBasicSettings(
+                                            AlarmSetting(
+                                                id = mainViewModel.basicSettings.value.id,
+                                                showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                                                activeSort = mainViewModel.basicSettings.value.activeSort,
+                                                preventUninstall = false
+                                            )
+                                        )
+                                    }
+                                    // Handle the new switch state
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                        0xff13A7CB
+                                    ), // Color when switch is ON
+                                    checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                        0xff7FCFE1
+                                    ), // Track color when switch is ON
+                                    uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                        0xff656D7D
+                                    ), // Color when switch is OFF
+                                    uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                        0xff9E9E9E
+                                    ) // Track color when switch is OFF
+                                ), modifier = Modifier.scale(0.8f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -253,7 +322,6 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 Dialog(onDismissRequest = {
-                    showDialog = false
                 }) {
                     Column(
                         modifier = Modifier
@@ -326,8 +394,12 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                                             //do whatever is needed here is its active
                                             showDialog = false
                                         } else {
-                                            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                                            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, deviceAdminComponent)
+                                            val intent =
+                                                Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                                            intent.putExtra(
+                                                DevicePolicyManager.EXTRA_DEVICE_ADMIN,
+                                                deviceAdminComponent
+                                            )
                                             requestOverlayPermissionLauncher.launch(intent)
                                         }
                                     },
@@ -347,12 +419,16 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun settingsElement(
+    devicePolicyManager: DevicePolicyManager,
+    componentName: ComponentName,
     isDarkMode: Boolean,
     resourceID: Int = -1,
     title: String,
     onClick: () -> Unit,
     isSwitch: Boolean = false,
     switchState: Boolean = false,
+    checkAdmin: Boolean = false,
+    onActivateAdmin: () -> Unit = {},
     onChangeState: (Boolean) -> Unit = {}
 ) {
     var switchState by remember { mutableStateOf(switchState) }
@@ -398,8 +474,13 @@ fun settingsElement(
                         Switch(
                             checked = switchState,
                             onCheckedChange = { newSwitchState ->
-                                switchState = newSwitchState
-                                onChangeState(newSwitchState)
+                                Log.d("CHKSB", "$newSwitchState")
+                                if (checkAdmin && !devicePolicyManager.isAdminActive(componentName)) {
+                                    onActivateAdmin() // Callback to trigger admin activation
+                                } else {
+                                    switchState = newSwitchState
+                                    onChangeState(newSwitchState)
+                                }
                                 // Handle the new switch state
                             },
                             colors = SwitchDefaults.colors(

@@ -15,14 +15,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.MainActivity
 import com.appdev.alarmapp.ModelClass.DismissSettings
-import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
@@ -35,28 +34,20 @@ import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
 import com.appdev.alarmapp.ui.MissionViewer.SquatMission
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
-import com.appdev.alarmapp.ui.PreivewScreen.localTimeToMillis
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
-import com.appdev.alarmapp.utils.convertMillisToLocalTime
-import com.appdev.alarmapp.utils.newAlarmHandler
 import dagger.hilt.android.AndroidEntryPoint
-import java.time.Instant
-import java.time.OffsetTime
-import java.time.ZoneId
-import java.util.Calendar
-import java.util.Locale
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
+class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, TimerEndsCallback {
 
     val mainViewModel by viewModels<MainViewModel>()
     var dismissSettings: DismissSettings? = null
-
+    var remainTime: Long? = null
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
@@ -70,7 +61,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("CHKSM", "ON CREATE CALLED")
+        Log.d("CHKSM", "ON CREATE CALLED FOR SNOOZER")
 
         isScreenOnBeforeAlarm = isScreenOn()
         alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
@@ -81,32 +72,24 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             }
         }
         onBackPressedDispatcher.addCallback(this, callback)
-        previewMode = intent.getBooleanExtra("Preview", false)
 
-
-        if (!previewMode) {
-            Log.d("CHKSM", "---ALARM STATE UPDATED---")
-
-            mainViewModel.updateIsReal(true)
-            window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
-            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
-            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
-
-        }
 
         setContent {
             AlarmAppTheme {
-                mainViewModel.previewModeUpdate(true)
-                mainViewModel.snoozeUpdate(false)
+
                 notify = intent.getBooleanExtra("notify", false)
+//                remainTime = intent.getLongExtra("restTime", 0L)
                 if (intent?.hasExtra("Alarm") == true) {
                     receivedAlarm = intent.getParcelableExtra("Alarm")
                     dismissSettings = intent.getParcelableExtra("dismissSet")
                     receivedAlarm?.let { gotAlarm ->
                         alarm = gotAlarm
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
-                        AlarmNavGraph(
-                            onDismissCallback = this, onSnoozeCallback = this, textToSpeech,
+                        snoozeAlarmNavGraph(
+                            onDismissCallback = this@SnoozeHandler,
+                            snoozeCallback = this@SnoozeHandler,
+                            timerEndsCallback = this@SnoozeHandler,
+                            textToSpeech,
                             intent,
                             mainViewModel = mainViewModel,
                         )
@@ -114,6 +97,50 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        receivedAlarm = intent.getParcelableExtra("Alarm")
+        receivedAlarm?.let {
+            Log.d("CHKSM", "________ON DeStory FOR ALARM ${it.id}")
+        }
+
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("CHKSM", "________ON DeStory FOR ALARM ${alarm.id}")
+
+    }
+
+    private fun isScreenOn(): Boolean {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isInteractive
+    }
+
+    override fun onTimeEnds() {
+        val newIntent = Intent(this, AlarmCancelAccess::class.java)
+        newIntent.putExtra("Alarm", alarm)
+        newIntent.putExtra("notify", notify)
+        newIntent.putExtra("dismissSet", dismissSettings)
+        newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(newIntent)
+        finish()
+    }
+
+    override fun onSnoozeClicked() {
+        mainViewModel.updateIsReal(false)
+        Log.d(
+            "CHKSM",
+            "SNOOZE IS CALLED.............GOING TO FINISH ACTIVITY... and real state is ${mainViewModel.isRealAlarm}"
+        )
+        val newIntent = Intent(this, javaClass)
+        newIntent.putExtra("Alarm", receivedAlarm)
+        newIntent.putExtra("notify", notify)
+        newIntent.putExtra("dismissSet", dismissSettings)
+        startActivity(newIntent)
+        finish()
     }
 
     @SuppressLint("RestrictedApi")
@@ -131,65 +158,22 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         return super.dispatchKeyEvent(event)
     }
 
-
     override fun onStop() {
         val isScreenOnNow = isScreenOn()
-        Log.d("CHKSM", "ON STOP TRIGGERED.............${mainViewModel.getRealUpdate()}")
-
-        if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
-        ) { // Power button not pressed, bring the app to the foreground
-            Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
+        if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow) {
             val newIntent = Intent(this, javaClass)
             newIntent.putExtra("Alarm", receivedAlarm)
-            newIntent.putExtra("Preview", previewMode)
             newIntent.putExtra("notify", notify)
             newIntent.putExtra("dismissSet", dismissSettings)
             startActivity(newIntent)
+            finish()
         }
-        Log.d("CHKSM", "ON STOP CALLED.............")
         super.onStop()
     }
 
-    private fun isScreenOn(): Boolean {
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        return powerManager.isInteractive
-    }
-
-
-    override fun onDestroy() {
-        Log.d("CHKSM", "ON DESTROY CALLED.............")
-        super.onDestroy()
-    }
-
-    override fun onSnoozeClicked() {
-        mainViewModel.updateIsReal(false)
-
-        if(Utils(this).areSnoozeTimersEmpty()){
-            Log.d("CHKSM", "SNOOZE IS CALLED.............GOING TO FINISH ACTIVITY... and real state is ${mainViewModel.isRealAlarm}")
-            val newIntent = Intent(this, SnoozeHandler::class.java)
-            newIntent.putExtra("Alarm", receivedAlarm)
-            newIntent.putExtra("notify", notify)
-            newIntent.putExtra("dismissSet", dismissSettings)
-            startActivity(newIntent)
-            finish()
-        } else{
-            val serviceIntent = Intent(this, SnoozeService::class.java).apply {
-                Log.d("CHKSN", "collected snooze time: ${alarm.snoozeTime}}")
-                putExtra("minutes", alarm.snoozeTime)
-                putExtra("id", alarm.id)
-            }
-            val currentTimeMillis = System.currentTimeMillis()
-            val finalTimeMillis = currentTimeMillis + (alarm.snoozeTime * 60000)
-            val remainingTimeMillis = finalTimeMillis - System.currentTimeMillis()
-            Utils(this).startOrUpdateSnoozeTimer(SnoozeTimer(alarm.id, remainingTimeMillis))
-            ContextCompat.startForegroundService(this, serviceIntent)
-            finish()
-        }
-
-    }
-
     override fun onDismissClicked() {
-        Log.d("CHKSM", "ON ALARM WORK FINISH IS CALLED.............")
+        Log.d("CHKSM", "DISMISS BUTTON TRIGERED .............")
+        mainViewModel.snoozeUpdate(false)
         if (mainViewModel.dummyMissionList.isEmpty()) {
             if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
                 mainViewModel.updateHandler(
@@ -266,6 +250,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
                 )
                 mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = false))
                 mainViewModel.updateHandler(EventHandlerAlarm.update)
+                alarmScheduler.cancel(alarm)
             }
             if (alarm.listOfDays.isNotEmpty() && mainViewModel.isRealAlarm) {
                 val alarmEntity = AlarmEntity(
@@ -326,91 +311,53 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             }
             Helper.updateCustomValue(100f)
             Helper.stopStream()
-            startActivity(Intent(this, MainActivity::class.java))
-            Log.d("CHKSM", "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}")
-            finish()
-        }
+            Log.d("CHKSM", "alarm with id is STOPPED/REMOVED VIA DISMISS ${alarm.id}")
 
 
-    }
-}
+            val closestSnoozeTimer = Utils(this).findClosestSnoozeTimer()
+            Log.d("CHKN","Is Utils empty: ${!Utils(this).areSnoozeTimersEmpty()}")
+            if (!Utils(this).areSnoozeTimersEmpty()) {
+                Log.d("CHKSM", "LIST OF ALARM is not empty at main")
+                if(closestSnoozeTimer!=null){
+                    mainViewModel.getAlarmById(closestSnoozeTimer.alarmId)
+                }
+                Log.d("CHKN","$closestSnoozeTimer at main")
+                lifecycleScope.launch {
+                    mainViewModel.snoozedAlarm.collect { alarmEnt ->
+                        Log.d("CHKSM", "Alarm snoozed id at main ${alarmEnt.id}")
 
-fun scheduleTheAlarm(
-    alarmEntity: AlarmEntity,
-    alarmScheduler: AlarmScheduler,
-    notify: Boolean,
-    resetUpcoming: Boolean = false, mainViewModel: MainViewModel
-) {
-    val selectedTimeMillis = localTimeToMillis(alarmEntity.localTime)
-
-    if (alarmEntity.listOfDays.isNotEmpty()) {
-        val calendar = Calendar.getInstance()
-
-        val nextOccurrence = alarmEntity.listOfDays
-            .map { getDayOfWeek(it) }
-            .filter { it > calendar.get(Calendar.DAY_OF_WEEK) }
-            .minOrNull() ?: alarmEntity.listOfDays
-            .map { getDayOfWeek(it) }
-            .minOrNull()!!
-
-        val daysUntilNextOccurrence = nextOccurrence - calendar.get(Calendar.DAY_OF_WEEK)
-        if (daysUntilNextOccurrence < 0) {
-            val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrence)
-            calendar.timeInMillis =
-                selectedTimeMillis + TimeUnit.DAYS.toMillis(correctDay.toLong())
-        } else if (daysUntilNextOccurrence == 0) {
-            calendar.timeInMillis =
-                selectedTimeMillis + TimeUnit.DAYS.toMillis(7L)
-        } else {
-            calendar.timeInMillis =
-                selectedTimeMillis + TimeUnit.DAYS.toMillis(daysUntilNextOccurrence.toLong())
-        }
-        alarmEntity.timeInMillis = calendar.timeInMillis
-
-        Log.d(
-            "CHKALARM",
-            "Calculated Time in millis to trigger: ${convertMillisToLocalTime(alarmEntity.timeInMillis)}"
-        )
-
-        val instant = Instant.ofEpochMilli(calendar.timeInMillis)
-        val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())
-        alarmEntity.localTime = offsetTime.toLocalTime()
-
-        Log.d("CHKZ", "Scheduling FROM Main screen with list of days ....  Id is ${alarmEntity.id}")
-        alarmScheduler.schedule(alarmEntity, notify)
-        if (resetUpcoming) {
-            Log.d("CHKITO", "${calendar.timeInMillis} before new alarm set for another day")
-            mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = calendar.timeInMillis))
-            mainViewModel.updateHandler(EventHandlerAlarm.update)
-        }
-
-
-    } else if (alarmEntity.isOneTime) {
-        Log.d("CHKZ", "Scheduling FROM Main screen with One time.... Id is ${alarmEntity.id}")
-
-        if (alarmEntity.timeInMillis > System.currentTimeMillis()) {
-            alarmScheduler.schedule(alarmEntity, notify)
-        } else {
-            val calendar = Calendar.getInstance().apply {
-                timeInMillis = alarmEntity.timeInMillis
-                add(Calendar.DAY_OF_YEAR, 1) // Add one day
+                        if (alarmEnt.id != 0L && Utils(this@SnoozeHandler).getSnoozeTimerById(
+                                alarmEnt.id
+                            ) != null
+                        ) {
+                            val newIntent = Intent(this@SnoozeHandler, javaClass)
+                            newIntent.putExtra("Alarm", alarmEnt)
+                            newIntent.putExtra(
+                                "notify",
+                                mainViewModel.basicSettings.value.showInNotification
+                            )
+                            newIntent.putExtra("dismissSet", mainViewModel.dismissSettings.value)
+                            startActivity(newIntent)
+                            finish()
+                        }
+                    }
+                }
+            } else{
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
             }
-            alarmEntity.timeInMillis = calendar.timeInMillis
-            alarmScheduler.schedule(alarmEntity, notify)
         }
+
+
     }
 }
 
-fun getDayOfWeek(day: String): Int {
-    val daysOfWeek =
-        listOf("sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday")
-    return daysOfWeek.indexOf(day.lowercase(Locale.ROOT)) + 1
-}
 
 @Composable
-fun AlarmNavGraph(
+fun snoozeAlarmNavGraph(
     onDismissCallback: DismissCallback,
-    onSnoozeCallback: SnoozeCallback,
+    snoozeCallback: SnoozeCallback,
+    timerEndsCallback: TimerEndsCallback,
     textToSpeech: TextToSpeech,
     intent: Intent,
     controller: NavHostController = rememberNavController(),
@@ -418,30 +365,55 @@ fun AlarmNavGraph(
 ) {
     NavHost(
         navController = controller,
-        startDestination = Routes.PreviewAlarm.route,
+        startDestination = Routes.SnoozeScr.route,
     ) {
         composable(route = Routes.PreviewAlarm.route) {
-            AlarmCancelScreen(onDismissCallback,onSnoozeCallback,textToSpeech, controller, mainViewModel, intent)
+            AlarmCancelScreen(
+                onDismissCallback, snoozeCallback = snoozeCallback,
+                textToSpeech, controller, mainViewModel, intent
+            )
+        }
+        composable(route = Routes.SnoozeScr.route) {
+            SnoozeScreen(
+                textToSpeech,
+                controller,
+                mainViewModel,
+                intent,
+                onDismissCallback,
+                timerEndsCallback
+            )
         }
 
         composable(route = Routes.MissionShakeScreen.route) {
-            ShakeDetectionScreen(mainViewModel = mainViewModel, controller,onDismissCallback)
+            ShakeDetectionScreen(mainViewModel = mainViewModel, controller, onDismissCallback)
         }
         composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-            BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
+            BarCodeMissionScreen(
+                mainViewModel = mainViewModel,
+                controller = controller,
+                onDismissCallback
+            )
         }
         composable(route = Routes.StepDetectorScreen.route) {
-            StepMission(mainViewModel = mainViewModel, controller,onDismissCallback)
+            StepMission(mainViewModel = mainViewModel, controller, onDismissCallback)
         }
         composable(route = Routes.SquatMissionScreen.route) {
-            SquatMission(mainViewModel = mainViewModel, controller,onDismissCallback)
+            SquatMission(mainViewModel = mainViewModel, controller, onDismissCallback)
         }
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
-            PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
+            PhotoMissionScreen(
+                mainViewModel = mainViewModel,
+                controller = controller,
+                onDismissCallback
+            )
         }
 
         composable(route = Routes.TypingPreviewScreen.route) {
-            TypingMissionHandler(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
+            TypingMissionHandler(
+                mainViewModel = mainViewModel,
+                controller = controller,
+                onDismissCallback
+            )
         }
         composable(route = Routes.MissionMathScreen.route) {
             MathMissionHandler(

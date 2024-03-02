@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
+import android.Manifest
 import android.content.Context
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -85,14 +86,18 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MemoryMissionScreen(
     mainViewModel: MainViewModel,
     controller: NavHostController,checkOutViewModel: checkOutViewModel = hiltViewModel()
 ) {
+
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
     var currentState by remember { mutableStateOf(billingState.value) }
@@ -202,11 +207,11 @@ fun MemoryMissionScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     if (mainViewModel.whichMission.isMemory) {
                         Image(
                             painter = painterResource(id = getImageForSliderValue(if (mainViewModel.missionDetails.missionID > 1) mainViewModel.missionDetails.missionLevel else selectedItem)),
-                            contentDescription = "", modifier = Modifier.size(170.dp)
+                            contentDescription = "", modifier = Modifier.size(150.dp)
                         )
                     } else if (mainViewModel.whichMission.isMath) {
                         Row(
@@ -342,7 +347,7 @@ fun MemoryMissionScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .padding(vertical = 18.dp)
+                            .padding(vertical = 15.dp)
                             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(30.dp)
                     ) {
                         Text(
@@ -356,12 +361,12 @@ fun MemoryMissionScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(end = 10.dp, bottom = 20.dp),
+                                .padding(end = 10.dp, bottom = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             HorizontalWheelPicker(
                                 state = state,
-                                count = 3,
+                                count = 5,
                                 itemWidth = 70.dp,
                                 visibleItemCount = 3,
                                 onScrollFinish = { currentIndex = it }
@@ -406,7 +411,9 @@ fun MemoryMissionScreen(
                                     }
                                     Card(
                                         onClick = {
-
+                                            scope.launch {
+                                                state.animateScrollToItem(index)
+                                            }
                                         },
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier

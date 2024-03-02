@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
 import android.Manifest
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -63,6 +64,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -235,6 +237,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 mainViewModel.missionData(
                                     MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
                                 )
+
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
                                 mainViewModel.setDefaultSettings(
                                     DefaultSettingsHandler.GetNewObject(
@@ -469,6 +472,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 if (bottomSheetState) {
                     ModalBottomSheet(
                         onDismissRequest = {
+                            Log.d("BARCHK","$filename is code string and other us ${mainViewModel.detectedQrCodeState.qrCode.trim()}")
                             if (!updateAttempt) {
                                 if (filename.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
                                         .isNotEmpty()
@@ -735,7 +739,9 @@ fun singleEntry(
             ) {
 
                 Text(
-                    text = qrCodeData.qrCodeString,
+                    text = if (qrCodeData.qrCodeString.length > 20) "${qrCodeData.qrCodeString.take(19)}..." else qrCodeData.qrCodeString,
+
+                    overflow = TextOverflow.Ellipsis,
                     color =MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
                 )

@@ -46,7 +46,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalTime
@@ -72,6 +74,10 @@ class MainViewModel @Inject constructor(
 
     private var _themeSettings = MutableStateFlow(false)
     val themeSettings: StateFlow<Boolean> get() = _themeSettings
+
+
+    private var _snoozedAlarm = MutableStateFlow(AlarmEntity())
+    val snoozedAlarm: StateFlow<AlarmEntity> get() = _snoozedAlarm
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -110,7 +116,6 @@ class MainViewModel @Inject constructor(
     var flashLight by mutableStateOf(false)
     var previewMode by mutableStateOf(false)
     var hasSnoozed by mutableStateOf(false)
-
 
 
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
@@ -249,6 +254,16 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun getAlarmById(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            alarmRepository.getSpecificAlarm(id).collect { mayNullAlarm->
+                mayNullAlarm?.let {
+                    _snoozedAlarm.value = it
+                }
+            }
+        }
+    }
+
     fun updateQrCode(qrCodeData: QrCodeData) {
         viewModelScope.launch {
             ringtoneRepository.updateQrCode(qrCodeData)
@@ -311,7 +326,7 @@ class MainViewModel @Inject constructor(
         isRealAlarm = isReal
     }
 
-    fun getRealUpdate() : Boolean {
+    fun getRealUpdate(): Boolean {
         return isRealAlarm
     }
 
@@ -517,6 +532,7 @@ class MainViewModel @Inject constructor(
             }
 
             MissionDataHandler.SubmitData -> {
+
                 if (missionDetailsList.any { it.missionID == missionDetails.missionID }) {
                     val newlist = missionDetailsList.toMutableList()
                     val indexedValue =
@@ -576,8 +592,15 @@ class MainViewModel @Inject constructor(
             is MissionDataHandler.ImageId -> missionDetails =
                 missionDetails.copy(imageId = missionDataHandler.imageId)
 
-            is MissionDataHandler.SelectedQrCode -> missionDetails =
-                missionDetails.copy(codeId = missionDataHandler.selectedCodeId)
+            is MissionDataHandler.SelectedQrCode -> {
+                Log.d(
+                    "BARCHK",
+                    "As selectedCode is done from list : ${missionDataHandler.selectedCodeId}"
+                )
+
+                missionDetails =
+                    missionDetails.copy(codeId = missionDataHandler.selectedCodeId)
+            }
         }
     }
 

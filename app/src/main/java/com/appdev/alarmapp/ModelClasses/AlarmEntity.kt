@@ -17,7 +17,7 @@ import java.time.LocalTime
 @Entity(tableName = "alarm_table")
 data class AlarmEntity(
     @PrimaryKey(autoGenerate = true)
-    var id: Long = 0,
+    var id: Long = 0L,
     var timeInMillis: Long = 0,
     var nextTimeInMillis: Long = 0,
     var snoozeTimeInMillis: Long = 0,

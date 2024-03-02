@@ -63,6 +63,7 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.convertMillisToHoursAndMinutes
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getFormattedToday
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -501,8 +502,6 @@ fun AlarmCancelScreen(
                                     getSnoozeTime = it.snoozeTime
                                 )
                             )
-
-
                             snoozeAlarm(
                                 it, alarmScheduler, notifyIt, mainViewModel
                             )
@@ -513,6 +512,12 @@ fun AlarmCancelScreen(
                             textToSpeech.shutdown()
                             vibrator.cancel()
                             Helper.stopStream()
+//                            controller.navigate(Routes.SnoozeScr.route) {
+//                                popUpTo(Routes.PreviewAlarm.route) {
+//                                    inclusive = true
+//                                }
+//                                launchSingleTop = true
+//                            }
                             snoozeCallback.onSnoozeClicked()
                         },
                         text = "Snooze",
@@ -731,7 +736,10 @@ fun snoozeAlarm(
     val snoozeMinutes =
         alarmEntity.snoozeTime // Set the snooze duration in minutes (adjust as needed)
     val currentTimeMillis = System.currentTimeMillis()
+    Log.d("CHKNB","CURRENT TIME : ${convertMillisToLocalTime(currentTimeMillis)}")
+
     val snoozeTimeMillis = currentTimeMillis + (snoozeMinutes * 60 * 1000)
+    Log.d("CHKNB","TIME OF TRIGGER: ${convertMillisToLocalTime(snoozeTimeMillis)}")
     mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = snoozeTimeMillis))
     mainViewModel.updateHandler(EventHandlerAlarm.update)
 

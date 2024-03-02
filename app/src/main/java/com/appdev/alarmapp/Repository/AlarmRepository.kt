@@ -22,4 +22,8 @@ class AlarmRepository @Inject constructor(
     suspend fun deleteAlarm(alarmId: Long) {
         alarmDao.deleteAlarmById(alarmId)
     }
+
+    suspend fun getSpecificAlarm(id: Long): Flow<AlarmEntity?> {
+        return alarmDao.getAlarmById(id)
+    }
 }

@@ -33,6 +33,7 @@ class ApplicationClass: Application(){
                 "Alarmy Notifications",
                 NotificationManager.IMPORTANCE_HIGH // Set importance to LOW for silent notifications
             )
+
             mChannel.description =
                 "Current Channel is to notify about the set alarms."
             // Register the channel with the system. You can't change the importance

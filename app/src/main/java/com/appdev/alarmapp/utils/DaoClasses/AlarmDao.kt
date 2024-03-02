@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.utils.ImageData
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,5 +22,8 @@ interface AlarmDao {
 
     @Update
     suspend fun updateData(alarmEntity: AlarmEntity)
+
+    @Query("SELECT * FROM alarm_table WHERE id = :id")
+    fun getAlarmById(id: Long): Flow<AlarmEntity?>
 
 }

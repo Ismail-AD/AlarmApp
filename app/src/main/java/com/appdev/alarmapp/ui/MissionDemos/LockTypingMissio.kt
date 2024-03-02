@@ -265,7 +265,7 @@ fun TypingMissionScreen(
                             .padding(end = 10.dp, bottom = 20.dp), contentAlignment = Alignment.Center){
                             HorizontalWheelPicker(
                                 state = state,
-                                count = 3,
+                                count = 5,
                                 itemWidth = 70.dp,
                                 visibleItemCount = 3,
                                 onScrollFinish = { currentIndex = it }
@@ -292,7 +292,9 @@ fun TypingMissionScreen(
                                     mainViewModel.missionData(MissionDataHandler.RepeatTimes(repeat = currentIndex + 1))
                                     Card(
                                         onClick = {
-
+                                            scope.launch {
+                                                state.animateScrollToItem(index)
+                                            }
                                         },
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier

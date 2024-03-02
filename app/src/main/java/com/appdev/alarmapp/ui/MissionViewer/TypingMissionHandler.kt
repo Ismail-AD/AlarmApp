@@ -295,7 +295,7 @@ fun TypingMissionHandler(
                     BasicTextField(
                         value = userInput,
                         onValueChange = {
-                            if (it.length <= randomText.phraseData.length) {
+                            if (it.length <= randomText.phraseData.length + 1) {
                                 userInput = it
                             }
                         },

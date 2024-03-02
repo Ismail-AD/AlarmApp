@@ -3,6 +3,7 @@ package com.appdev.alarmapp.Repository
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.utils.CustomPhrase
 import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
 import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
@@ -68,21 +69,27 @@ class RingtoneRepository @Inject constructor(
                 onComplete(false, it.localizedMessage!!)
             }
     }
+
     suspend fun updateDismissSettings(dismissSettings: DismissSettings) {
         dismissDao.updateDismissSettings(dismissSettings)
     }
+
     suspend fun insertDismissSettings(dismissSettings: DismissSettings) {
         dismissDao.insertDismissSettings(dismissSettings)
     }
+
     suspend fun updateBasicSettings(alarmSettingEntity: AlarmSetting) {
         alarmBasicSettingDao.updateAlarmSettings(alarmSettingEntity)
     }
+
     suspend fun insertBasicSettings(alarmSettingEntity: AlarmSetting) {
         alarmBasicSettingDao.insertAlarmSettings(alarmSettingEntity)
     }
+
     suspend fun updateDefaultSettings(defaultSettings: DefaultSettings) {
         defaultSettingsDao.updateDefaultSettings(defaultSettings)
     }
+
     suspend fun insertDefaultSettings(defaultSettings: DefaultSettings) {
         defaultSettingsDao.insertDefaultSettings(defaultSettings)
     }
@@ -106,6 +113,8 @@ class RingtoneRepository @Inject constructor(
     suspend fun getQrCode(qrCodeId: Long): QrCodeData? {
         return qrCodeDao.getCodeById(qrCodeId)
     }
+
+
 
 
     suspend fun insertImage(listOfImages: List<ImageData>) {

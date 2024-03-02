@@ -45,6 +45,7 @@ class AlarmScheduler(
         Log.d("CHKSM", "Scheduler on work")
 
         if (millisToMinutes(alarmData.snoozeTimeInMillis) != 0L) {
+            Log.d("CHKNB", "IN SNOOZE SETTER")
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 alarmData.snoozeTimeInMillis,

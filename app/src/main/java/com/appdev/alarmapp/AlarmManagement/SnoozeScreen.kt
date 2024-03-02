@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.AlarmManagement
 
+import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -41,10 +43,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.startActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.snoozeAlarm
@@ -56,6 +61,7 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertMillisToHoursAndMinutes
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getFormattedToday
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -69,19 +75,24 @@ fun SnoozeScreen(
     controller: NavHostController,
     mainViewModel: MainViewModel,
     intent: Intent = Intent(),
-    snoozeTrigger: () -> Unit = {},
-    alarmEndHandle: () -> Unit = {},
+    onDismissCallback: DismissCallback,
+    timerEndsCallback: TimerEndsCallback
 ) {
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
+    val remainingTimeFlow = remember { MutableStateFlow(0L) }
     val context = LocalContext.current
-    val broadcastManager = LocalBroadcastManager.getInstance(context)
-    val remainingTimeState = remember  { MutableStateFlow(0L) }
-
-    val snoozeService by remember {
-        mutableStateOf(SnoozeService())
+    val utils by remember {
+        mutableStateOf(Utils(context = context))
     }
+    val closestSnoozeTimer by remember {
+        mutableStateOf(utils.findClosestSnoozeTimer())
+    }
+
+    var loading by remember { mutableStateOf(false) }
+
+
     val systemUiController = rememberSystemUiController()
     BackHandler(false) {
 
@@ -96,12 +107,11 @@ fun SnoozeScreen(
     val alarmEntity: AlarmEntity? by remember {
         mutableStateOf(intent.getParcelableExtra("Alarm"))
     }
-    val dismissSettingsReceived: DismissSettings? by remember {
-        mutableStateOf(intent.getParcelableExtra("dismissSet"))
-    }
+//    val dismissSettingsReceived: DismissSettings? by remember {
+//        mutableStateOf(intent.getParcelableExtra("dismissSet"))
+//    }
 
     val notifyIt = intent.getBooleanExtra("notify", false)
-
 
     if (notifyIt) {
         if (alarmEntity != null) {
@@ -114,41 +124,75 @@ fun SnoozeScreen(
             notificationService.cancelNotification()
         }
     }
-    val snoozeTimeRemaining by remember {
-        mutableStateOf(alarmEntity?.timeInMillis?.let {
-            minutesToMillis(alarmEntity!!.snoozeTime)
-        })
-    }
-
-    LaunchedEffect(Unit) {
-        alarmEntity?.let {
-            val serviceIntent = Intent(context, SnoozeService::class.java).apply {
-                putExtra("minutes", it.snoozeTime)
-            }
-            ContextCompat.startForegroundService(context, serviceIntent)
-        }
+    val alreadySnoozed by remember {
+        mutableStateOf(utils.getSnoozeTimerById(alarmId = alarmEntity?.id ?: 0))
     }
 
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                val remainingMillis = intent.getLongExtra("remainingMillis", 0)
-                remainingTimeState.value = remainingMillis
+                val idOfAlarmEntity = intent.getLongExtra("idOfAl", 0L)
+                alarmEntity?.let {
+                    if (idOfAlarmEntity == it.id) {
+                        val remainingMillis = intent.getLongExtra("remainingMillis", 0L)
+                        remainingTimeFlow.value = remainingMillis
+                        Log.d(
+                            "CHKSN",
+                            "---------EDITED remaining snooze time: ${remainingTimeFlow.value}"
+                        )
+                        Log.d(
+                            "CHKSN",
+                            "--------CURRENT TIME : ${convertMillisToLocalTime(System.currentTimeMillis())}"
+                        )
+                    }
+                }
+
             }
         }
-        broadcastManager.registerReceiver(receiver, IntentFilter("countdown-tick"))
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+            receiver,
+            IntentFilter("countdown-tick")
+        )
 
         onDispose {
-            broadcastManager.unregisterReceiver(receiver)
+            if (remainingTimeFlow.value <= 0L && mainViewModel.isRealAlarm) {
+                LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
+                timerEndsCallback.onTimeEnds()
+            }
+            if (!mainViewModel.isRealAlarm) {
+                Log.d("CHKSM", "---------ALARM DISSMIED BY USER UNREG BROADCAST")
+                LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
+            }
         }
     }
 
-    val remainingTime = remember { snoozeService.remainingTimeFlow }.collectAsState(initial = 0L)
-    val remainingMinutes = remainingTime.value / (60 * 1000)
-    val remainingSeconds = (remainingTime.value % (60 * 1000)) / 1000
+
+    LaunchedEffect(key1 = alreadySnoozed) {
+        if (alreadySnoozed == null) {
+            Log.d("CHKSM", "---------SERVICE STARTED FOR NEW ALARM")
+            alarmEntity?.let {
+                val serviceIntent = Intent(context, SnoozeService::class.java).apply {
+                    Log.d("CHKSN", "collected snooze time: ${it.snoozeTime}}")
+                    putExtra("minutes", it.snoozeTime)
+                    putExtra("id", it.id)
+                }
+                val currentTimeMillis = System.currentTimeMillis()
+                val finalTimeMillis = currentTimeMillis + (it.snoozeTime * 60000)
+                val remainingTimeMillis = finalTimeMillis - System.currentTimeMillis()
+                utils.startOrUpdateSnoozeTimer(SnoozeTimer(it.id, remainingTimeMillis))
+                ContextCompat.startForegroundService(context, serviceIntent)
+            }
+        }
+    }
+
+
+    val remainingTime by remainingTimeFlow.collectAsState()
+
+    val remainingMinutes = remainingTime / (60 * 1000)
+    val remainingSeconds = (remainingTime % (60 * 1000)) / 1000
 
     Log.d(
-        "CHKSNO",
+        "CHKSN",
         "time we got: $remainingMinutes:${String.format("%02d", remainingSeconds)}"
     )
 
@@ -170,16 +214,12 @@ fun SnoozeScreen(
 //        }
 //    }
 
-    val snoozeTime by mainViewModel.snoozeTime.collectAsState()
-    Log.d("CHKSNO", "collected snooze time:  $snoozeTime}")
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(backColor), contentAlignment = Alignment.TopCenter
     ) {
-
-
         Column(
             modifier = Modifier
                 .fillMaxHeight(0.9f)
@@ -190,7 +230,8 @@ fun SnoozeScreen(
         ) {
             alarmEntity?.let {
                 Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
                         getFormattedToday(), fontSize = 23.sp,
@@ -208,14 +249,23 @@ fun SnoozeScreen(
                     )
                 }
                 Column {
-                    Text(
-                        "$remainingMinutes:${String.format("%02d", remainingSeconds)}", fontSize = 50.sp,
-                        letterSpacing = 0.sp,
-                        color = Color(0xffb5c7ca), textAlign = TextAlign.Center
-                    )
+                    if (remainingTime == 0L) {
+                        CircularProgressIndicator()
+                    } else {
+                        Text(
+                            "$remainingMinutes:${String.format("%02d", remainingSeconds)}",
+                            fontSize = 50.sp,
+                            letterSpacing = 0.sp,
+                            color = Color(0xffb5c7ca),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
                 CustomButton(
                     onClick = {
                         if (mainViewModel.isRealAlarm) {
@@ -312,13 +362,14 @@ fun SnoozeScreen(
                             }
 
                             else -> {
-                                Helper.stopStream()
-                                textToSpeech.stop()
-                                textToSpeech.shutdown()
-                                alarmEndHandle()
+                                Log.d(
+                                    "CHKSM",
+                                    "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
+                                )
+                                alarmEntity?.id?.let { utils.stopSnoozeTimer(it) }
+                                onDismissCallback.onDismissClicked()
                             }
                         }
-
                     },
                     text = if (mainViewModel.dummyMissionList.isNotEmpty()) "Start the mission" else "Dismiss",
                     height = 70.dp,
@@ -329,19 +380,13 @@ fun SnoozeScreen(
     }
 }
 
-fun minutesToLocalTime(minutes: Int): String {
-    val mins = minutes / 60
-    val secs = minutes % 60 // Calculate the remaining seconds
-    return String.format("%02d:%02d", mins, secs)
-}
 
-fun minutesToMillis(minutes: Int): Long {
-    return minutes * 60 * 1000L // Convert minutes to milliseconds
-}
-
-fun convertMillisToMinutesAndSeconds(millis: Long): String {
-    val totalSeconds = millis / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%02d:%02d", minutes, seconds)
+private fun isSnoozeServiceRunning(context: Context): Boolean {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+        if (SnoozeService::class.java.name == service.service.className) {
+            return true
+        }
+    }
+    return false
 }

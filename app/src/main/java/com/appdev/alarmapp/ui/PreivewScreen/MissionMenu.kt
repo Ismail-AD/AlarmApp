@@ -1,6 +1,6 @@
-
 package com.appdev.alarmapp.ui.PreivewScreen
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
@@ -30,12 +30,14 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,14 +59,28 @@ import androidx.navigation.NavHostController
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.whichMissionHandler
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
+    val locPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+    var showRationale by remember(locPermissionState) {
+        mutableStateOf(false)
+    }
+    var onGranted by remember {
+        mutableStateOf(false)
+    }
+
+
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
@@ -73,11 +89,12 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
     var showToast by remember {
         mutableStateOf(false)
     }
+
     LaunchedEffect(key1 = showToast) {
         if (showToast) {
             Toast.makeText(context, "Device doesn't contain required sensor !", Toast.LENGTH_SHORT)
                 .show()
-            showToast=false
+            showToast = false
         }
     }
     LaunchedEffect(key1 = Unit) {
@@ -127,7 +144,7 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "",
-                            tint =  MaterialTheme.colorScheme.surfaceTint
+                            tint = MaterialTheme.colorScheme.surfaceTint
                         )
                     }
                 }
@@ -162,7 +179,11 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                         .padding(vertical = 10.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
-                    singleCard(isDarkMode,iconID = Icons.Filled.AutoAwesomeMosaic, title = "Memory") {
+                    singleCard(
+                        isDarkMode,
+                        iconID = Icons.Filled.AutoAwesomeMosaic,
+                        title = "Memory"
+                    ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Memory"))
                         mainViewModel.whichMissionHandle(
                             whichMissionHandler.thisMission(
@@ -177,14 +198,22 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                             launchSingleTop = true
                         }
                     }
-                    singleCard(isDarkMode = isDarkMode, iconID = Icons.Filled.Keyboard, title = "Typing") {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.Keyboard,
+                        title = "Typing"
+                    ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Typing"))
                         controller.navigate(Routes.TypeMissionScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
-                    singleCard(isDarkMode = isDarkMode, iconID = Icons.Filled.Calculate, title = "Math") {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.Calculate,
+                        title = "Math"
+                    ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Math"))
                         mainViewModel.whichMissionHandle(
                             whichMissionHandler.thisMission(
@@ -225,39 +254,54 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                         .padding(vertical = 10.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
-                    singleCard(isDarkMode = isDarkMode,
+                    singleCard(
+                        isDarkMode = isDarkMode,
                         imageId = R.drawable.shoes,
                         iconID = Icons.Filled.DirectionsWalk,
                         title = "Step"
                     ) {
                         if (isKitkatWithStepSensor(context)) {
-                            showToast = false
-                            mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Step"))
-                            mainViewModel.whichMissionHandle(
-                                whichMissionHandler.thisMission(
-                                    missionMemory = false,
-                                    missionMath = false,
-                                    missionShake = false,
-                                    isSteps = true, isSquat = false
+                            if (locPermissionState.status.shouldShowRationale) {
+                                showRationale = true
+                            } else if (locPermissionState.status.isGranted) {
+                                showToast = false
+                                mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Step"))
+                                mainViewModel.whichMissionHandle(
+                                    whichMissionHandler.thisMission(
+                                        missionMemory = false,
+                                        missionMath = false,
+                                        missionShake = false,
+                                        isSteps = true, isSquat = false
+                                    )
                                 )
-                            )
-                            controller.navigate(Routes.CommonMissionScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
+                                controller.navigate(Routes.CommonMissionScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                locPermissionState.launchPermissionRequest()
                             }
                         } else {
                             showToast = true
                         }
 
                     }
-                    singleCard(isDarkMode = isDarkMode, iconID = Icons.Filled.QrCode2, title = "QR/Barcode") {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.QrCode2,
+                        title = "QR/Barcode"
+                    ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "QR/Barcode"))
                         controller.navigate(Routes.BarCodeDemoScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
-                    singleCard(isDarkMode = isDarkMode, iconID = Icons.Filled.ScreenRotation, title = "Shake") {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.ScreenRotation,
+                        title = "Shake"
+                    ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Shake"))
                         mainViewModel.whichMissionHandle(
                             whichMissionHandler.thisMission(
@@ -279,34 +323,73 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                         .padding(vertical = 5.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
-                    singleCard(isDarkMode = isDarkMode, iconID = Icons.Filled.CameraEnhance, title = "Photo") {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.CameraEnhance,
+                        title = "Photo"
+                    ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Photo"))
                         controller.navigate(Routes.CameraRoutineScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
-                    singleCard(isDarkMode = isDarkMode,
+                    singleCard(
+                        isDarkMode = isDarkMode,
                         imageId = R.drawable.strength,
                         iconID = Icons.Filled.DirectionsWalk,
                         title = "Squat"
                     ) {
-                            showToast = false
-                            mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Squat"))
-                            mainViewModel.whichMissionHandle(
-                                whichMissionHandler.thisMission(
-                                    missionMemory = false,
-                                    missionMath = false,
-                                    missionShake = false,
-                                    isSteps = false, isSquat = true
-                                )
+                        showToast = false
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Squat"))
+                        mainViewModel.whichMissionHandle(
+                            whichMissionHandler.thisMission(
+                                missionMemory = false,
+                                missionMath = false,
+                                missionShake = false,
+                                isSteps = false, isSquat = true
                             )
-                            controller.navigate(Routes.CommonMissionScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
+                        )
+                        controller.navigate(Routes.CommonMissionScreen.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
                     }
                 }
+                if (showRationale) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showRationale = false
+                        },
+                        title = {
+                            Text(text = "Permissions required by the Application",color =MaterialTheme.colorScheme.surfaceTint)
+                        },
+                        text = {
+                            Text(text = "The Application requires the permissions to work",color =MaterialTheme.colorScheme.surfaceTint)
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showRationale = false
+                                    locPermissionState.launchPermissionRequest()
+                                },
+                            ) {
+                                Text("Continue",color =MaterialTheme.colorScheme.surfaceTint)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    showRationale = false
+                                },
+                            ) {
+                                Text("Dismiss",color =MaterialTheme.colorScheme.surfaceTint)
+                            }
+                        },
+                    )
+                }
+
+
             }
         }
     }
@@ -320,7 +403,13 @@ fun isKitkatWithStepSensor(context: Context): Boolean {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun singleCard(isDarkMode:Boolean,imageId: Int = -1, iconID: ImageVector, title: String, onClick: () -> Unit) {
+fun singleCard(
+    isDarkMode: Boolean,
+    imageId: Int = -1,
+    iconID: ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
 
     Column(
         modifier = Modifier

@@ -3,6 +3,7 @@ package com.appdev.alarmapp.utils
 class ObjectsGlobal {
     companion object {
         const val CHANNEL_ID = "Alarmy Notifications"
+        const val CHANNEL_ID_SNOOZE = "Alarmy Snooze notifications"
         const val DatabaseName = "ALARM_DATABASE"
         const val RecordingTable = "recording_table"
         const val SystemRingsTable = "systemRings_table"

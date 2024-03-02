@@ -93,7 +93,8 @@ fun BarCodeMissionScreen(
 
     var openCamera by remember { mutableStateOf(false) }
     var isMatched by remember { mutableStateOf<Boolean?>(null) }
-    val dataToBeMatched by remember {
+
+    var dataToBeMatched by remember {
         mutableStateOf(mainViewModel.selectedCode.qrCodeString)
     }
 
@@ -107,6 +108,7 @@ fun BarCodeMissionScreen(
     LaunchedEffect(key1 = mainViewModel.selectedCode){
         if(mainViewModel.missionDetails.codeId > 1){
             missionData = mainViewModel.selectedCode.qrCodeString
+            dataToBeMatched = mainViewModel.selectedCode.qrCodeString
         }
     }
 
@@ -244,6 +246,7 @@ fun BarCodeMissionScreen(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
+        Log.d("BARCHK","$dataToBeMatched is data to be matched")
 
         when (isMatched) {
             false -> {
@@ -359,6 +362,7 @@ fun BarCodeMissionScreen(
                             Spacer(modifier = Modifier.height(35.dp))
 
                             if (mainViewModel.missionDetails.codeId > 1) {
+
                                 mainViewModel.getCodeById(mainViewModel.missionDetails.codeId)
                                 missionData?.let {
                                     Text(
@@ -389,6 +393,8 @@ fun BarCodeMissionScreen(
                                     progress = 1f
                                     openCamera = true
                                     mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = "",startProcess = true))
+                                    Log.d("BARCHK","onClick of i am ready: ${mainViewModel.detectedQrCodeState.qrCode} ")
+
                                 },
                                 text = "I'm ready",
                                 width = 0.8f,
@@ -403,6 +409,7 @@ fun BarCodeMissionScreen(
                                 .fillMaxSize()
                                 .background(backColor)
                         ) {
+                            Log.d("BARCHK","onMatch : ${mainViewModel.detectedQrCodeState.qrCode} and data to be matched :${dataToBeMatched} ")
                             if (!isFlashOn) {
                                 BarCodeCameraPreview(viewModel = mainViewModel) {
                                     isMatched =

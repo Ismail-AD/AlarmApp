@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AppSplash" parent="Theme.SplashScreen">
+    <style name="Theme.AlarmSplash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#171C2F</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/logoalarm</item>
         <item name="postSplashScreenTheme">@style/Theme.AlarmApp</item>

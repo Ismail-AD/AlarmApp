@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
@@ -74,8 +75,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmCancelAccess
@@ -132,6 +135,11 @@ fun MainScreen(
     var sharedPrefs by remember {
         mutableStateOf(context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE))
     }
+    val intent by remember {
+        mutableStateOf(Intent().apply {
+            action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+        })
+    }
 
     val scope = rememberCoroutineScope()
     val alarmList by mainViewModel.alarmList.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -145,7 +153,9 @@ fun MainScreen(
     var showToast2 by remember {
         mutableStateOf(false)
     }
-
+    var showDialog by remember {
+        mutableStateOf(false)
+    }
 
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
 
@@ -176,7 +186,10 @@ fun MainScreen(
         if (alarmList.isNotEmpty()) {
             if (deviceRestartedValue) {
                 for (alarm in alarmList) {
-                    alarmScheduler.schedule(alarm,mainViewModel.basicSettings.value.showInNotification)
+                    alarmScheduler.schedule(
+                        alarm,
+                        mainViewModel.basicSettings.value.showInNotification
+                    )
                 }
                 sharedPrefs.edit().putBoolean("device_restarted", false).apply()
             } else {
@@ -240,12 +253,19 @@ fun MainScreen(
 
 
     LaunchedEffect(key1 = Unit) {
+        if (!sharedPrefs.getBoolean(
+                "battery",
+                false
+            ) && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+        ) {
+            showDialog = true
+        }
         if (!Settings.canDrawOverlays(context)) {
-            val intent = Intent(
+            val intentNew = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:${context.packageName}")
             )
-            requestOverlayPermissionLauncher.launch(intent)
+            requestOverlayPermissionLauncher.launch(intentNew)
         }
 
         if (mainViewModel.missionDetails.repeatProgress > 1) {
@@ -1072,6 +1092,88 @@ fun MainScreen(
             }
         }
     }
+
+    if (showDialog) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Dialog(onDismissRequest = {}) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.onBackground,
+                            shape = RoundedCornerShape(5.dp)
+                        )
+                ) {
+                    Text(
+                        text = "Alarm will not ring !",
+                        color = MaterialTheme.colorScheme.surfaceTint,
+                        fontSize = 22.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 20.dp), fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "Alarms can't go off when Alarmy is forced off.Please exclude Alarm from battery optimization setting to avoid force termination",
+                        fontSize = 15.sp,
+                        letterSpacing = 0.sp,
+                        color = MaterialTheme.colorScheme.surfaceTint,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 9.dp, start = 5.dp, end = 5.dp),
+                        fontWeight = FontWeight.W400
+                    )
+
+                    Text(
+                        "App Info -> Battery -> MANAGE BATTERY USAGE -> Unrestricted",
+                        fontSize = 15.sp,
+                        letterSpacing = 0.sp,
+                        color = MaterialTheme.colorScheme.surfaceTint,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 9.dp, start = 5.dp, end = 5.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 30.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(bottom = 20.dp)
+                        ) {
+                            CustomButton(
+                                onClick = {
+                                    showDialog = false
+                                },
+                                text = "Not now",
+                                width = 0.40f,
+                                backgroundColor = Color(0xff3F434F)
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            CustomButton(
+                                onClick = {
+                                    showDialog = false
+                                    context.startActivity(intent)
+                                    sharedPrefs.edit().putBoolean("battery", true).apply()
+                                },
+                                text = "Go to Settings",
+                                width = 0.8f,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+
 }
 
 fun checkForNextOccur(it: AlarmEntity): Long {
@@ -1163,17 +1265,20 @@ fun AlarmBox(
                     Text(
                         text = formattedTheTime(alarm.localTime.hour, alarm.localTime.minute),
                         color = MaterialTheme.colorScheme.surfaceTint,
+                        textDecoration = if (alarm.skipTheAlarm) TextDecoration.LineThrough else TextDecoration.None,
                         fontSize = 30.sp, fontWeight = FontWeight.Medium
                     )
                     alarm.localTime.let {
                         Text(
                             text = getAMPM(it),
                             color = MaterialTheme.colorScheme.surfaceTint,
+                            textDecoration = if (alarm.skipTheAlarm) TextDecoration.LineThrough else TextDecoration.None,
                             fontSize = 25.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(start = 5.dp)
                         )
                     }
+
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.CenterEnd
@@ -1290,6 +1395,7 @@ fun AlarmBox(
                             }
                         }
                     }
+
                     if (alarm.listOfMissions.isEmpty()) {
                         Icon(
                             imageVector = Icons.Filled.Close,
@@ -1325,6 +1431,7 @@ fun AlarmBox(
         }
     }
 }
+
 
 fun formattedTheTime(hour: Int, minute: Int): String {
     val formatHour = if (hour > 12) hour - 12 else if (hour == 0) 12 else hour
