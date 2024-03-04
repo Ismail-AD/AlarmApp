@@ -85,7 +85,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
 
         if (!previewMode) {
-            Log.d("CHKSM", "---ALARM STATE UPDATED---")
+            Log.d("CHKMUS", "---ALARM STATE UPDATED REAL TO TRUE FROM MAIN ALARM---")
 
             mainViewModel.updateIsReal(true)
             window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
@@ -106,7 +106,9 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
                         alarm = gotAlarm
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
                         AlarmNavGraph(
-                            onDismissCallback = this, onSnoozeCallback = this, textToSpeech,
+                            onDismissCallback = this@AlarmCancelAccess,
+                            onSnoozeCallback = this@AlarmCancelAccess,
+                            textToSpeech,
                             intent,
                             mainViewModel = mainViewModel,
                         )
@@ -156,25 +158,22 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     }
 
 
-    override fun onDestroy() {
-        Log.d("CHKSM", "ON DESTROY CALLED.............")
-        super.onDestroy()
-    }
-
     override fun onSnoozeClicked() {
         mainViewModel.updateIsReal(false)
-
-        if(Utils(this).areSnoozeTimersEmpty()){
-            Log.d("CHKSM", "SNOOZE IS CALLED.............GOING TO FINISH ACTIVITY... and real state is ${mainViewModel.isRealAlarm}")
+        if (Utils(this).areSnoozeTimersEmpty()) {
+            Log.d(
+                "CHKSM",
+                "SNOOZE IS CALLED.............GOING TO FINISH ACTIVITY... and real state is ${mainViewModel.isRealAlarm}"
+            )
             val newIntent = Intent(this, SnoozeHandler::class.java)
             newIntent.putExtra("Alarm", receivedAlarm)
             newIntent.putExtra("notify", notify)
             newIntent.putExtra("dismissSet", dismissSettings)
             startActivity(newIntent)
             finish()
-        } else{
+        } else {
             val serviceIntent = Intent(this, SnoozeService::class.java).apply {
-                Log.d("CHKSN", "collected snooze time: ${alarm.snoozeTime}}")
+                Log.d("CHKN", "collected snooze time: ${alarm.snoozeTime}}")
                 putExtra("minutes", alarm.snoozeTime)
                 putExtra("id", alarm.id)
             }
@@ -183,9 +182,9 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             val remainingTimeMillis = finalTimeMillis - System.currentTimeMillis()
             Utils(this).startOrUpdateSnoozeTimer(SnoozeTimer(alarm.id, remainingTimeMillis))
             ContextCompat.startForegroundService(this, serviceIntent)
+            startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
-
     }
 
     override fun onDismissClicked() {
@@ -327,7 +326,10 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             Helper.updateCustomValue(100f)
             Helper.stopStream()
             startActivity(Intent(this, MainActivity::class.java))
-            Log.d("CHKSM", "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}")
+            Log.d(
+                "CHKSM",
+                "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}"
+            )
             finish()
         }
 
@@ -421,33 +423,95 @@ fun AlarmNavGraph(
         startDestination = Routes.PreviewAlarm.route,
     ) {
         composable(route = Routes.PreviewAlarm.route) {
-            AlarmCancelScreen(onDismissCallback,onSnoozeCallback,textToSpeech, controller, mainViewModel, intent)
+            AlarmCancelScreen(
+                onDismissCallback,
+                onSnoozeCallback,
+                textToSpeech,
+                controller,
+                mainViewModel,
+                intent
+            )
         }
 
         composable(route = Routes.MissionShakeScreen.route) {
-            ShakeDetectionScreen(mainViewModel = mainViewModel, controller,onDismissCallback)
+            ShakeDetectionScreen(
+                mainViewModel = mainViewModel,
+                controller, timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                onDismissCallback
+            )
         }
         composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-            BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
+            BarCodeMissionScreen(
+                mainViewModel = mainViewModel,
+                controller = controller, timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                onDismissCallback
+            )
         }
         composable(route = Routes.StepDetectorScreen.route) {
-            StepMission(mainViewModel = mainViewModel, controller,onDismissCallback)
+            StepMission(
+                mainViewModel = mainViewModel,
+                controller, timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                onDismissCallback
+            )
         }
         composable(route = Routes.SquatMissionScreen.route) {
-            SquatMission(mainViewModel = mainViewModel, controller,onDismissCallback)
+            SquatMission(mainViewModel = mainViewModel, controller, onDismissCallback)
         }
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
-            PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
+            PhotoMissionScreen(
+                mainViewModel = mainViewModel,
+                controller = controller, timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                onDismissCallback
+            )
         }
 
         composable(route = Routes.TypingPreviewScreen.route) {
-            TypingMissionHandler(mainViewModel = mainViewModel, controller = controller,onDismissCallback)
+            TypingMissionHandler(
+                mainViewModel = mainViewModel,
+                controller = controller ,timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                onDismissCallback
+            )
         }
         composable(route = Routes.MissionMathScreen.route) {
             MathMissionHandler(
                 mainViewModel,
                 missionLevel = mainViewModel.missionDetails.missionLevel,
-                controller = controller, dismissCallback = onDismissCallback
+                controller = controller, timerEndsCallback = object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
             )
         }
         composable(route = Routes.MissionScreen.route) {
@@ -482,7 +546,12 @@ fun AlarmNavGraph(
             MissionHandlerScreen(
                 cubeHeightWidth, columnPadding, lazyRowHeight,
                 controller, totalSize = sizeOfBlocks,
-                mainViewModel = mainViewModel, dismissCallback = onDismissCallback
+                mainViewModel = mainViewModel, timerEndsCallback = object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
             )
         }
     }

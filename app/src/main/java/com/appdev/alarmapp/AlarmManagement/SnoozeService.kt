@@ -96,10 +96,10 @@ class SnoozeService : Service() {
             countdownJob = CoroutineScope(Dispatchers.Default).launch {
                 var remainingTimeMillis = totalTimeMillis
                 while (remainingTimeMillis > 0 && utils.getSnoozeTimerById(idOfAlarm) != null) {
-                    Log.d(
-                        "CHKSN",
-                        "2. Remaining time was still greater than zero and is $remainingTimeMillis"
-                    )
+//                    Log.d(
+//                        "CHKSN",
+//                        "2. Remaining time was still greater than zero and is $remainingTimeMillis"
+//                    )
                     remainingTimeFlow.value = remainingTimeMillis
 //                    if (utils.getSnoozeTimerById(idOfAlarm) != null) {
 //                        Log.d("CHKSM", "----**-----GOING TO UPDATE LIST VAI SERVICE---------")
@@ -107,7 +107,7 @@ class SnoozeService : Service() {
 //                    }
                     broadcastRemainingTime(remainingTimeMillis,idOfAlarm)
                     remainingTimeMillis = finalTimeMillis - System.currentTimeMillis()
-                    Log.d("CHKSN", "alarm VIA SERVICE ${utils.getSnoozeTimerById(idOfAlarm)}")
+//                    Log.d("CHKSN", "alarm VIA SERVICE ${utils.getSnoozeTimerById(idOfAlarm)}")
                 }
                 Log.d("CHKSM", "OUT OF WHILE LOOP START ID $startId")
                 stopForeground(true)
@@ -132,7 +132,7 @@ class SnoozeService : Service() {
             putExtra("remainingMillis", remainingMillis)
             putExtra("idOfAl", id)
         }
-        Log.d("CHKSN", "3. Going to broadcast remaining")
+//        Log.d("CHKSN", "3. Going to broadcast remaining")
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 

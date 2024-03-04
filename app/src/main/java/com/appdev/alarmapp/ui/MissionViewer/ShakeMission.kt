@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -56,7 +57,7 @@ import kotlin.math.min
 @Composable
 fun ShakeDetectionScreen(
     mainViewModel: MainViewModel,
-    controller: NavHostController,
+    controller: NavHostController,timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
 
@@ -97,9 +98,13 @@ fun ShakeDetectionScreen(
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
             Helper.playStream(context, R.raw.alarmsound)
-            controller.navigate(Routes.PreviewAlarm.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if(!mainViewModel.isSnoozed){
+                controller.navigate(Routes.PreviewAlarm.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else{
+                timerEndsCallback.onTimeEnds()
             }
         }
     }
@@ -243,9 +248,13 @@ fun ShakeDetectionScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    controller.navigate(Routes.PreviewAlarm.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
+                    if(!mainViewModel.isSnoozed){
+                        controller.navigate(Routes.PreviewAlarm.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    } else{
+                        timerEndsCallback.onTimeEnds()
                     }
                 }) {
                     Icon(

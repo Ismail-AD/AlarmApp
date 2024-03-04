@@ -116,6 +116,7 @@ class MainViewModel @Inject constructor(
     var flashLight by mutableStateOf(false)
     var previewMode by mutableStateOf(false)
     var hasSnoozed by mutableStateOf(false)
+    var isSnoozed by mutableStateOf(false)
 
 
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
@@ -146,6 +147,10 @@ class MainViewModel @Inject constructor(
 
     fun snoozeUpdate(value: Boolean) {
         hasSnoozed = value
+    }
+
+    fun alarmIsSnoozed(value: Boolean) {
+        isSnoozed = value
     }
 
     fun getAlarmEntityWithDefaultSettings(): AlarmEntity {
@@ -254,15 +259,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun getAlarmById(id: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
-            alarmRepository.getSpecificAlarm(id).collect { mayNullAlarm->
-                mayNullAlarm?.let {
-                    _snoozedAlarm.value = it
-                }
-            }
-        }
-    }
 
     fun updateQrCode(qrCodeData: QrCodeData) {
         viewModelScope.launch {
@@ -610,6 +606,7 @@ class MainViewModel @Inject constructor(
             DefaultSettingsHandler.UpdateDefault -> {
                 viewModelScope.launch(Dispatchers.IO) {
                     ringtoneRepository.updateDefaultSettings(defaultSettings.value)
+                    missionDetailsList = emptyList()
                 }
             }
 
@@ -618,6 +615,7 @@ class MainViewModel @Inject constructor(
 
             is DefaultSettingsHandler.GetNewObject -> _defaultSettings.value =
                 defaultSettingsHandler.defaultSettings
+
         }
     }
 
@@ -633,6 +631,17 @@ class MainViewModel @Inject constructor(
         when (updating) {
             is Updating.UpdateIt -> UpdatingState =
                 UpdatingState.copy(shouldUpdate = updating.updateNow)
+        }
+    }
+
+    fun getAlarmById(id: Long) {
+        viewModelScope.launch {
+            alarmRepository.getSpecificAlarm(id).collect { mayNullAlarm->
+                mayNullAlarm?.let {
+                    Log.d("CHKSJ", "Alarm MISSION LIST AT VM --------- ${it.listOfMissions}")
+                    _snoozedAlarm.value = it
+                }
+            }
         }
     }
 

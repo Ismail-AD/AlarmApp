@@ -78,9 +78,7 @@ fun SnoozeScreen(
     onDismissCallback: DismissCallback,
     timerEndsCallback: TimerEndsCallback
 ) {
-    if (Helper.isPlaying()) {
-        Helper.stopStream()
-    }
+
     val remainingTimeFlow = remember { MutableStateFlow(0L) }
     val context = LocalContext.current
     val utils by remember {
@@ -128,7 +126,9 @@ fun SnoozeScreen(
         mutableStateOf(utils.getSnoozeTimerById(alarmId = alarmEntity?.id ?: 0))
     }
 
+
     DisposableEffect(Unit) {
+        Helper.stopIncreasingVolume()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 val idOfAlarmEntity = intent.getLongExtra("idOfAl", 0L)
@@ -136,14 +136,6 @@ fun SnoozeScreen(
                     if (idOfAlarmEntity == it.id) {
                         val remainingMillis = intent.getLongExtra("remainingMillis", 0L)
                         remainingTimeFlow.value = remainingMillis
-                        Log.d(
-                            "CHKSN",
-                            "---------EDITED remaining snooze time: ${remainingTimeFlow.value}"
-                        )
-                        Log.d(
-                            "CHKSN",
-                            "--------CURRENT TIME : ${convertMillisToLocalTime(System.currentTimeMillis())}"
-                        )
                     }
                 }
 
@@ -195,24 +187,6 @@ fun SnoozeScreen(
         "CHKSN",
         "time we got: $remainingMinutes:${String.format("%02d", remainingSeconds)}"
     )
-
-//    DisposableEffect(Unit) {
-//        alarmEntity?.let {
-//            mainViewModel.updateSnoozeTime(minutesToMillis(it.snoozeTime))
-//        }
-//        val timerServiceIntent = Intent(context, SnoozeService::class.java).apply {
-//            putExtra("timeInMillis", snoozeTimeRemaining)
-//            putExtra("alarmEntity", alarmEntity)
-//            putExtra("dismissSettings", dismissSettingsReceived)
-//            putExtra("notify", notifyIt)
-//        }
-////        context.startService(timerServiceIntent)
-//
-//        onDispose {
-//            // Stop the service when composable is disposed
-////            context.stopService(timerServiceIntent)
-//        }
-//    }
 
 
     Box(
@@ -268,25 +242,25 @@ fun SnoozeScreen(
             ) {
                 CustomButton(
                     onClick = {
-                        if (mainViewModel.isRealAlarm) {
-                            if (mainViewModel.dummyMissionList.isNotEmpty()) {
-                                val singleMission = mainViewModel.dummyMissionList.first()
 
-                                mainViewModel.missionData(
-                                    MissionDataHandler.AddCompleteMission(
-                                        missionId = singleMission.missionID,
-                                        repeat = singleMission.repeatTimes,
-                                        repeatProgress = singleMission.repeatProgress,
-                                        missionLevel = singleMission.missionLevel,
-                                        missionName = singleMission.missionName,
-                                        isSelected = singleMission.isSelected,
-                                        setOfSentences = convertStringToSet(singleMission.selectedSentences),
-                                        imageId =
-                                        singleMission.imageId,
-                                        codeId = singleMission.codeId
-                                    )
+                        alarmEntity?.id?.let { utils.stopSnoozeTimer(it) }
+                        if (mainViewModel.dummyMissionList.isNotEmpty()) {
+                            val singleMission = mainViewModel.dummyMissionList.first()
+
+                            mainViewModel.missionData(
+                                MissionDataHandler.AddCompleteMission(
+                                    missionId = singleMission.missionID,
+                                    repeat = singleMission.repeatTimes,
+                                    repeatProgress = singleMission.repeatProgress,
+                                    missionLevel = singleMission.missionLevel,
+                                    missionName = singleMission.missionName,
+                                    isSelected = singleMission.isSelected,
+                                    setOfSentences = convertStringToSet(singleMission.selectedSentences),
+                                    imageId =
+                                    singleMission.imageId,
+                                    codeId = singleMission.codeId
                                 )
-                            }
+                            )
                         }
                         when (mainViewModel.missionDetails.missionName) {
                             "Memory" -> {
@@ -366,7 +340,6 @@ fun SnoozeScreen(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
                                 )
-                                alarmEntity?.id?.let { utils.stopSnoozeTimer(it) }
                                 onDismissCallback.onDismissClicked()
                             }
                         }
@@ -381,12 +354,4 @@ fun SnoozeScreen(
 }
 
 
-private fun isSnoozeServiceRunning(context: Context): Boolean {
-    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
-        if (SnoozeService::class.java.name == service.service.className) {
-            return true
-        }
-    }
-    return false
-}
+

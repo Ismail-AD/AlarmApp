@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
+import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -66,7 +68,7 @@ import kotlin.math.min
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TypingMissionHandler(
-    mainViewModel: MainViewModel, controller: NavHostController,
+    mainViewModel: MainViewModel, controller: NavHostController,timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
 
@@ -114,9 +116,13 @@ fun TypingMissionHandler(
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
             Helper.playStream(context, R.raw.alarmsound)
-            controller.navigate(Routes.PreviewAlarm.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if(!mainViewModel.isSnoozed){
+                controller.navigate(Routes.PreviewAlarm.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else{
+                timerEndsCallback.onTimeEnds()
             }
         }
     }
@@ -257,9 +263,13 @@ fun TypingMissionHandler(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    controller.navigate(Routes.PreviewAlarm.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
+                    if(!mainViewModel.isSnoozed){
+                        controller.navigate(Routes.PreviewAlarm.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    } else{
+                        timerEndsCallback.onTimeEnds()
                     }
                 }) {
                     Icon(

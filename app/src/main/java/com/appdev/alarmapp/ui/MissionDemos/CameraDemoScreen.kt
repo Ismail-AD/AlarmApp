@@ -184,8 +184,10 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                     )
                                 )
                                 mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
-                                controller.navigate(Routes.MissionMenuScreen.route) {
-                                    popUpTo(controller.graph.startDestinationId)
+                                controller.navigate(Routes.DefaultSettingsScreen.route) {
+                                    popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                                        inclusive = false
+                                    }
                                     launchSingleTop = true
                                 }
                             } else {

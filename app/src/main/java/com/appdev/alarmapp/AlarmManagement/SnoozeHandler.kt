@@ -47,7 +47,6 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
 
     val mainViewModel by viewModels<MainViewModel>()
     var dismissSettings: DismissSettings? = null
-    var remainTime: Long? = null
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
@@ -55,7 +54,6 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
     private var previewMode: Boolean = false
     private var notify: Boolean = false
     private var lastPressedKeyCode: Int = -1
-    private var isScreenOnBeforeAlarm = false
     lateinit var alarm: AlarmEntity
     lateinit var alarmScheduler: AlarmScheduler
 
@@ -63,7 +61,6 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
         super.onCreate(savedInstanceState)
         Log.d("CHKSM", "ON CREATE CALLED FOR SNOOZER")
 
-        isScreenOnBeforeAlarm = isScreenOn()
         alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
 
         val callback = object : OnBackPressedCallback(true) {
@@ -73,9 +70,15 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
         }
         onBackPressedDispatcher.addCallback(this, callback)
 
+        if (!previewMode) {
+            Log.d("CHKMUS", "---ALARM STATE UPDATED REAL TO TRUE FROM SNOOZE ALARM---")
+            mainViewModel.updateIsReal(true)
+        }
 
+        Log.d("CHECKR","${mainViewModel.isRealAlarm} real alarm state at snooze")
         setContent {
             AlarmAppTheme {
+                mainViewModel.alarmIsSnoozed(true)
 
                 notify = intent.getBooleanExtra("notify", false)
 //                remainTime = intent.getLongExtra("restTime", 0L)
@@ -84,6 +87,7 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
                     dismissSettings = intent.getParcelableExtra("dismissSet")
                     receivedAlarm?.let { gotAlarm ->
                         alarm = gotAlarm
+                        Log.d("CHKMUS", "ALARM RECEIVED ${gotAlarm}")
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
                         snoozeAlarmNavGraph(
                             onDismissCallback = this@SnoozeHandler,
@@ -99,32 +103,30 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        receivedAlarm = intent.getParcelableExtra("Alarm")
-        receivedAlarm?.let {
-            Log.d("CHKSM", "________ON DeStory FOR ALARM ${it.id}")
-        }
 
-    }
+//    override fun onStop() {
+//        val closestSnoozeTimer = Utils(this).findClosestSnoozeTimer()
+//        lifecycleScope.launch {
+//            closestSnoozeTimer?.let {
+//                mainViewModel.getAlarmById(closestSnoozeTimer.alarmId)
+//                mainViewModel.snoozedAlarm.collect { alarmEnt ->
+//                    Log.d("CHKSJ", "Alarm AT SNOOZE HANDLER --------- ${alarmEnt}")
+//                }
+//            }
+//        }
+//        super.onStop()
+//    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("CHKSM", "________ON DeStory FOR ALARM ${alarm.id}")
 
-    }
 
-    private fun isScreenOn(): Boolean {
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        return powerManager.isInteractive
-    }
+
 
     override fun onTimeEnds() {
+        Log.d("CHKMIS","On timer ends triggerd !")
         val newIntent = Intent(this, AlarmCancelAccess::class.java)
         newIntent.putExtra("Alarm", alarm)
         newIntent.putExtra("notify", notify)
         newIntent.putExtra("dismissSet", dismissSettings)
-        newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(newIntent)
         finish()
     }
@@ -158,18 +160,7 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
         return super.dispatchKeyEvent(event)
     }
 
-    override fun onStop() {
-        val isScreenOnNow = isScreenOn()
-        if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow) {
-            val newIntent = Intent(this, javaClass)
-            newIntent.putExtra("Alarm", receivedAlarm)
-            newIntent.putExtra("notify", notify)
-            newIntent.putExtra("dismissSet", dismissSettings)
-            startActivity(newIntent)
-            finish()
-        }
-        super.onStop()
-    }
+
 
     override fun onDismissClicked() {
         Log.d("CHKSM", "DISMISS BUTTON TRIGERED .............")
@@ -330,7 +321,7 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, SnoozeCallback, Time
                                 alarmEnt.id
                             ) != null
                         ) {
-                            val newIntent = Intent(this@SnoozeHandler, javaClass)
+                            val newIntent = Intent(this@SnoozeHandler, SnoozeHandler::class.java)
                             newIntent.putExtra("Alarm", alarmEnt)
                             newIntent.putExtra(
                                 "notify",
@@ -367,12 +358,8 @@ fun snoozeAlarmNavGraph(
         navController = controller,
         startDestination = Routes.SnoozeScr.route,
     ) {
-        composable(route = Routes.PreviewAlarm.route) {
-            AlarmCancelScreen(
-                onDismissCallback, snoozeCallback = snoozeCallback,
-                textToSpeech, controller, mainViewModel, intent
-            )
-        }
+
+
         composable(route = Routes.SnoozeScr.route) {
             SnoozeScreen(
                 textToSpeech,
@@ -385,17 +372,17 @@ fun snoozeAlarmNavGraph(
         }
 
         composable(route = Routes.MissionShakeScreen.route) {
-            ShakeDetectionScreen(mainViewModel = mainViewModel, controller, onDismissCallback)
+            ShakeDetectionScreen(mainViewModel = mainViewModel, controller, timerEndsCallback,onDismissCallback)
         }
         composable(route = Routes.BarCodePreviewAlarmScreen.route) {
             BarCodeMissionScreen(
                 mainViewModel = mainViewModel,
-                controller = controller,
+                controller = controller,timerEndsCallback,
                 onDismissCallback
             )
         }
         composable(route = Routes.StepDetectorScreen.route) {
-            StepMission(mainViewModel = mainViewModel, controller, onDismissCallback)
+            StepMission(mainViewModel = mainViewModel, controller, timerEndsCallback,onDismissCallback)
         }
         composable(route = Routes.SquatMissionScreen.route) {
             SquatMission(mainViewModel = mainViewModel, controller, onDismissCallback)
@@ -403,7 +390,7 @@ fun snoozeAlarmNavGraph(
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
             PhotoMissionScreen(
                 mainViewModel = mainViewModel,
-                controller = controller,
+                controller = controller,timerEndsCallback,
                 onDismissCallback
             )
         }
@@ -411,7 +398,7 @@ fun snoozeAlarmNavGraph(
         composable(route = Routes.TypingPreviewScreen.route) {
             TypingMissionHandler(
                 mainViewModel = mainViewModel,
-                controller = controller,
+                controller = controller,timerEndsCallback,
                 onDismissCallback
             )
         }
@@ -419,7 +406,7 @@ fun snoozeAlarmNavGraph(
             MathMissionHandler(
                 mainViewModel,
                 missionLevel = mainViewModel.missionDetails.missionLevel,
-                controller = controller, dismissCallback = onDismissCallback
+                controller = controller, timerEndsCallback =  timerEndsCallback,dismissCallback = onDismissCallback
             )
         }
         composable(route = Routes.MissionScreen.route) {
@@ -454,7 +441,7 @@ fun snoozeAlarmNavGraph(
             MissionHandlerScreen(
                 cubeHeightWidth, columnPadding, lazyRowHeight,
                 controller, totalSize = sizeOfBlocks,
-                mainViewModel = mainViewModel, dismissCallback = onDismissCallback
+                mainViewModel = mainViewModel, timerEndsCallback =  timerEndsCallback,dismissCallback = onDismissCallback
             )
         }
     }

@@ -54,13 +54,16 @@ class Helper {
             volumeHandler = Handler()
             volumeHandler?.postDelayed(object : Runnable {
                 override fun run() {
-                    if (currentVolume <= customVolume) {
-                        mediaPlayer?.setVolume(currentVolume / 100f, currentVolume / 100f)
-                        currentVolume += 20
-                        volumeHandler?.postDelayed(this, l)
-                    } else {
-                        // Continue playing at maximum volume
-                        volumeHandler?.postDelayed(this, l)
+                    if(isPlaying()){
+                        if (currentVolume <= customVolume) {
+                            mediaPlayer?.setVolume(currentVolume / 100f, currentVolume / 100f)
+                            currentVolume += 20
+                            volumeHandler?.postDelayed(this, l)
+                        } else {
+                            // Continue playing at maximum volume
+                            volumeHandler?.postDelayed(this, l)
+                        }
+                        Log.d("CHKMUS","--UPDATED CURRENT VOLUME ${currentVolume}")
                     }
                 }
             }, l)
@@ -82,6 +85,7 @@ class Helper {
                     mediaPlayer?.setVolume(currentVolume / 100f, currentVolume / 100f)
                 }
                 mediaPlayer?.start()
+                Log.d("CHKMUS","GOING TO PLAY ${isPlaying()}")
                 mediaPlayer?.setOnCompletionListener {
                     // Handle audio completion for looping
                     mediaPlayer?.start()

@@ -169,6 +169,7 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 isDarkMode,
                 title = "Default Setting for New Alarms",
                 onClick = {
+                    mainViewModel.missionData(MissionDataHandler.ResetList)
                     mainViewModel.setDefaultSettings(DefaultSettingsHandler.GoingToSetDefault(true))
                     controller.navigate(Routes.DefaultSettingsScreen.route) {
                         popUpTo(Routes.SettingsOfAlarmScreen.route) {

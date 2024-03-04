@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -88,7 +89,7 @@ import kotlin.math.sqrt
 @Composable
 fun StepMission(
     mainViewModel: MainViewModel,
-    controller: NavHostController,
+    controller: NavHostController,timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
     if (Helper.isPlaying()) {
@@ -149,9 +150,13 @@ fun StepMission(
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
             Helper.playStream(context, R.raw.alarmsound)
-            controller.navigate(Routes.PreviewAlarm.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if(!mainViewModel.isSnoozed){
+                controller.navigate(Routes.PreviewAlarm.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else{
+                timerEndsCallback.onTimeEnds()
             }
         }
     }
@@ -184,7 +189,7 @@ fun StepMission(
                         val distance = calculateDistance(previousLocation!!, location)
 
                         Log.d("CHKLOC", "distance calculated $distance")
-                        if (distance > 1.5 && startUpdating) {
+                        if (distance > 1.0 && startUpdating) {
                             stepsToBeDone -= 1
                             previousLocation = location
                         }
@@ -302,9 +307,13 @@ fun StepMission(
                     dismissCallback.onDismissClicked()
                 }
             } else {
-                controller.navigate(Routes.Preview.route) {
-                    popUpTo(Routes.MissionShakeScreen.route)
-                    launchSingleTop
+                if(!mainViewModel.isSnoozed){
+                    controller.navigate(Routes.PreviewAlarm.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                } else{
+                    timerEndsCallback.onTimeEnds()
                 }
             }
         } else {
@@ -342,9 +351,13 @@ fun StepMission(
                     if (!mainViewModel.isRealAlarm) {
                         Helper.playStream(context, R.raw.alarmsound)
                     }
-                    controller.navigate(Routes.PreviewAlarm.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
+                    if(!mainViewModel.isSnoozed){
+                        controller.navigate(Routes.PreviewAlarm.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    } else{
+                        timerEndsCallback.onTimeEnds()
                     }
                 }) {
                     Icon(

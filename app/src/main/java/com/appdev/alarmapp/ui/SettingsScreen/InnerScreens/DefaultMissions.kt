@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.ui.SettingsScreen.InnerScreens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -86,6 +87,8 @@ fun DefaultAlarmMissions(
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
     ) {
+        Log.d("CHKMD","AT VIEW OF DEFAULT ${mainViewModel.managingDefault}")
+
         if (loading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -120,7 +123,10 @@ fun DefaultAlarmMissions(
                                 false
                             )
                         )
-                        controller.popBackStack()
+                        controller.navigate(Routes.SettingsOfAlarmScreen.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
                     },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,

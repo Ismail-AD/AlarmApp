@@ -253,6 +253,7 @@ fun MainScreen(
 
 
     LaunchedEffect(key1 = Unit) {
+        mainViewModel.missionData(MissionDataHandler.ResetList)
         if (!sharedPrefs.getBoolean(
                 "battery",
                 false

@@ -90,6 +90,7 @@ fun AlarmCancelScreen(
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) }
+    Log.d("CHKMUS","$currentVolume is mobile's volume at this time")
     val scope = rememberCoroutineScope()
 
     val systemUiController = rememberSystemUiController()
@@ -142,12 +143,15 @@ fun AlarmCancelScreen(
 
             // Ensure the new volume is within the valid range (0 to maxVolume)
             val clampedVolume = newVolume.coerceIn(0, maxVolume)
+            Log.d("CHKMUS","$clampedVolume is the volume of music now")
 
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clampedVolume, 0)
         }
         onDispose {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
             textToSpeech.stop()
+            Helper.stopStream()
+            Helper.stopIncreasingVolume()
             vibrator.cancel()
             if (isDarkMode) {
                 systemUiController.setSystemBarsColor(
@@ -176,9 +180,6 @@ fun AlarmCancelScreen(
             }
         }
     }
-    BackHandler {
-
-    }
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
 
 
@@ -196,6 +197,7 @@ fun AlarmCancelScreen(
         })
         alarmEntity?.let {
             Helper.updateCustomValue(it.customVolume)
+            Log.d("CHKMUS","${it.customVolume} is custom volume now")
             if (it.willVibrate) {
                 vibrator.cancel()
                 val vibrationEffect = VibrationEffect.createWaveform(
@@ -220,9 +222,11 @@ fun AlarmCancelScreen(
         }
     }
 
+    Log.d("CHKMUS","IS MUSIC PLAYING BEFORE GOING TO PLAY ${Helper.isPlaying()}")
     if ((mainViewModel.isRealAlarm || previewMode) && !Helper.isPlaying()) {
         alarmEntity?.let { alarm ->
             if (alarm.ringtone.rawResourceId != -1) {
+                Log.d("CHKMUS","ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
                 ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
                 if (alarm.isTimeReminder) {
                     if (!startItNow) {
@@ -249,6 +253,7 @@ fun AlarmCancelScreen(
                         }
                     }
                     if (alarm.isGentleWakeUp) {
+                        Log.d("CHKMUS","IS GENTLE WAKE-UP")
                         Helper.updateLow(true)
                         Helper.startIncreasingVolume(
                             convertToMilliseconds(
@@ -257,7 +262,8 @@ fun AlarmCancelScreen(
                             )
                         )
                     }
-                    Helper.playStream(context, alarm.ringtone.rawResourceId)
+
+                    Helper.playStream(context.applicationContext, alarm.ringtone.rawResourceId)
                 } else {
                     if (startItNow) {
                         if (alarm.isGentleWakeUp) {
@@ -425,7 +431,7 @@ fun AlarmCancelScreen(
             .fillMaxSize()
             .background(backColor), contentAlignment = Alignment.TopCenter
     ) {
-
+        Log.d("GOINGTO","In COMPOSABLE ${Helper.isPlaying()}")
 
         Column(
             modifier = Modifier

@@ -462,6 +462,7 @@ fun MemoryMissionScreen(
                         CustomButton(
                             isLock = (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success,
                             onClick = {
+                                Log.d("CHKMD","AT BAR CODE DS ${mainViewModel.managingDefault}")
                                 if((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success){
                                     controller.navigate(Routes.Purchase.route) {
                                         popUpTo(Routes.CommonMissionScreen.route) {
@@ -488,11 +489,12 @@ fun MemoryMissionScreen(
                                             )
                                         )
                                         mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
-                                        controller.navigate(Routes.Preview.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                        controller.navigate(Routes.DefaultSettingsScreen.route) {
+                                            popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
-
                                     } else {
                                         mainViewModel.missionData(
                                             MissionDataHandler.IsSelectedMission(

@@ -39,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.SnoozeCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
@@ -166,7 +167,11 @@ fun MainUiScreen(
                         mainViewModel.isOld(isOldOrNew.isOld(false))
                         mainViewModel.missionData(MissionDataHandler.ResetList)
                         mainViewModel.newAlarmHandler(newAlarmHandler.GetWakeUpTime(getWUTime = 30))
-                        mainViewModel.newAlarmHandler(newAlarmHandler.TimeReminder(isTimeReminderOrNot = false))
+                        mainViewModel.newAlarmHandler(
+                            newAlarmHandler.TimeReminder(
+                                isTimeReminderOrNot = false
+                            )
+                        )
                         mainViewModel.newAlarmHandler(newAlarmHandler.IsGentleWakeUp(isGentleWakeUp = true))
                         mainViewModel.newAlarmHandler(newAlarmHandler.CustomVolume(customVolume = 100f))
                         mainViewModel.newAlarmHandler(newAlarmHandler.LoudEffect(isLoudEffectOrNot = false))
@@ -210,7 +215,7 @@ fun MainUiScreen(
                 ) {
                     Spacer(modifier = Modifier.weight(0.15f))
                     BottomNavItems.Home.let { home ->
-                        NavItem(isDarkMode,item = home, isSelected = home.id == selectedIndex) {
+                        NavItem(isDarkMode, item = home, isSelected = home.id == selectedIndex) {
                             selectedIndex = home.id
                             controller.navigate(Routes.MainScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -221,7 +226,7 @@ fun MainUiScreen(
                     Spacer(modifier = Modifier.weight(1f))
 
                     BottomNavItems.Settings.let { set ->
-                        NavItem(isDarkMode,item = set, isSelected = set.id == selectedIndex) {
+                        NavItem(isDarkMode, item = set, isSelected = set.id == selectedIndex) {
                             selectedIndex = set.id
                             controller.navigate(Routes.FifthScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -250,26 +255,37 @@ fun MainUiScreen(
             }
         ) {
             composable(route = Routes.MainScreen.route) {
-                MainScreen(alarmScheduler,controller, mainViewModel)
+                MainScreen(alarmScheduler, controller, mainViewModel)
             }
 
             composable(route = Routes.SquatMissionScreen.route) {
-                SquatMission(mainViewModel = mainViewModel, controller = controller, dismissCallback = object : DismissCallback {
-                override fun onDismissClicked() {
-                    // Provide implementation here if needed
-                }
-            })
+                SquatMission(
+                    mainViewModel = mainViewModel,
+                    controller = controller,
+                    dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    })
             }
             composable(route = Routes.LabelScreen.route) {
-                LabelScreen(textToSpeech,controller,mainViewModel)
+                LabelScreen(textToSpeech, controller, mainViewModel)
             }
 
             composable(route = Routes.TypingPreviewScreen.route) {
-                TypingMissionHandler(mainViewModel = mainViewModel, controller = controller,dismissCallback = object : DismissCallback {
-                    override fun onDismissClicked() {
-                        // Provide implementation here if needed
-                    }
-                })
+                TypingMissionHandler(mainViewModel = mainViewModel,
+                    controller = controller,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+                    },
+                    dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    })
             }
 
             composable(route = Routes.FeedbackScreen.route) {
@@ -277,10 +293,10 @@ fun MainUiScreen(
             }
 
             composable(route = Routes.FifthScreen.route) {
-                SettingsScreen(controller,mainViewModel)
+                SettingsScreen(controller, mainViewModel)
             }
             composable(route = Routes.SoundPowerUpScreen.route) {
-                SoundPowerUp(textToSpeech,controller,mainViewModel)
+                SoundPowerUp(textToSpeech, controller, mainViewModel)
             }
             composable(route = Routes.SetUsabilityScreen.route) {
                 UsabilityScreen(controller)
@@ -304,7 +320,8 @@ fun MainUiScreen(
                 InAppPurchase(controller)
             }
             composable(route = Routes.Preview.route) {
-                PreviewScreen(alarmScheduler,
+                PreviewScreen(
+                    alarmScheduler,
                     controller,
                     mainViewModel
                 )
@@ -325,10 +342,16 @@ fun MainUiScreen(
                         TODO("Not yet implemented")
                     }
 
-                },textToSpeech,controller, mainViewModel)
+                }, textToSpeech, controller, mainViewModel)
             }
             composable(route = Routes.MissionShakeScreen.route) {
-                ShakeDetectionScreen(mainViewModel = mainViewModel, controller, dismissCallback = object : DismissCallback {
+                ShakeDetectionScreen(mainViewModel = mainViewModel, controller,timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = object : DismissCallback {
                     override fun onDismissClicked() {
                         // Provide implementation here if needed
                     }
@@ -338,11 +361,20 @@ fun MainUiScreen(
                 CameraMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.PhotoMissionPreviewScreen.route) {
-                PhotoMissionScreen(mainViewModel = mainViewModel, controller = controller, dismissCallback = object : DismissCallback {
-                    override fun onDismissClicked() {
-                        // Provide implementation here if needed
-                    }
-                })
+                PhotoMissionScreen(mainViewModel = mainViewModel,
+                    controller = controller,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    },
+                    dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    })
             }
             composable(route = Routes.PhotoClickScreen.route) {
                 PhotoClickScreen(mainViewModel = mainViewModel, controller = controller)
@@ -354,14 +386,29 @@ fun MainUiScreen(
                 ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-                BarCodeMissionScreen(mainViewModel = mainViewModel, controller = controller, dismissCallback = object : DismissCallback {
-                    override fun onDismissClicked() {
-                        // Provide implementation here if needed
-                    }
-                })
+                BarCodeMissionScreen(mainViewModel = mainViewModel,
+                    controller = controller,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    },
+                    dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    })
             }
             composable(route = Routes.StepDetectorScreen.route) {
-                StepMission(mainViewModel = mainViewModel, controller, dismissCallback = object : DismissCallback {
+                StepMission(mainViewModel = mainViewModel, controller, timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = object : DismissCallback {
                     override fun onDismissClicked() {
                         // Provide implementation here if needed
                     }
@@ -386,7 +433,13 @@ fun MainUiScreen(
                 MathMissionHandler(
                     mainViewModel,
                     missionLevel = mainViewModel.missionDetails.missionLevel,
-                    controller = controller, dismissCallback = object : DismissCallback {
+                    controller = controller, timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
                         override fun onDismissClicked() {
                             // Provide implementation here if needed
                         }
@@ -426,7 +479,13 @@ fun MainUiScreen(
                 MissionHandlerScreen(
                     cubeHeightWidth, columnPadding, lazyRowHeight,
                     controller, totalSize = sizeOfBlocks,
-                    mainViewModel = mainViewModel, dismissCallback = object : DismissCallback {
+                    mainViewModel = mainViewModel, timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
                         override fun onDismissClicked() {
                             // Provide implementation here if needed
                         }

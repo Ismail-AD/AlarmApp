@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.room.TypeConverter
 import com.google.gson.Gson
@@ -16,6 +17,7 @@ class Converters {
 
     @TypeConverter
     fun fromMissionsList(missionsList: List<Missions>): String {
+        Log.d("CHKSJ", missionsList.toString())
         val gson = Gson()
         return gson.toJson(missionsList)
     }
@@ -33,6 +35,7 @@ class Converters {
 
     @TypeConverter
     fun toMissionsList(missionsListString: String): List<Missions> {
+        Log.d("CHKSJ", missionsListString)
         val gson = Gson()
         val type = object : TypeToken<List<Missions>>() {}.type
         return gson.fromJson(missionsListString, type)

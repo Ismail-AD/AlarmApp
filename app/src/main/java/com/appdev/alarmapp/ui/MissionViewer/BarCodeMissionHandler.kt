@@ -59,6 +59,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -79,7 +80,7 @@ import kotlin.math.min
 @Composable
 fun BarCodeMissionScreen(
     mainViewModel: MainViewModel,
-    controller: NavHostController,
+    controller: NavHostController,timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
 
@@ -125,9 +126,13 @@ fun BarCodeMissionScreen(
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
             Helper.playStream(context, R.raw.alarmsound)
-            controller.navigate(Routes.PreviewAlarm.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if(!mainViewModel.isSnoozed){
+                controller.navigate(Routes.PreviewAlarm.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else{
+                timerEndsCallback.onTimeEnds()
             }
         }
     }
@@ -325,9 +330,13 @@ fun BarCodeMissionScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = {
-                                controller.navigate(Routes.PreviewAlarm.route) {
-                                    popUpTo(controller.graph.startDestinationId)
-                                    launchSingleTop = true
+                                if(!mainViewModel.isSnoozed){
+                                    controller.navigate(Routes.PreviewAlarm.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                } else{
+                                    timerEndsCallback.onTimeEnds()
                                 }
                             }) {
                                 Icon(
@@ -434,9 +443,13 @@ fun BarCodeMissionScreen(
                                     if (!mainViewModel.isRealAlarm) {
                                         Helper.playStream(context, R.raw.alarmsound)
                                     }
-                                    controller.navigate(Routes.PreviewAlarm.route) {
-                                        popUpTo(controller.graph.startDestinationId)
-                                        launchSingleTop = true
+                                    if(!mainViewModel.isSnoozed){
+                                        controller.navigate(Routes.PreviewAlarm.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    } else{
+                                        timerEndsCallback.onTimeEnds()
                                     }
                                 }) {
                                     Icon(

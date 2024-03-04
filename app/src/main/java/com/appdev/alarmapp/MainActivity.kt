@@ -57,15 +57,20 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val closestSnoozeTimer = utils.findClosestSnoozeTimer()
-            Log.d("CHKSM", "timer fetched at MAIN ----- $closestSnoozeTimer")
+
+            Log.d("CHKSJ", "timer fetched at MAIN ----- $closestSnoozeTimer")
             if (closestSnoozeTimer != null && !utils.areSnoozeTimersEmpty()
             ) {
                 Log.d("CHKSM", "LIST OF ALARM is not empty at main")
                 mainViewModel.getAlarmById(closestSnoozeTimer.alarmId)
                 mainViewModel.snoozedAlarm.collect { alarmEnt ->
-                    Log.d("CHKSM", "Alarm snoozed id at main ${alarmEnt.id}")
+                    Log.d("CHKSJ", "ARE ID's same  ----- ${closestSnoozeTimer.alarmId == alarmEnt.id}")
 
-                    if (alarmEnt.id != 0L && utils.getSnoozeTimerById(alarmEnt.id) != null) {
+                    Log.d("CHKSJ", "Alarm snoozed id at main ${alarmEnt.id}")
+                    Log.d("CHKSJ", "Alarm snoozed id at main ${mainViewModel.snoozedAlarm.value.id}")
+                    Log.d("CHKSJ", "Alarm AT MAIN --------- ${alarmEnt}")
+
+                    if (mainViewModel.snoozedAlarm.value.id != 0L && utils.getSnoozeTimerById(alarmEnt.id) != null) {
                         val newIntent = Intent(this@MainActivity, SnoozeHandler::class.java)
                         newIntent.putExtra("Alarm", alarmEnt)
                         newIntent.putExtra(
@@ -78,6 +83,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
+
                 setContent {
                     AlarmAppTheme {
                         val controller = rememberNavController()
@@ -104,8 +110,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
-//            }
             }
 
         }

@@ -66,6 +66,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
+import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -88,7 +90,7 @@ fun MathMissionHandler(
     mainViewModel: MainViewModel,
     missionLevel: String = "Very Easy",
     controller: NavHostController,
-    missionViewModel: MissionViewModel = hiltViewModel(),dismissCallback: DismissCallback
+    missionViewModel: MissionViewModel = hiltViewModel(), timerEndsCallback: TimerEndsCallback, dismissCallback: DismissCallback
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
@@ -237,9 +239,14 @@ fun MathMissionHandler(
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
             Helper.playStream(context, R.raw.alarmsound)
-            controller.navigate(Routes.PreviewAlarm.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if(!mainViewModel.isSnoozed){
+                controller.navigate(Routes.PreviewAlarm.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else{
+                Log.d("CHKMIS","G TO ALARM SCREEN")
+                timerEndsCallback.onTimeEnds()
             }
         }
     }
@@ -281,9 +288,14 @@ fun MathMissionHandler(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    controller.navigate(Routes.PreviewAlarm.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
+                    if(!mainViewModel.isSnoozed){
+                        controller.navigate(Routes.PreviewAlarm.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    } else{
+                        Log.d("CHKMIS","G TO ALARM SCREEN")
+                        timerEndsCallback.onTimeEnds()
                     }
                 }) {
                     Icon(

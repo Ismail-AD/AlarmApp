@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -71,6 +72,7 @@ fun MissionHandlerScreen(
     totalSize: Int,
     missionViewModel: MissionViewModel = hiltViewModel(),
     mainViewModel: MainViewModel,
+    timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
 
@@ -82,6 +84,9 @@ fun MissionHandlerScreen(
     var progress by remember { mutableFloatStateOf(1f) }
     var countdown by remember { mutableStateOf(3) }
     var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
+
+    var selectedBlocks by remember { mutableStateOf(emptyList<Int>()) }
+
     var modifiedIndices by remember {
         mutableStateOf(
             if (missionViewModel.missionHandler.preservedIndexes.isEmpty()) {
@@ -116,9 +121,13 @@ fun MissionHandlerScreen(
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
             Helper.playStream(context, R.raw.alarmsound)
-            controller.navigate(Routes.PreviewAlarm.route) {
-                popUpTo(controller.graph.startDestinationId)
-                launchSingleTop = true
+            if(!mainViewModel.isSnoozed){
+                controller.navigate(Routes.PreviewAlarm.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else{
+                timerEndsCallback.onTimeEnds()
             }
         }
     }
@@ -283,9 +292,13 @@ fun MissionHandlerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    controller.navigate(Routes.PreviewAlarm.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
+                    if(!mainViewModel.isSnoozed){
+                        controller.navigate(Routes.PreviewAlarm.route) {
+                            popUpTo(controller.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    } else{
+                        timerEndsCallback.onTimeEnds()
                     }
                 }) {
                     Icon(
@@ -330,28 +343,32 @@ fun MissionHandlerScreen(
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             items(totalSize) { column ->
+                                val blockIndex = row * totalSize + column
+                                val isBlockSelected = selectedBlocks.contains(blockIndex)
                                 RubikCubeBlock(
                                     modifier = Modifier
                                         .clipToBounds()
                                         .background(
-                                            if ((missionViewModel.missionHandler.notMatched) && row * totalSize + column == missionViewModel.missionHandler.clicked) {
+                                            if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
                                                 showWrong = true
                                                 Color.Red
                                             } else if (modifiedIndices.contains(
-                                                    row * totalSize + column
+                                                    blockIndex
                                                 )
                                             ) Color(
                                                 0xFF9BA2B2
                                             ) else Color(0xff1C1F26)
                                         )
                                         .clickable {
-                                            if (countdown == 0) {
-                                                // Handle block click during countdown
-                                                missionViewModel.missionEventHandler(
-                                                    MissionDemoHandler.checkMatch(row * totalSize + column)
-                                                )
-
-                                                progress = 1f
+                                            if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+                                                if (!selectedBlocks.contains(blockIndex)) {
+                                                    // Handle block click during countdown
+                                                    missionViewModel.missionEventHandler(
+                                                        MissionDemoHandler.checkMatch(blockIndex)
+                                                    )
+                                                    selectedBlocks += blockIndex
+                                                    progress = 1f
+                                                }
                                             }
                                         }, cubeHeightWidth
                                 )
