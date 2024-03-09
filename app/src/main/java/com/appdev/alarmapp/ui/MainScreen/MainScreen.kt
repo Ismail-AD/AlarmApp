@@ -3,7 +3,6 @@ package com.appdev.alarmapp.ui.MainScreen
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -91,7 +90,6 @@ import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.findUpcomingAlarm
 import com.appdev.alarmapp.utils.EventHandlerAlarm
-import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.calculateTimeUntil
 import com.appdev.alarmapp.utils.convertMillisToLocalTime
@@ -117,9 +115,6 @@ fun MainScreen(
     controller: NavHostController,
     mainViewModel: MainViewModel
 ) {
-    if (Helper.isPlaying()) {
-        Helper.stopStream()
-    }
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
     var showSheetState by remember {
         mutableStateOf(false)
@@ -254,6 +249,9 @@ fun MainScreen(
 
     LaunchedEffect(key1 = Unit) {
         mainViewModel.missionData(MissionDataHandler.ResetList)
+        if (mainViewModel.alarmID.value != 0L) {
+            mainViewModel.updateAlarmID(0L)
+        }
         if (!sharedPrefs.getBoolean(
                 "battery",
                 false
@@ -298,7 +296,7 @@ fun MainScreen(
                         .size(45.dp)
                         .clip(CircleShape) // Clip the Box with CircleShape
                         .background(
-                            if (isDarkMode) Color(0xff222325) else Color(0xFFDDF4FA),
+                            if (isDarkMode) Color(0xff323232) else Color(0xFFDDF4FA),
                             CircleShape
                         )
                         .clickable {
@@ -323,7 +321,7 @@ fun MainScreen(
                 onClick = { /*TODO*/ },
                 border = if (isDarkMode) BorderStroke(
                     2.dp,
-                    color = Color(0xff272729)
+                    color = Color(0xff323232)
                 ) else BorderStroke(2.dp, color = Color.LightGray.copy(alpha = 0.5f)),
                 enabled = false,
                 colors = CardDefaults.cardColors(disabledContainerColor = Color.Transparent)
@@ -584,7 +582,7 @@ fun MainScreen(
                             .fillMaxHeight()
                             .padding(vertical = 10.dp), enabled = false,
                         colors = CardDefaults.cardColors(
-                            disabledContainerColor = if (isDarkMode) Color(0xff222325) else Color(
+                            disabledContainerColor = if (isDarkMode) Color(0xff313131) else Color(
                                 0xFFBDEAF5
                             )
                         )
@@ -600,7 +598,7 @@ fun MainScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .background(
-                                        if (isDarkMode) Color(0xff333436) else Color(
+                                        if (isDarkMode) Color(0xff433E47) else Color(
                                             0xFFDDF4FA
                                         ),
                                         CircleShape
@@ -652,6 +650,7 @@ fun MainScreen(
                     AlarmBox(isDarkMode, delete = {
                         alarmScheduler.cancel(alarm)
                         mainViewModel.deleteAlarm(it)
+                        mainViewModel.deleteMissions(it)
                     }, onAlarmCLick = {
                         mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarm.willVibrate))
                         mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = alarm.customVolume))

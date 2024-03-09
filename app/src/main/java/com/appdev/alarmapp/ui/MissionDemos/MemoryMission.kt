@@ -1,16 +1,12 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
-import android.Manifest
-import android.content.Context
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,17 +20,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIos
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,10 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,7 +59,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.andyliu.compose_wheel_picker.HorizontalWheelPicker
-import com.andyliu.compose_wheel_picker.VerticalWheelPicker
 import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
@@ -79,23 +66,19 @@ import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
-import com.appdev.alarmapp.ui.PreivewScreen.TopBar
 import com.appdev.alarmapp.ui.PreivewScreen.getImageForSliderValue
 import com.appdev.alarmapp.ui.PreivewScreen.getMathEqForSliderValue
-import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MemoryMissionScreen(
     mainViewModel: MainViewModel,
-    controller: NavHostController,checkOutViewModel: checkOutViewModel = hiltViewModel()
+    controller: NavHostController, checkOutViewModel: checkOutViewModel = hiltViewModel()
 ) {
 
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
@@ -129,9 +112,9 @@ fun MemoryMissionScreen(
             launchSingleTop = true
         }
     }
-    LaunchedEffect(key1 = billingState.value){
+    LaunchedEffect(key1 = billingState.value) {
         currentState = billingState.value
-        loading=false
+        loading = false
     }
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
@@ -422,9 +405,15 @@ fun MemoryMissionScreen(
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.Transparent
                                         ),
-                                        border = BorderStroke(width = 2.dp, color = Color(0xffA6ACB5))
-                                    ){
-                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+                                        border = BorderStroke(
+                                            width = 2.dp,
+                                            color = Color(0xffA6ACB5)
+                                        )
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
                                             Text(
                                                 text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else "${(index + 1) * 5}",
                                                 color = if (isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
@@ -446,9 +435,10 @@ fun MemoryMissionScreen(
                     ) {
                         CustomButton(
                             onClick = {
-                                Helper.playStream(context, R.raw.alarmsound)
                                 controller.navigate(Routes.PreviewAlarm.route) {
-                                    popUpTo(controller.graph.startDestinationId)
+                                    popUpTo(Routes.CommonMissionScreen.route) {
+                                        inclusive = false
+                                    }
                                     launchSingleTop = true
                                 }
                             },
@@ -462,15 +452,15 @@ fun MemoryMissionScreen(
                         CustomButton(
                             isLock = (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success,
                             onClick = {
-                                Log.d("CHKMD","AT BAR CODE DS ${mainViewModel.managingDefault}")
-                                if((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success){
+                                Log.d("CHKMD", "AT BAR CODE DS ${mainViewModel.managingDefault}")
+                                if ((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success) {
                                     controller.navigate(Routes.Purchase.route) {
                                         popUpTo(Routes.CommonMissionScreen.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
                                     }
-                                } else{
+                                } else {
                                     if (mainViewModel.managingDefault) {
                                         mainViewModel.missionData(
                                             MissionDataHandler.IsSelectedMission(
@@ -496,6 +486,9 @@ fun MemoryMissionScreen(
                                             launchSingleTop = true
                                         }
                                     } else {
+                                        if (currentState !is BillingResultState.Success) {
+                                            mainViewModel.missionData(MissionDataHandler.ResetList)
+                                        }
                                         mainViewModel.missionData(
                                             MissionDataHandler.IsSelectedMission(
                                                 isSelected = true

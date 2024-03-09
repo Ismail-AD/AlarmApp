@@ -4,10 +4,8 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,22 +18,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,7 +53,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.andyliu.compose_wheel_picker.HorizontalWheelPicker
-import com.andyliu.compose_wheel_picker.VerticalWheelPicker
 import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
@@ -70,14 +60,10 @@ import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
-import com.appdev.alarmapp.ui.PreivewScreen.getImageForSliderValue
-import com.appdev.alarmapp.ui.PreivewScreen.getMathEqForSliderValue
-import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertStringToSet
-import com.appdev.alarmapp.utils.motivationalPhrases
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,9 +77,7 @@ fun TypingMissionScreen(
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
     var currentState by remember { mutableStateOf(billingState.value) }
     var loading by remember { mutableStateOf(true) }
-    if (Helper.isPlaying()) {
-        Helper.stopStream()
-    }
+
     val context = LocalContext.current
     val state =
         rememberLazyListState(if ((mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) || (mainViewModel.missionDetails.missionName == "Typing")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0)
@@ -370,11 +354,14 @@ fun TypingMissionScreen(
                     ) {
                         CustomButton(
                             onClick = {
-                                if (!mainViewModel.isRealAlarm) {
-                                    Helper.playStream(context, R.raw.alarmsound)
-                                }
+                                Log.d("CHKMUS","demo preview starting ${mainViewModel.isRealAlarm}")
+//                                if (!mainViewModel.isRealAlarm) {
+//                                    Helper.playStream(context, R.raw.alarmsound)
+//                                }
                                 controller.navigate(Routes.PreviewAlarm.route) {
-                                    popUpTo(controller.graph.startDestinationId)
+                                    popUpTo(Routes.TypeMissionScreen.route){
+                                        inclusive = false
+                                    }
                                     launchSingleTop = true
                                 }
                             },

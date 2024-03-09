@@ -1,6 +1,5 @@
 package com.appdev.alarmapp.AlarmManagement
 
-import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -8,9 +7,7 @@ import android.content.IntentFilter
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,11 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +26,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,16 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavHostController
-import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.navigation.Routes
-import com.appdev.alarmapp.ui.AlarmCancel.snoozeAlarm
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MainScreen.getAMPM
@@ -61,11 +49,9 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertMillisToHoursAndMinutes
-import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getFormattedToday
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
@@ -128,6 +114,7 @@ fun SnoozeScreen(
 
 
     DisposableEffect(Unit) {
+        Log.d("CHECKR","Alarm Object in Snooze Composable ${alarmEntity}")
         Helper.stopIncreasingVolume()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -147,12 +134,12 @@ fun SnoozeScreen(
         )
 
         onDispose {
+            Log.d("CHECKR","ON DISPOSE Alarm Object in Snooze Composable  ${alarmEntity}")
             if (remainingTimeFlow.value <= 0L && mainViewModel.isRealAlarm) {
                 LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
                 timerEndsCallback.onTimeEnds()
             }
             if (!mainViewModel.isRealAlarm) {
-                Log.d("CHKSM", "---------ALARM DISSMIED BY USER UNREG BROADCAST")
                 LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
             }
         }
@@ -183,10 +170,7 @@ fun SnoozeScreen(
     val remainingMinutes = remainingTime / (60 * 1000)
     val remainingSeconds = (remainingTime % (60 * 1000)) / 1000
 
-    Log.d(
-        "CHKSN",
-        "time we got: $remainingMinutes:${String.format("%02d", remainingSeconds)}"
-    )
+    Log.d("CHKSN", "time we got: $remainingMinutes:${String.format("%02d", remainingSeconds)}")
 
 
     Box(
@@ -242,25 +226,26 @@ fun SnoozeScreen(
             ) {
                 CustomButton(
                     onClick = {
-
                         alarmEntity?.id?.let { utils.stopSnoozeTimer(it) }
-                        if (mainViewModel.dummyMissionList.isNotEmpty()) {
-                            val singleMission = mainViewModel.dummyMissionList.first()
+                        if (mainViewModel.isRealAlarm) {
+                            if (mainViewModel.dummyMissionList.isNotEmpty()) {
+                                val singleMission = mainViewModel.dummyMissionList.first()
 
-                            mainViewModel.missionData(
-                                MissionDataHandler.AddCompleteMission(
-                                    missionId = singleMission.missionID,
-                                    repeat = singleMission.repeatTimes,
-                                    repeatProgress = singleMission.repeatProgress,
-                                    missionLevel = singleMission.missionLevel,
-                                    missionName = singleMission.missionName,
-                                    isSelected = singleMission.isSelected,
-                                    setOfSentences = convertStringToSet(singleMission.selectedSentences),
-                                    imageId =
-                                    singleMission.imageId,
-                                    codeId = singleMission.codeId
+                                mainViewModel.missionData(
+                                    MissionDataHandler.AddCompleteMission(
+                                        missionId = singleMission.missionID,
+                                        repeat = singleMission.repeatTimes,
+                                        repeatProgress = singleMission.repeatProgress,
+                                        missionLevel = singleMission.missionLevel,
+                                        missionName = singleMission.missionName,
+                                        isSelected = singleMission.isSelected,
+                                        setOfSentences = convertStringToSet(singleMission.selectedSentences),
+                                        imageId =
+                                        singleMission.imageId,
+                                        codeId = singleMission.codeId
+                                    )
                                 )
-                            )
+                            }
                         }
                         when (mainViewModel.missionDetails.missionName) {
                             "Memory" -> {

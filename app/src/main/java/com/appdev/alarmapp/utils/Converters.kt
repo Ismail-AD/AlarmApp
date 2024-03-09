@@ -14,12 +14,15 @@ import java.io.File
 import java.time.LocalTime
 
 class Converters {
+    @TypeConverter
+    fun fromString(value: String): List<Missions> {
+        val listType = object : TypeToken<List<Missions>>() {}.type
+        return Gson().fromJson(value, listType)
+    }
 
     @TypeConverter
-    fun fromMissionsList(missionsList: List<Missions>): String {
-        Log.d("CHKSJ", missionsList.toString())
-        val gson = Gson()
-        return gson.toJson(missionsList)
+    fun fromList(list: List<Missions>): String {
+        return Gson().toJson(list)
     }
     @TypeConverter
     fun fromBitmap(bitmap: Bitmap): ByteArray {
@@ -33,13 +36,7 @@ class Converters {
         return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
     }
 
-    @TypeConverter
-    fun toMissionsList(missionsListString: String): List<Missions> {
-        Log.d("CHKSJ", missionsListString)
-        val gson = Gson()
-        val type = object : TypeToken<List<Missions>>() {}.type
-        return gson.fromJson(missionsListString, type)
-    }
+
 
     @TypeConverter
     fun fromLocalTime(localTime: LocalTime): String {

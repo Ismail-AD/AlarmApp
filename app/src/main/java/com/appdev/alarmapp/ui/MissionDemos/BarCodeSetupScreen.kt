@@ -76,7 +76,6 @@ import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
-import com.appdev.alarmapp.ui.theme.elementBack
 import com.appdev.alarmapp.ui.theme.signatureBlue
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
@@ -207,11 +206,10 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 CustomButton(
                     onClick = {
                         if (selectedCodeIndex > 1) {
-                            if (!mainViewModel.isRealAlarm) {
-                                Helper.playStream(context, R.raw.alarmsound)
-                            }
                             controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
+                                popUpTo(Routes.BarCodeDemoScreen.route) {
+                                    inclusive = false
+                                }
                                 launchSingleTop = true
                             }
                         } else {

@@ -3,7 +3,6 @@ package com.appdev.alarmapp.ui.MissionViewer
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
-import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,7 +47,6 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertStringToSet
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlin.math.min
 
@@ -97,14 +93,17 @@ fun ShakeDetectionScreen(
     }
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
-            Helper.playStream(context, R.raw.alarmsound)
-            if(!mainViewModel.isSnoozed){
-                controller.navigate(Routes.PreviewAlarm.route) {
-                    popUpTo(controller.graph.startDestinationId)
-                    launchSingleTop = true
-                }
+            if(!mainViewModel.isRealAlarm){
+                controller.popBackStack()
             } else{
-                timerEndsCallback.onTimeEnds()
+                if(!mainViewModel.isSnoozed){
+                    controller.navigate(Routes.PreviewAlarm.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                } else{
+                    timerEndsCallback.onTimeEnds()
+                }
             }
         }
     }
@@ -248,13 +247,17 @@ fun ShakeDetectionScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    if(!mainViewModel.isSnoozed){
-                        controller.navigate(Routes.PreviewAlarm.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
+                    if(!mainViewModel.isRealAlarm){
+                        controller.popBackStack()
                     } else{
-                        timerEndsCallback.onTimeEnds()
+                        if(!mainViewModel.isSnoozed){
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        } else{
+                            timerEndsCallback.onTimeEnds()
+                        }
                     }
                 }) {
                     Icon(

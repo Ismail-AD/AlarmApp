@@ -114,13 +114,15 @@ class Helper {
         }
 
         fun stopStream() {
-            Log.d("CHKALM", "STOPPED MUSIC VIA METHOD")
+            Log.d("CHKMUS", "STOPPED MUSIC VIA METHOD")
+            stopIncreasingVolume()
             mediaPlayer?.stop()
             mediaPlayer?.reset()
             currentPosition = 0
         }
 
         fun releasePlayer() {
+            Log.d("CHKMUS", "PLAYER RELEASED")
             mediaPlayer?.reset()
             mediaPlayer?.release()
             mediaPlayer = null

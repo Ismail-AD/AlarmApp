@@ -9,7 +9,6 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.media.ThumbnailUtils
-import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -36,7 +35,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -47,9 +45,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,7 +68,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
-import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -83,14 +78,10 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.ImageData
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertStringToSet
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import kotlin.math.abs
 import kotlin.math.min
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 @Composable
 fun PhotoMissionScreen(
@@ -145,14 +136,17 @@ fun PhotoMissionScreen(
     }
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
-            Helper.playStream(context, R.raw.alarmsound)
-            if(!mainViewModel.isSnoozed){
-                controller.navigate(Routes.PreviewAlarm.route) {
-                    popUpTo(controller.graph.startDestinationId)
-                    launchSingleTop = true
-                }
+            if(!mainViewModel.isRealAlarm){
+                controller.popBackStack()
             } else{
-                timerEndsCallback.onTimeEnds()
+                if(!mainViewModel.isSnoozed){
+                    controller.navigate(Routes.PreviewAlarm.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                } else{
+                    timerEndsCallback.onTimeEnds()
+                }
             }
         }
     }
@@ -381,13 +375,17 @@ fun PhotoMissionScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = {
-                            if(!mainViewModel.isSnoozed){
-                                controller.navigate(Routes.PreviewAlarm.route) {
-                                    popUpTo(controller.graph.startDestinationId)
-                                    launchSingleTop = true
-                                }
+                            if(!mainViewModel.isRealAlarm){
+                                controller.popBackStack()
                             } else{
-                                timerEndsCallback.onTimeEnds()
+                                if(!mainViewModel.isSnoozed){
+                                    controller.navigate(Routes.PreviewAlarm.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                } else{
+                                    timerEndsCallback.onTimeEnds()
+                                }
                             }
                         }) {
                             Icon(

@@ -7,7 +7,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,7 +66,6 @@ import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
-import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.ui.theme.signatureBlue
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.Helper
@@ -83,9 +81,6 @@ import kotlinx.coroutines.delay
 @Composable
 fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
-    if (Helper.isPlaying()) {
-        Helper.stopStream()
-    }
 
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
@@ -142,11 +137,10 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                 CustomButton(
                     onClick = {
                         if (selectedImageIndex > 1) {
-                            if (!mainViewModel.isRealAlarm) {
-                                Helper.playStream(context, R.raw.alarmsound)
-                            }
                             controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
+                                popUpTo(Routes.CameraRoutineScreen.route) {
+                                    inclusive = false
+                                }
                                 launchSingleTop = true
                             }
                         } else {

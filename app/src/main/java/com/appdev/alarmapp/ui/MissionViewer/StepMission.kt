@@ -11,10 +11,6 @@ import android.location.LocationManager
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -66,7 +62,6 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertStringToSet
-import com.appdev.alarmapp.utils.whichMissionHandler
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -78,11 +73,7 @@ import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.PI
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.min
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
@@ -149,14 +140,17 @@ fun StepMission(
     }
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
-            Helper.playStream(context, R.raw.alarmsound)
-            if(!mainViewModel.isSnoozed){
-                controller.navigate(Routes.PreviewAlarm.route) {
-                    popUpTo(controller.graph.startDestinationId)
-                    launchSingleTop = true
-                }
+            if(!mainViewModel.isRealAlarm){
+                controller.popBackStack()
             } else{
-                timerEndsCallback.onTimeEnds()
+                if(!mainViewModel.isSnoozed){
+                    controller.navigate(Routes.PreviewAlarm.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                } else{
+                    timerEndsCallback.onTimeEnds()
+                }
             }
         }
     }
@@ -348,16 +342,17 @@ fun StepMission(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    if (!mainViewModel.isRealAlarm) {
-                        Helper.playStream(context, R.raw.alarmsound)
-                    }
-                    if(!mainViewModel.isSnoozed){
-                        controller.navigate(Routes.PreviewAlarm.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
+                    if(!mainViewModel.isRealAlarm){
+                        controller.popBackStack()
                     } else{
-                        timerEndsCallback.onTimeEnds()
+                        if(!mainViewModel.isSnoozed){
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        } else{
+                            timerEndsCallback.onTimeEnds()
+                        }
                     }
                 }) {
                     Icon(

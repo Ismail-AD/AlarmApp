@@ -9,7 +9,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,8 +58,6 @@ import androidx.navigation.NavHostController
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
-import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
-import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.whichMissionHandler
@@ -79,7 +76,6 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
     var onGranted by remember {
         mutableStateOf(false)
     }
-
 
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {

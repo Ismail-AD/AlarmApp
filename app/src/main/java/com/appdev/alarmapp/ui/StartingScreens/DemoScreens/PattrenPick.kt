@@ -31,6 +31,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,8 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -72,6 +75,17 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
         mutableStateOf(AlarmScheduler(context, mainViewModel))
     }
     var remainingTime by remember { mutableStateOf(0L) }
+    val alarmIdRec by mainViewModel.alarmID.collectAsStateWithLifecycle()
+    LaunchedEffect(key1 = alarmIdRec) {
+        if (alarmIdRec != 0L) {
+            mainViewModel.insertMissions(
+                missionsEntity(
+                    alarmIdRec,
+                    mainViewModel.missionDetailsList
+                )
+            )
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -121,7 +135,7 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                 contentAlignment = Alignment.BottomCenter
             ) {
                 CustomButton(onClick = {
-                    if(selectedCard!=3){
+                    if (selectedCard != 3) {
                         mainViewModel.missionData(
                             MissionDataHandler.MissionProgress(
                                 repeatProgress = 1
@@ -137,8 +151,8 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                                 missionLevel = "Very Easy"
                             )
                         )
-                        when(selectedCard){
-                            0-> {
+                        when (selectedCard) {
+                            0 -> {
                                 mainViewModel.missionData(
                                     MissionDataHandler.MissionName(
                                         missionName = "Math"
@@ -150,7 +164,8 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                                     )
                                 )
                             }
-                            1-> {
+
+                            1 -> {
                                 mainViewModel.missionData(
                                     MissionDataHandler.MissionName(
                                         missionName = "Memory"
@@ -162,7 +177,8 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                                     )
                                 )
                             }
-                            2-> {
+
+                            2 -> {
                                 mainViewModel.missionData(
                                     MissionDataHandler.MissionName(
                                         missionName = "Shake"
@@ -189,7 +205,7 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                     ) { tomorrowTimeMillis, currentTimeMillis ->
                         remainingTime = tomorrowTimeMillis - currentTimeMillis
                     }
-                    Log.d("CHKIT",mainViewModel.newAlarm.ringtone.rawResourceId.toString())
+                    Log.d("CHKIT", mainViewModel.newAlarm.ringtone.rawResourceId.toString())
                     mainViewModel.newAlarmHandler(newAlarmHandler.insert)
                     controller.navigate(Routes.Setting.route) {
                         launchSingleTop = true
@@ -202,7 +218,10 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
         }
     }
     if (showBottomSheet) {
-        ModalBottomSheet(onDismissRequest = { showBottomSheet = false }, sheetState = sheetState, dragHandle = {}) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState,
+            dragHandle = {}) {
             Column(modifier = Modifier.background(Color(0xff1C1F26))) {
                 when (selectedCard) {
                     0 -> {

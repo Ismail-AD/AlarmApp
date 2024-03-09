@@ -8,7 +8,10 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -65,7 +68,7 @@ fun navGraph(
                 animationSpec = tween(durationMillis = 300),
                 initialAlpha = 0.75f
             )
-        }
+        }, modifier = Modifier.background(MaterialTheme.colorScheme.background)
     ) {
         composable(route = Routes.GetStarted.route) {
             getStarted(controller)

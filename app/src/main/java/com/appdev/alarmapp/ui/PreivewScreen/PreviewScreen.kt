@@ -1,6 +1,9 @@
 package com.appdev.alarmapp.ui.PreivewScreen
 
 import android.os.Build
+import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -9,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -34,6 +39,8 @@ import androidx.compose.material.icons.filled.CameraEnhance
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.outlined.Lock
@@ -44,10 +51,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -56,7 +67,9 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,13 +79,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -83,13 +104,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.BillingResultState
+import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
+import com.appdev.alarmapp.ui.Analysis.playText
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.theme.signatureBlue
+import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
@@ -97,6 +122,7 @@ import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getRepeatText
+import com.appdev.alarmapp.utils.listOfIntervals
 import com.appdev.alarmapp.utils.newAlarmHandler
 import com.appdev.alarmapp.utils.whichMissionHandler
 import com.commandiron.wheel_picker_compose.WheelTimePicker
@@ -115,16 +141,36 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PreviewScreen(
-    alarmSchedule: AlarmScheduler,
+    textToSpeech: TextToSpeech,
     controller: NavHostController,
     mainViewModel: MainViewModel,
     checkOutViewModel: checkOutViewModel = hiltViewModel()
 ) {
+
+    var filename by remember {
+        mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.labelTextForSpeech else mainViewModel.newAlarm.labelTextForSpeech)
+    }
+    var switchStateLabel by remember { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.isLabel else mainViewModel.newAlarm.isLabel) }
+    var startItNow by remember { mutableStateOf(false) }
+    var showToast by remember { mutableStateOf(false) }
+    var loadingLabel by remember { mutableStateOf(true) }
+    var playing by remember { mutableStateOf(false) }
+    var textFieldValueState by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = filename,
+                selection = TextRange(filename.length)
+            )
+        )
+    }
+
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
+    val alarmIdRec by mainViewModel.alarmID.collectAsState()
     if (Helper.isPlaying()) {
         Helper.stopStream()
     }
@@ -136,6 +182,22 @@ fun PreviewScreen(
     var loading by remember { mutableStateOf(true) }
     var soundVolume by remember { mutableFloatStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.customVolume else mainViewModel.newAlarm.customVolume) }
     var showRepeatSheet by remember {
+        mutableStateOf(false)
+    }
+    var showSnoozeSheet by remember {
+        mutableStateOf(false)
+    }
+    var showLabel by remember {
+        mutableStateOf(false)
+    }
+    var switchStateSnooze by remember { mutableStateOf(if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime != -1) true else if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime == -1) false else if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) true else !mainViewModel.whichAlarm.isOld && mainViewModel.newAlarm.snoozeTime != -1) }
+    var selectedOptionSnooze by remember { mutableStateOf(if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime != -1) mainViewModel.defaultSettings.value.snoozeTime.toString() else if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) mainViewModel.selectedDataAlarm.snoozeTime.toString() else mainViewModel.newAlarm.snoozeTime.toString()) }
+
+
+    val sheetState = rememberModalBottomSheetState()
+    val sheetStateSnooze = rememberModalBottomSheetState()
+    val sheetStateLabel = rememberModalBottomSheetState()
+    var getId by remember {
         mutableStateOf(false)
     }
     val context = LocalContext.current
@@ -165,6 +227,36 @@ fun PreviewScreen(
     LaunchedEffect(key1 = billingState.value) {
         currentState = billingState.value
         loading = false
+        loadingLabel = false
+    }
+    LaunchedEffect(key1 = alarmIdRec, key2 = getId) {
+        Log.d("CHKAI", "$alarmIdRec and ${mainViewModel.selectedDataAlarm.id} in LE")
+        Log.d("CHKAI", "Button CLicked Status $getId in LE")
+        if (mainViewModel.whichAlarm.isOld && getId) {
+            mainViewModel.updateMissions(
+                missionsEntity(
+                    mainViewModel.selectedDataAlarm.id,
+                    mainViewModel.missionDetailsList
+                )
+            )
+            controller.navigate(Routes.MainScreen.route) {
+                popUpTo(controller.graph.startDestinationId)
+                launchSingleTop = true
+            }
+        } else {
+            if (alarmIdRec != 0L && getId) {
+                mainViewModel.insertMissions(
+                    missionsEntity(
+                        alarmIdRec,
+                        mainViewModel.missionDetailsList
+                    )
+                )
+                controller.navigate(Routes.MainScreen.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            }
+        }
     }
     LaunchedEffect(key1 = Unit, key2 = soundVolume) {
         if (mainViewModel.whichAlarm.isOld) {
@@ -185,6 +277,51 @@ fun PreviewScreen(
     }
     var timeToTrigger by remember {
         mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.localTime else mainViewModel.newAlarm.localTime)
+    }
+
+
+
+    DisposableEffect(textToSpeech) {
+        onDispose {
+            textToSpeech.stop()
+        }
+    }
+
+    LaunchedEffect(showToast) {
+        if (showToast) {
+            Toast.makeText(context, "Cannot be used without adding a label !", Toast.LENGTH_SHORT)
+                .show()
+            showToast = false
+        }
+    }
+
+    LaunchedEffect(key1 = textFieldValueState.text) {
+        if (playing) {
+            textToSpeech.stop()
+            Helper.stopStream()
+            playing = false
+        }
+        if (textFieldValueState.text.trim().isEmpty()) {
+            switchStateLabel = false
+        }
+    }
+
+    LaunchedEffect(key1 = startItNow) {
+        if (startItNow) {
+            Helper.playStream(context, R.raw.alarmsound)
+        } else {
+            Helper.stopStream()
+        }
+    }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(showLabel) {
+        if (showLabel) {
+            keyboardController?.show()
+            focusRequester.requestFocus()
+        } else
+            keyboardController?.hide()
     }
 
     Scaffold(topBar = {
@@ -209,8 +346,75 @@ fun PreviewScreen(
                 launchSingleTop = true
             }
         }
+    }, bottomBar = {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 25.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CustomButton(onClick = {
+                if (mainViewModel.whichAlarm.isOld) {
+                    if (selectedOptions.value.isEmpty()) {
+                        mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(true))
+                    } else {
+                        mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(false))
+                    }
+                    if (mainViewModel.missionDetailsList.isEmpty()) {
+                        mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = emptyList()))
+                    } else {
+                        mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = mainViewModel.missionDetailsList))
+                    }
+                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(true))
+                    mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = switchState))
+                    mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = soundVolume))
+                    Log.d("CHKZ", "Cancel before update : ${mainViewModel.selectedDataAlarm}")
+                    alarmScheduler.cancel(mainViewModel.selectedDataAlarm)
+                    scheduleTheAlarm(
+                        mainViewModel,
+                        mainViewModel.basicSettings.value.showInNotification,
+                        mainViewModel.selectedDataAlarm,
+                        alarmScheduler, mainViewModel.whichAlarm.isOld
+                    ) { tomorrowTimeMillis, currentTimeMillis ->
+                        remainingTime = tomorrowTimeMillis - currentTimeMillis
+                    }
+                    mainViewModel.updateHandler(EventHandlerAlarm.update)
+
+                } else {
+
+                    if (selectedOptions.value.isEmpty()) {
+                        mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(true))
+                    } else {
+                        mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(false))
+                    }
+                    if (mainViewModel.missionDetailsList.isEmpty()) {
+
+                        mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = emptyList()))
+                    } else {
+                        mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = mainViewModel.missionDetailsList))
+
+                    }
+                    mainViewModel.newAlarmHandler(newAlarmHandler.Vibrator(setVibration = switchState))
+                    mainViewModel.newAlarmHandler(newAlarmHandler.CustomVolume(customVolume = soundVolume))
+                    mainViewModel.newAlarmHandler(newAlarmHandler.isActive(true))
+                    scheduleTheAlarm(
+                        mainViewModel,
+                        mainViewModel.basicSettings.value.showInNotification,
+                        mainViewModel.newAlarm,
+                        alarmScheduler,
+                        mainViewModel.whichAlarm.isOld,
+                    ) { tomorrowTimeMillis, currentTimeMillis ->
+                        remainingTime = tomorrowTimeMillis - currentTimeMillis
+                    }
+                    mainViewModel.newAlarmHandler(newAlarmHandler.insert)
+
+                }
+                getId = true
+                showRemaining = true
+            }, text = "Save", width = 0.85f, backgroundColor = Color(0xff7B70FF))
+        }
     }) {
-        if (loading) {
+        if (loading || loadingLabel) {
             Box(
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -812,10 +1016,11 @@ fun PreviewScreen(
                     title = "Snooze",
                     data = if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) "${mainViewModel.selectedDataAlarm.snoozeTime} min" else if (!mainViewModel.whichAlarm.isOld && mainViewModel.newAlarm.snoozeTime != -1) "${mainViewModel.newAlarm.snoozeTime} min" else "off"
                 ) {
-                    controller.navigate(Routes.SnoozeScreen.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
+                    showSnoozeSheet = true
+//                    controller.navigate(Routes.SnoozeScreen.route) {
+//                        popUpTo(controller.graph.startDestinationId)
+//                        launchSingleTop = true
+//                    }
                 }
                 SingleOption(
                     title = "Label",
@@ -825,130 +1030,128 @@ fun PreviewScreen(
                             .isNotEmpty()
                     ) mainViewModel.newAlarm.labelTextForSpeech else "none"
                 ) {
-                    controller.navigate(Routes.LabelScreen.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
+                    showLabel = true
+//                    controller.navigate(Routes.LabelScreen.route) {
+//                        popUpTo(controller.graph.startDestinationId)
+//                        launchSingleTop = true
+//                    }
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 25.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CustomButton(onClick = {
-                    if (mainViewModel.whichAlarm.isOld) {
-                        if (selectedOptions.value.isEmpty()) {
-                            mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(true))
-                        } else {
-                            mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(false))
-                        }
-                        if (mainViewModel.missionDetailsList.isEmpty()) {
-                            mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = emptyList()))
-                        } else {
-                            mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = mainViewModel.missionDetailsList))
-                        }
-                        mainViewModel.updateHandler(EventHandlerAlarm.isActive(true))
-                        mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = switchState))
-                        mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = soundVolume))
-                        Log.d("CHKZ", "Cancel before update : ${mainViewModel.selectedDataAlarm}")
-                        alarmScheduler.cancel(mainViewModel.selectedDataAlarm)
-                        scheduleTheAlarm(
-                            mainViewModel,
-                            mainViewModel.basicSettings.value.showInNotification,
-                            mainViewModel.selectedDataAlarm,
-                            alarmScheduler, mainViewModel.whichAlarm.isOld
-                        ) { tomorrowTimeMillis, currentTimeMillis ->
-                            remainingTime = tomorrowTimeMillis - currentTimeMillis
-                        }
-                        mainViewModel.updateHandler(EventHandlerAlarm.update)
-
-                    } else {
-
-                        if (selectedOptions.value.isEmpty()) {
-                            mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(true))
-                        } else {
-                            mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(false))
-                        }
-                        if (mainViewModel.missionDetailsList.isEmpty()) {
-
-                            mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = emptyList()))
-                        } else {
-                            mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = mainViewModel.missionDetailsList))
-
-                        }
-                        mainViewModel.newAlarmHandler(newAlarmHandler.Vibrator(setVibration = switchState))
-                        mainViewModel.newAlarmHandler(newAlarmHandler.CustomVolume(customVolume = soundVolume))
-                        mainViewModel.newAlarmHandler(newAlarmHandler.isActive(true))
-                        scheduleTheAlarm(
-                            mainViewModel,
-                            mainViewModel.basicSettings.value.showInNotification,
-                            mainViewModel.newAlarm,
-                            alarmScheduler,
-                            mainViewModel.whichAlarm.isOld,
-                        ) { tomorrowTimeMillis, currentTimeMillis ->
-                            remainingTime = tomorrowTimeMillis - currentTimeMillis
-                        }
-                        mainViewModel.newAlarmHandler(newAlarmHandler.insert)
-                    }
-                    showRemaining = true
-                    controller.navigate(Routes.MainScreen.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
-                }, text = "Save", width = 0.85f, backgroundColor = Color(0xff7B70FF))
-            }
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(vertical = 25.dp),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                CustomButton(onClick = {
+//                    if (mainViewModel.whichAlarm.isOld) {
+//                        if (selectedOptions.value.isEmpty()) {
+//                            mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(true))
+//                        } else {
+//                            mainViewModel.updateHandler(EventHandlerAlarm.isOneTime(false))
+//                        }
+//                        if (mainViewModel.missionDetailsList.isEmpty()) {
+//                            mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = emptyList()))
+//                        } else {
+//                            mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = mainViewModel.missionDetailsList))
+//                        }
+//                        mainViewModel.updateHandler(EventHandlerAlarm.isActive(true))
+//                        mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = switchState))
+//                        mainViewModel.updateHandler(EventHandlerAlarm.CustomVolume(customVolume = soundVolume))
+//                        Log.d("CHKZ", "Cancel before update : ${mainViewModel.selectedDataAlarm}")
+//                        alarmScheduler.cancel(mainViewModel.selectedDataAlarm)
+//                        scheduleTheAlarm(
+//                            mainViewModel,
+//                            mainViewModel.basicSettings.value.showInNotification,
+//                            mainViewModel.selectedDataAlarm,
+//                            alarmScheduler, mainViewModel.whichAlarm.isOld
+//                        ) { tomorrowTimeMillis, currentTimeMillis ->
+//                            remainingTime = tomorrowTimeMillis - currentTimeMillis
+//                        }
+//                        mainViewModel.updateHandler(EventHandlerAlarm.update)
+//
+//                    } else {
+//
+//                        if (selectedOptions.value.isEmpty()) {
+//                            mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(true))
+//                        } else {
+//                            mainViewModel.newAlarmHandler(newAlarmHandler.isOneTime(false))
+//                        }
+//                        if (mainViewModel.missionDetailsList.isEmpty()) {
+//
+//                            mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = emptyList()))
+//                        } else {
+//                            mainViewModel.newAlarmHandler(newAlarmHandler.getMissions(missions = mainViewModel.missionDetailsList))
+//
+//                        }
+//                        mainViewModel.newAlarmHandler(newAlarmHandler.Vibrator(setVibration = switchState))
+//                        mainViewModel.newAlarmHandler(newAlarmHandler.CustomVolume(customVolume = soundVolume))
+//                        mainViewModel.newAlarmHandler(newAlarmHandler.isActive(true))
+//                        scheduleTheAlarm(
+//                            mainViewModel,
+//                            mainViewModel.basicSettings.value.showInNotification,
+//                            mainViewModel.newAlarm,
+//                            alarmScheduler,
+//                            mainViewModel.whichAlarm.isOld,
+//                        ) { tomorrowTimeMillis, currentTimeMillis ->
+//                            remainingTime = tomorrowTimeMillis - currentTimeMillis
+//                        }
+//                        mainViewModel.newAlarmHandler(newAlarmHandler.insert)
+//
+//                    }
+//                    getId = true
+//                    showRemaining = true
+//                }, text = "Save", width = 0.85f, backgroundColor = Color(0xff7B70FF))
+//            }
         }
         if (showRepeatSheet) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                Dialog(onDismissRequest = {
-                    selectedOptions.value =
-                        if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.listOfDays else mainViewModel.newAlarm.listOfDays
-                    showRepeatSheet = false
-                }) {
-                    Column(
+
+            ModalBottomSheet(onDismissRequest = {
+                selectedOptions.value =
+                    if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.listOfDays else mainViewModel.newAlarm.listOfDays
+                showRepeatSheet = false
+            }, sheetState = sheetState) {
+                Column(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.onBackground)
+                        .padding(16.dp)
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.onBackground)
-                            .padding(16.dp)
+                            .padding(top = 5.dp, bottom = 5.dp, end = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(
+                            text = "Repeat",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 18.sp,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center, fontWeight = FontWeight.W500
+                        )
+                    }
+                    // Replace this with your logic to get the list of days
+                    val daysOfWeek = listOf(
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday"
+                    )
+
+                    val dayPairs = daysOfWeek.chunked(2)
+
+                    dayPairs.forEach { pair ->
                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(vertical = 1.dp)
                         ) {
-                            Text(
-                                text = "Repeat",
-                                color = MaterialTheme.colorScheme.surfaceTint,
-                                fontSize = 18.sp,
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center, fontWeight = FontWeight.W500
-                            )
-                        }
-                        // Replace this with your logic to get the list of days
-                        val daysOfWeek = listOf(
-                            "Monday",
-                            "Tuesday",
-                            "Wednesday",
-                            "Thursday",
-                            "Friday",
-                            "Saturday",
-                            "Sunday"
-                        )
-
-                        daysOfWeek.forEach { day ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 1.dp)
-                            ) {
+                            pair.forEach { day ->
                                 // Checkbox for each day
                                 Checkbox(
                                     checked = selectedOptions.value.contains(day),
@@ -978,29 +1181,411 @@ fun PreviewScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(28.dp))
+                    }
+                    Spacer(modifier = Modifier.height(15.dp))
 
-                        CustomButton(
-                            onClick = {
-                                if (mainViewModel.whichAlarm.isOld) {
-                                    mainViewModel.updateHandler(
-                                        EventHandlerAlarm.getDays(
-                                            days = selectedOptions.value
-                                        )
+                    CustomButton(
+                        onClick = {
+                            if (mainViewModel.whichAlarm.isOld) {
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.getDays(
+                                        days = selectedOptions.value
                                     )
-                                } else {
-                                    mainViewModel.newAlarmHandler(
-                                        newAlarmHandler.getDays(
-                                            days = selectedOptions.value
-                                        )
+                                )
+                            } else {
+                                mainViewModel.newAlarmHandler(
+                                    newAlarmHandler.getDays(
+                                        days = selectedOptions.value
+                                    )
+                                )
+                            }
+                            days = getRepeatText(selectedOptions.value)
+                            showRepeatSheet = false
+                        },
+                        text = "Done",
+                        width = 0.98f
+                    )
+                }
+            }
+        }
+        if (showSnoozeSheet) {
+            ModalBottomSheet(onDismissRequest = {
+                if (mainViewModel.managingDefault) {
+                    if (!switchStateSnooze) {
+                        mainViewModel.setDefaultSettings(
+                            DefaultSettingsHandler.GetNewObject(
+                                defaultSettings = DefaultSettings(
+                                    id = mainViewModel.defaultSettings.value.id,
+                                    ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                    snoozeTime = -1,
+                                    listOfMissions = mainViewModel.defaultSettings.value.listOfMissions
+                                )
+                            )
+                        )
+                    } else {
+                        mainViewModel.setDefaultSettings(
+                            DefaultSettingsHandler.GetNewObject(
+                                defaultSettings = DefaultSettings(
+                                    id = mainViewModel.defaultSettings.value.id,
+                                    ringtone = mainViewModel.defaultSettings.value.ringtone,
+                                    snoozeTime = selectedOptionSnooze.toInt(),
+                                    listOfMissions = mainViewModel.defaultSettings.value.listOfMissions
+                                )
+                            )
+                        )
+                    }
+                    mainViewModel.setDefaultSettings(DefaultSettingsHandler.UpdateDefault)
+                } else {
+                    if (mainViewModel.whichAlarm.isOld && switchStateSnooze) {
+                        mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = selectedOptionSnooze.toInt()))
+                    } else if (!mainViewModel.whichAlarm.isOld && switchStateSnooze) {
+                        mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = selectedOptionSnooze.toInt()))
+                    } else if (mainViewModel.whichAlarm.isOld && !switchStateSnooze) {
+                        mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = -1))
+                    } else {
+                        mainViewModel.newAlarmHandler(newAlarmHandler.getSnoozeTime(getSnoozeTime = -1))
+                    }
+                }
+                showSnoozeSheet = false
+            }, sheetState = sheetStateSnooze) {
+                Column(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.onBackground)
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Snooze",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 16.sp
+                        )
+                        Switch(
+                            checked = switchStateSnooze,
+                            onCheckedChange = { newSwitchState ->
+                                switchStateSnooze = newSwitchState
+
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = if (isSystemInDarkTheme()) Color.White else Color(
+                                    0xff13A7CB
+                                ), // Color when switch is ON
+                                checkedTrackColor = if (isSystemInDarkTheme()) Color(0xff7358F5) else Color(
+                                    0xff7FCFE1
+                                ), // Track color when switch is ON
+                                uncheckedThumbColor = if (isSystemInDarkTheme()) Color(0xff949495) else Color(
+                                    0xff656D7D
+                                ), // Color when switch is OFF
+                                uncheckedTrackColor = if (isSystemInDarkTheme()) Color(0xff343435) else Color(
+                                    0xff9E9E9E
+                                ) // Track color when switch is OFF
+                            ), modifier = Modifier.scale(0.8f)
+                        )
+                    }
+                    val groupedIntervals =
+                        listOfIntervals.chunked(2) // Split intervals into chunks of size 2
+
+                    groupedIntervals.forEach { chunk ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            chunk.forEach { interval ->
+                                RadioButton(
+                                    selected = interval == selectedOptionSnooze,
+                                    onClick = { selectedOptionSnooze = interval },
+                                    enabled = switchStateSnooze,
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = Color(0xff18677E),
+                                        unselectedColor = Color(0xffB6BDCA)
+                                    )
+                                )
+                                Text(
+                                    text = if (interval != "Off") "$interval minutes" else interval,
+                                    color = MaterialTheme.colorScheme.surfaceTint,
+                                    fontSize = 15.sp,
+                                    modifier = Modifier
+                                        .padding(start = 10.dp)
+                                        .weight(1f)
+                                )
+                            }
+                        }
+                    }
+//                    listOfIntervals.forEach { item ->
+//                        SingleChoice(
+//                            isSelected = item == selectedOptionSnooze,
+//                            onCLick = { selectedOptionSnooze = item },
+//                            title = item, enabled = switchStateSnooze
+//                        )
+//                    }
+//                    Card(
+//                        onClick = {},
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(horizontal = 20.dp, vertical = 20.dp),
+//                        enabled = switchStateSnooze,
+//                        shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed
+//                        colors = CardDefaults.cardColors(
+//                            containerColor = MaterialTheme.colorScheme.onBackground,
+//                            disabledContainerColor = Color(0xff16171B)
+//                        )
+//                    ) {
+//                        Column(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                        ) {
+//                            listOfIntervals.forEach { item ->
+//                                Spacer(modifier = Modifier.height(12.dp))
+//                                SingleChoice(
+//                                    isSelected = item == selectedOptionSnooze,
+//                                    onCLick = { selectedOptionSnooze = item },
+//                                    title = item, enabled = switchStateSnooze
+//                                )
+//                            }
+//
+//                        }
+//
+//                    }
+
+                }
+            }
+        }
+
+        if (showLabel) {
+            ModalBottomSheet(onDismissRequest = {
+                if (currentState is BillingResultState.Success) {
+                    if (mainViewModel.whichAlarm.isOld) {
+                        mainViewModel.updateHandler(
+                            EventHandlerAlarm.IsLabel(
+                                isLabelOrNot = switchStateLabel
+                            )
+                        )
+                        mainViewModel.updateHandler(
+                            EventHandlerAlarm.LabelText(
+                                getLabelText = textFieldValueState.text
+                            )
+                        )
+                    } else {
+                        mainViewModel.newAlarmHandler(
+                            newAlarmHandler.IsLabel(
+                                isLabelOrNot = switchStateLabel
+                            )
+                        )
+                        mainViewModel.newAlarmHandler(
+                            newAlarmHandler.LabelText(
+                                getLabelText = textFieldValueState.text
+                            )
+                        )
+                    }
+                } else {
+                    filename = ""
+                    playing = false
+                    textFieldValueState = TextFieldValue(
+                        text = filename,
+                        selection = TextRange(filename.length)
+                    )
+                }
+                Log.d(
+                    "CHKZA",
+                    "${currentState is BillingResultState.Success} also ${textFieldValueState.text} tezt field now ${filename}"
+                )
+                showLabel = false
+            }, sheetState = sheetStateLabel) {
+                Column(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.inverseOnSurface)
+                        .padding(horizontal = 15.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    BasicTextField(
+                        value = textFieldValueState,
+                        onValueChange = {
+                            textFieldValueState = it
+                        },
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.surfaceTint),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        textStyle = TextStyle(
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 16.sp
+                        ),
+                        maxLines = 1,
+                        decorationBox = { innerTextField ->
+                            Box(
+                                modifier = Modifier.padding(
+                                    start = 3.dp,
+                                    end = 2.dp,
+                                    bottom = 10.dp
+                                )
+                            ) {
+                                innerTextField()
+                            }
+                        }
+                    )
+                    Divider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.surfaceTint,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.inverseOnSurface)
+                        .padding(horizontal = 8.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 13.dp, horizontal = 15.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Reads out the label when your alarm rings",
+                            color = MaterialTheme.colorScheme.inverseSurface,
+                            textAlign = TextAlign.Start,
+                            fontSize = 13.sp,
+                            modifier = Modifier.fillMaxWidth(0.7f)
+                        )
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Card(
+                                onClick = {
+                                    playing = !playing
+                                    if (playing) {
+                                        playText(
+                                            textToSpeech, text = textFieldValueState.text,
+                                            id = System.currentTimeMillis().toString()
+                                        ) { endOrNot ->
+                                            startItNow = endOrNot
+                                        }
+                                    } else {
+                                        startItNow = false
+                                        textToSpeech.stop()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .height(40.dp)
+                                    .width(85.dp),
+                                shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed
+                                border = BorderStroke(
+                                    width = 1.dp,
+                                    color = if (textFieldValueState.text.trim()
+                                            .isEmpty()
+                                    ) Color(0x434C5460) else MaterialTheme.colorScheme.surfaceTint
+                                ),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (textFieldValueState.text.trim()
+                                            .isEmpty()
+                                    ) Color(
+                                        0x434C5460
+                                    ) else Color.Transparent,
+                                    disabledContainerColor = if (textFieldValueState.text.trim()
+                                            .isEmpty()
+                                    ) Color(
+                                        0x434C5460
+                                    ) else Color.Transparent
+                                ), enabled = textFieldValueState.text.trim()
+                                    .isNotEmpty()
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                        contentDescription = "",
+                                        tint = MaterialTheme.colorScheme.surfaceTint,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        "Preview", fontSize = 13.sp,
+                                        letterSpacing = 0.sp,
+                                        color = MaterialTheme.colorScheme.surfaceTint
                                     )
                                 }
-                                days = getRepeatText(selectedOptions.value)
-                                showRepeatSheet = false
-                            },
-                            text = "Done",
-                            width = 0.98f
-                        )
+                            }
+
+                        }
+                    }
+
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(0.85f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Label Reminder",
+                                color = MaterialTheme.colorScheme.surfaceTint,
+                                fontSize = 16.sp,
+                            )
+                            if (currentState !is BillingResultState.Success) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.Lock,
+                                    contentDescription = "",
+                                    tint = MaterialTheme.colorScheme.surfaceTint,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Switch(
+                                checked = switchStateLabel,
+                                onCheckedChange = { newSwitchState ->
+                                    if (textFieldValueState.text.trim().isEmpty()) {
+                                        showToast = true
+                                    } else {
+                                        if (currentState !is BillingResultState.Success) {
+                                            controller.navigate(Routes.Purchase.route) {
+                                                popUpTo(Routes.LabelScreen.route) {
+                                                    inclusive = false
+                                                }
+                                                launchSingleTop = true
+                                            }
+                                        } else {
+                                            switchStateLabel = newSwitchState
+                                        }
+                                        // Handle the new switch state
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                        0xff13A7CB
+                                    ), // Color when switch is ON
+                                    checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                        0xff7FCFE1
+                                    ), // Track color when switch is ON
+                                    uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                        0xff656D7D
+                                    ), // Color when switch is OFF
+                                    uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                        0xff9E9E9E
+                                    ) // Track color when switch is OFF
+                                ), modifier = Modifier.scale(0.8f)
+                            )
+                        }
+
                     }
                 }
             }
@@ -1051,6 +1636,15 @@ fun getMathEqForSliderValue(value: String): String {
         else -> "3 + 4 = "
     }
 }
+//@Composable
+//fun SingleChoiceSnooze(isSelected: Boolean, onCLick: () -> Unit, title: String, enabled: Boolean) {
+//        RadioButton(selected = isSelected, onClick = { onCLick() }, enabled = enabled, colors = RadioButtonDefaults.colors(selectedColor = Color(0xff18677E), unselectedColor = Color(0xffB6BDCA)))
+//        Text(
+//            text = if(title!="Off") "$title minutes" else title,
+//            color = MaterialTheme.colorScheme.surfaceTint,
+//            fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp).weight(1f)
+//        )
+//}
 
 fun calculateSkipAlarmTriggerTime(alarmEntity: AlarmEntity): Long {
     val newTime = localTimeToMillis(alarmEntity.localTime)
@@ -1575,4 +2169,24 @@ fun timeInString(timeToTrigger: TimeUntil): String {
 
         else -> pluralize(timeToTrigger.seconds, "sec")
     }
+}
+
+fun playText(textToSpeech: TextToSpeech, id: String, text: String, startItNow: (Boolean) -> Unit) {
+    textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+        override fun onStart(utteranceId: String?) {
+        }
+
+        override fun onDone(utteranceId: String?) {
+            startItNow(true)
+        }
+
+        override fun onError(utteranceId: String?) {
+        }
+    })
+
+    val params = Bundle()
+    params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, id)
+
+    // Play the formatted time and date as audio
+    textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, id)
 }

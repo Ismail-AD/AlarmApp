@@ -109,7 +109,7 @@ fun AlarmCancelScreen(
             darkIcons = false
         )
     }
-    BackHandler(false) {
+    BackHandler {
 
     }
 
@@ -150,8 +150,6 @@ fun AlarmCancelScreen(
         onDispose {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
             textToSpeech.stop()
-            Helper.stopStream()
-            Helper.stopIncreasingVolume()
             vibrator.cancel()
             if (isDarkMode) {
                 systemUiController.setSystemBarsColor(
@@ -222,51 +220,44 @@ fun AlarmCancelScreen(
         }
     }
 
-    Log.d("CHKMUS","IS MUSIC PLAYING BEFORE GOING TO PLAY ${Helper.isPlaying()}")
-    if ((mainViewModel.isRealAlarm || previewMode) && !Helper.isPlaying()) {
-        alarmEntity?.let { alarm ->
-            if (alarm.ringtone.rawResourceId != -1) {
-                Log.d("CHKMUS","ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
-                ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
-                if (alarm.isTimeReminder) {
-                    if (!startItNow) {
-                        scope.launch {
-                            delay(500)
-                            startCurrentTimeAndDate(
-                                alarm.labelTextForSpeech,
-                                textToSpeech,
-                                System.currentTimeMillis().toString() + (0..19992).random()
-                            )
+    LaunchedEffect(key1 = Unit){
+        if(!mainViewModel.isRealAlarm && !previewMode){
+            Log.d("CHKMUS","Mission Viewer Music Started")
+            Helper.playStream(context, R.raw.alarmsound)
+        }
+
+        Log.d("CHKMUS","IS MUSIC PLAYING BEFORE GOING TO PLAY ${Helper.isPlaying()}")
+        if ((mainViewModel.isRealAlarm || previewMode)) {
+            alarmEntity?.let { alarm ->
+                if (alarm.ringtone.rawResourceId != -1) {
+                    Log.d("CHKMUS","ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
+                    ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
+                    if (alarm.isTimeReminder) {
+                        if (!startItNow) {
+                            scope.launch {
+                                delay(500)
+                                startCurrentTimeAndDate(
+                                    alarm.labelTextForSpeech,
+                                    textToSpeech,
+                                    System.currentTimeMillis().toString() + (0..19992).random()
+                                )
+                            }
                         }
                     }
-                }
 
-                if (!alarm.isTimeReminder) {
-                    if (alarm.isLabel) {
-                        scope.launch {
-                            delay(500)
-                            playTextToSpeech(
-                                text = alarm.labelTextForSpeech,
-                                textToSpeech = textToSpeech,
-                                id = System.currentTimeMillis().toString() + (0..19992).random()
-                            )
+                    if (!alarm.isTimeReminder) {
+                        if (alarm.isLabel) {
+                            scope.launch {
+                                delay(500)
+                                playTextToSpeech(
+                                    text = alarm.labelTextForSpeech,
+                                    textToSpeech = textToSpeech,
+                                    id = System.currentTimeMillis().toString() + (0..19992).random()
+                                )
+                            }
                         }
-                    }
-                    if (alarm.isGentleWakeUp) {
-                        Log.d("CHKMUS","IS GENTLE WAKE-UP")
-                        Helper.updateLow(true)
-                        Helper.startIncreasingVolume(
-                            convertToMilliseconds(
-                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                            )
-                        )
-                    }
-
-                    Helper.playStream(context.applicationContext, alarm.ringtone.rawResourceId)
-                } else {
-                    if (startItNow) {
                         if (alarm.isGentleWakeUp) {
+                            Log.d("CHKMUS","IS GENTLE WAKE-UP")
                             Helper.updateLow(true)
                             Helper.startIncreasingVolume(
                                 convertToMilliseconds(
@@ -275,45 +266,46 @@ fun AlarmCancelScreen(
                                 )
                             )
                         }
-                        Helper.playStream(context, alarm.ringtone.rawResourceId)
-                    }
-                }
-                if (alarm.isLoudEffect) {
-                    scope.launch {
-                        delay(40000L)
-                        setMaxVolume(context)
-                        Helper.playStream(context, R.raw.loudeffect)
-                    }
-                }
-            } else if (alarm.ringtone.uri != null) {
-                ringtone = ringtone.copy(uri = alarm.ringtone.uri)
 
-                if (alarm.isTimeReminder) {
-                    if (!startItNow) {
-                        scope.launch {
-                            delay(500)
-                            startCurrentTimeAndDate(
-                                alarm.labelTextForSpeech,
-                                textToSpeech,
-                                System.currentTimeMillis().toString()
-                            )
+                        Helper.playStream(context.applicationContext, alarm.ringtone.rawResourceId)
+                    } else {
+                        if (startItNow) {
+                            if (alarm.isGentleWakeUp) {
+                                Helper.updateLow(true)
+                                Helper.startIncreasingVolume(
+                                    convertToMilliseconds(
+                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                                    )
+                                )
+                            }
+                            Helper.playStream(context, alarm.ringtone.rawResourceId)
                         }
                     }
-                }
-
-                if (!alarm.isTimeReminder) {
-                    if (alarm.isGentleWakeUp) {
-                        Helper.updateLow(true)
-                        Helper.startIncreasingVolume(
-                            convertToMilliseconds(
-                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                            )
-                        )
+                    if (alarm.isLoudEffect) {
+                        scope.launch {
+                            delay(40000L)
+                            setMaxVolume(context)
+                            Helper.playStream(context, R.raw.loudeffect)
+                        }
                     }
-                    Helper.playStream(context, uri = alarm.ringtone.uri)
-                } else {
-                    if (startItNow) {
+                } else if (alarm.ringtone.uri != null) {
+                    ringtone = ringtone.copy(uri = alarm.ringtone.uri)
+
+                    if (alarm.isTimeReminder) {
+                        if (!startItNow) {
+                            scope.launch {
+                                delay(500)
+                                startCurrentTimeAndDate(
+                                    alarm.labelTextForSpeech,
+                                    textToSpeech,
+                                    System.currentTimeMillis().toString()
+                                )
+                            }
+                        }
+                    }
+
+                    if (!alarm.isTimeReminder) {
                         if (alarm.isGentleWakeUp) {
                             Helper.updateLow(true)
                             Helper.startIncreasingVolume(
@@ -324,46 +316,46 @@ fun AlarmCancelScreen(
                             )
                         }
                         Helper.playStream(context, uri = alarm.ringtone.uri)
-                    }
-                }
-
-                if (alarm.isLoudEffect) {
-                    scope.launch {
-                        delay(40000L)
-                        setMaxVolume(context)
-                        Helper.playStream(context, R.raw.loudeffect)
-                    }
-                }
-
-
-            } else if (alarm.ringtone.file != null) {
-                ringtone = ringtone.copy(file = alarm.ringtone.file)
-
-                if (alarm.isTimeReminder) {
-                    if (!startItNow) {
-                        scope.launch {
-                            delay(500)
-                            startCurrentTimeAndDate(
-                                alarm.labelTextForSpeech,
-                                textToSpeech,
-                                System.currentTimeMillis().toString()
-                            )
+                    } else {
+                        if (startItNow) {
+                            if (alarm.isGentleWakeUp) {
+                                Helper.updateLow(true)
+                                Helper.startIncreasingVolume(
+                                    convertToMilliseconds(
+                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                                    )
+                                )
+                            }
+                            Helper.playStream(context, uri = alarm.ringtone.uri)
                         }
                     }
-                }
-                if (!alarm.isTimeReminder) {
-                    if (alarm.isGentleWakeUp) {
-                        Helper.updateLow(true)
-                        Helper.startIncreasingVolume(
-                            convertToMilliseconds(
-                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                            )
-                        )
+
+                    if (alarm.isLoudEffect) {
+                        scope.launch {
+                            delay(40000L)
+                            setMaxVolume(context)
+                            Helper.playStream(context, R.raw.loudeffect)
+                        }
                     }
-                    Helper.playFile(alarm.ringtone.file!!, context)
-                } else {
-                    if (startItNow) {
+
+
+                } else if (alarm.ringtone.file != null) {
+                    ringtone = ringtone.copy(file = alarm.ringtone.file)
+
+                    if (alarm.isTimeReminder) {
+                        if (!startItNow) {
+                            scope.launch {
+                                delay(500)
+                                startCurrentTimeAndDate(
+                                    alarm.labelTextForSpeech,
+                                    textToSpeech,
+                                    System.currentTimeMillis().toString()
+                                )
+                            }
+                        }
+                    }
+                    if (!alarm.isTimeReminder) {
                         if (alarm.isGentleWakeUp) {
                             Helper.updateLow(true)
                             Helper.startIncreasingVolume(
@@ -374,23 +366,35 @@ fun AlarmCancelScreen(
                             )
                         }
                         Helper.playFile(alarm.ringtone.file!!, context)
+                    } else {
+                        if (startItNow) {
+                            if (alarm.isGentleWakeUp) {
+                                Helper.updateLow(true)
+                                Helper.startIncreasingVolume(
+                                    convertToMilliseconds(
+                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+                                    )
+                                )
+                            }
+                            Helper.playFile(alarm.ringtone.file!!, context)
+                        }
                     }
-                }
-                if (alarm.isLoudEffect) {
-                    scope.launch {
-                        delay(40000L)
-                        setMaxVolume(context)
-                        Helper.playStream(context, R.raw.loudeffect)
+                    if (alarm.isLoudEffect) {
+                        scope.launch {
+                            delay(40000L)
+                            setMaxVolume(context)
+                            Helper.playStream(context, R.raw.loudeffect)
+                        }
                     }
-                }
 
-            } else {
+                } else {
+                }
             }
         }
-    } else {
-        if (!Helper.isPlaying()) {
-            Helper.playStream(context, R.raw.alarmsound)
-        }
+
+
+
     }
 //    if (mainViewModel.isRealAlarm && !Helper.isPlaying()) {
 //        when (intent.getIntExtra("tonetype", 0)) {
@@ -585,12 +589,7 @@ fun AlarmCancelScreen(
                             }
 
                             "Typing" -> {
-                                controller.navigate(Routes.TypingPreviewScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.TypingPreviewScreen.route)
                             }
 
                             "Step" -> {
@@ -638,6 +637,9 @@ fun AlarmCancelScreen(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
                                 )
+//                                if(!mainViewModel.isRealAlarm && !previewMode){
+//
+//                                }
                                 onDismissCallback.onDismissClicked()
                             }
                         }
@@ -682,10 +684,7 @@ fun AlarmCancelScreen(
                                             launchSingleTop = true
                                         }
                                     } else {
-                                        controller.navigate(Routes.MissionMenuScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
-                                            launchSingleTop = true
-                                        }
+                                        controller.popBackStack()
                                     }
                                 },
                             contentAlignment = Alignment.Center

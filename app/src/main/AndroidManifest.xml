@@ -46,8 +46,7 @@
         <service
             android:name=".AlarmManagement.SnoozeService"
             android:enabled="true"
-            android:exported="false"
-            android:label="MyService" />
+            android:exported="false" />
 
         <activity
             android:name=".AlarmManagement.AlarmCancelAccess"

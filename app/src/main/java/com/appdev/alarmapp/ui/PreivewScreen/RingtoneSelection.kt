@@ -65,7 +65,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -82,16 +81,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.ModelClass.DefaultSettings
-import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
-import com.appdev.alarmapp.ui.theme.elementBack
 import com.appdev.alarmapp.utils.AudioRecorder
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.EventHandlerAlarm
@@ -104,11 +99,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -452,7 +445,7 @@ fun RingtoneSelection(
                                 .padding(vertical = 10.dp, horizontal = 12.dp)
                         ) {
                             items(recordingsList) { recording ->
-                                EachRecording(
+                                EachRecording(mainViewModel,
                                     isSelected = recording == selectedRingtone,
                                     mainViewModel::deleteRecording,
                                     ringtone = recording
@@ -887,6 +880,7 @@ fun TopBarRT(onClick: () -> Unit) {
 
 @Composable
 fun EachRecording(
+    mainViewModel: MainViewModel,
     isSelected: Boolean,
     deleteIt: (Long) -> Unit,
     ringtone: Ringtone,

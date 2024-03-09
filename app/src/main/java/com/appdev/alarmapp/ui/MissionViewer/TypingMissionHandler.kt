@@ -1,12 +1,11 @@
 package com.appdev.alarmapp.ui.MissionViewer
 
-import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,12 +19,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +44,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
-import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
@@ -59,9 +53,7 @@ import com.appdev.alarmapp.ui.theme.signatureBlue
 import com.appdev.alarmapp.utils.CustomPhrase
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
-import com.appdev.alarmapp.utils.MissionMathDemoHandler
 import com.appdev.alarmapp.utils.convertStringToSet
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlin.math.min
 
@@ -73,9 +65,7 @@ fun TypingMissionHandler(
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    if (dismissSettings.muteTone) {
-        Helper.stopStream()
-    }
+
 
     var progress by remember { mutableFloatStateOf(1f) }
     var checkIt by remember { mutableStateOf(false) }
@@ -99,8 +89,14 @@ fun TypingMissionHandler(
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
+        if (dismissSettings.muteTone) {
+            Helper.stopStream()
+        }
         keyboardController?.show()
         focusRequester.requestFocus()
+    }
+    BackHandler {
+
     }
 
     LaunchedEffect(animatedProgress) {
@@ -115,7 +111,6 @@ fun TypingMissionHandler(
     }
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
-            Helper.playStream(context, R.raw.alarmsound)
             if(!mainViewModel.isSnoozed){
                 controller.navigate(Routes.PreviewAlarm.route) {
                     popUpTo(controller.graph.startDestinationId)
@@ -263,13 +258,17 @@ fun TypingMissionHandler(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    if(!mainViewModel.isSnoozed){
-                        controller.navigate(Routes.PreviewAlarm.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
+                    if(!mainViewModel.isRealAlarm){
+                        controller.popBackStack()
                     } else{
-                        timerEndsCallback.onTimeEnds()
+                        if(!mainViewModel.isSnoozed){
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        } else{
+                            timerEndsCallback.onTimeEnds()
+                        }
                     }
                 }) {
                     Icon(

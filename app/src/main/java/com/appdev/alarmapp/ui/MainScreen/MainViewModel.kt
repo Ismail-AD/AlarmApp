@@ -1,25 +1,24 @@
 package com.appdev.alarmapp.ui.MainScreen
 
+import android.content.Context
+import android.media.MediaPlayer
+import android.net.Uri
+import android.os.Handler
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Embedded
-import androidx.room.PrimaryKey
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.Repository.AlarmRepository
 import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.utils.CustomPhrase
@@ -32,11 +31,9 @@ import com.appdev.alarmapp.utils.QrCodeData
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.Updating
 import com.appdev.alarmapp.utils.convertSetToString
-import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.isOldOrNew
 import com.appdev.alarmapp.utils.motivationalPhrases
 import com.appdev.alarmapp.utils.newAlarmHandler
-import com.appdev.alarmapp.utils.ringtoneList
 import com.appdev.alarmapp.utils.toRingtoneEntity
 import com.appdev.alarmapp.utils.toSystemRingtoneEntity
 import com.appdev.alarmapp.utils.whichMissionHandler
@@ -46,12 +43,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalTime
+import java.io.File
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -61,6 +56,7 @@ class MainViewModel @Inject constructor(
     val alarmRepository: AlarmRepository,
     val tokenManagement: TokenManagement
 ) : ViewModel() {
+
 
     private var _defaultSettings = MutableStateFlow(DefaultSettings())
     val defaultSettings: StateFlow<DefaultSettings> get() = _defaultSettings
@@ -76,8 +72,11 @@ class MainViewModel @Inject constructor(
     val themeSettings: StateFlow<Boolean> get() = _themeSettings
 
 
-    private var _snoozedAlarm = MutableStateFlow(AlarmEntity())
-    val snoozedAlarm: StateFlow<AlarmEntity> get() = _snoozedAlarm
+    private var _missions = MutableStateFlow(missionsEntity())
+    val missions: StateFlow<missionsEntity> get() = _missions
+
+    private var _alarmID = MutableStateFlow(0L)
+    val alarmID: StateFlow<Long> get() = _alarmID
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -119,6 +118,7 @@ class MainViewModel @Inject constructor(
     var isSnoozed by mutableStateOf(false)
 
 
+
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
     val snoozeTime: StateFlow<Long> = _snoozeTime.asStateFlow()
 
@@ -143,6 +143,10 @@ class MainViewModel @Inject constructor(
 
     fun previewModeUpdate(value: Boolean) {
         previewMode = value
+    }
+
+    fun updateAlarmID(id: Long) {
+        _alarmID.value = id
     }
 
     fun snoozeUpdate(value: Boolean) {
@@ -634,20 +638,58 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun getAlarmById(id: Long) {
+//    fun getAlarmById(id: Long) {
+//        viewModelScope.launch {
+//            alarmRepository.getSpecificAlarm(id).collect { mayNullAlarm ->
+//                mayNullAlarm?.let {
+//                    Log.d("CHKSJ", "Alarm MISSION LIST AT VM --------- ${it.listOfMissions}")
+//                    _snoozedAlarm.value = it
+//                }
+//            }
+//        }
+//    }
+
+
+    fun getMissionsById(id: Long) {
         viewModelScope.launch {
-            alarmRepository.getSpecificAlarm(id).collect { mayNullAlarm->
-                mayNullAlarm?.let {
+            alarmRepository.getMissionsById(id).collect { missions ->
+                missions?.let {
                     Log.d("CHKSJ", "Alarm MISSION LIST AT VM --------- ${it.listOfMissions}")
-                    _snoozedAlarm.value = it
+                    _missions.value = it
                 }
             }
         }
     }
 
+    fun updateMissionsData(missionsE: missionsEntity) {
+        _missions.value = missionsE
+    }
+
+    fun insertMissions(missionsEntity: missionsEntity) {
+        viewModelScope.launch {
+            alarmRepository.insertMissions(
+                missionsEntity
+            )
+        }
+    }
+
+    fun updateMissions(missionsEntity: missionsEntity) {
+        viewModelScope.launch {
+            alarmRepository.updateMissions(missionsEntity)
+        }
+    }
+
+    fun deleteMissions(id: Long) {
+        viewModelScope.launch {
+            alarmRepository.deleteMissions(id)
+        }
+    }
+
     fun insertAlarm(alarmEntity: AlarmEntity) {
         viewModelScope.launch {
-            alarmRepository.insertAlarm(alarmEntity)
+            _alarmID.value = alarmRepository.insertAlarm(alarmEntity)
+            Log.d("CHKAI", "${_alarmID.value} in VM")
+
         }
     }
 

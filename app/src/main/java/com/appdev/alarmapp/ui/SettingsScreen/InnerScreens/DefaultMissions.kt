@@ -65,6 +65,7 @@ import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.ringtoneList
 import com.appdev.alarmapp.utils.whichMissionHandler
+import com.google.gson.Gson
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,7 +170,7 @@ fun DefaultAlarmMissions(
                             modifier = Modifier.padding(top = 2.dp)
                         )
                         Text(
-                            text = stateFlowObject.value.listOfMissions.size.toString() + "/5",
+                            text =  stateFlowObject.value.listOfMissions.size.toString() + "/5",
                             color = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.7f),
                             fontSize = 15.sp
                         )

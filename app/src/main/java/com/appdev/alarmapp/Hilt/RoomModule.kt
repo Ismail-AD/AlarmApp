@@ -9,6 +9,7 @@ import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
 import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
 import com.appdev.alarmapp.utils.DaoClasses.DismissDao
 import com.appdev.alarmapp.utils.DaoClasses.ImageStoreDao
+import com.appdev.alarmapp.utils.DaoClasses.MissionsDao
 import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.DatabaseName
 import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
 import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
@@ -103,6 +104,11 @@ object RoomModule {
     @Provides
     fun provideDatabaseTheSettingsDismissClass(roomDatabase: RoomDB): DismissDao {
         return roomDatabase.dismissSettingsDao()
+    }
+    @Singleton
+    @Provides
+    fun provideDatabaseTheMissionsClass(roomDatabase: RoomDB): MissionsDao {
+        return roomDatabase.missionsDao()
     }
 
 }

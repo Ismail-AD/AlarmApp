@@ -41,7 +41,6 @@ import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertMillisToLocalTime
-import com.appdev.alarmapp.utils.newAlarmHandler
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
 import java.time.OffsetTime
@@ -141,6 +140,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
         ) { // Power button not pressed, bring the app to the foreground
             Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
+
             val newIntent = Intent(this, javaClass)
             newIntent.putExtra("Alarm", receivedAlarm)
             newIntent.putExtra("Preview", previewMode)
@@ -492,7 +492,7 @@ fun AlarmNavGraph(
         composable(route = Routes.TypingPreviewScreen.route) {
             TypingMissionHandler(
                 mainViewModel = mainViewModel,
-                controller = controller ,timerEndsCallback =
+                controller = controller, timerEndsCallback =
                 object : TimerEndsCallback {
                     override fun onTimeEnds() {
                         TODO("Not yet implemented")

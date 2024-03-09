@@ -4,9 +4,10 @@ import android.content.Context
 import android.media.RingtoneManager
 import android.net.Uri
 import android.speech.tts.TextToSpeech
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +18,7 @@ import androidx.compose.material.BottomAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -79,7 +81,6 @@ import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.UsabilityScreen
 import com.appdev.alarmapp.ui.Snooze.SnoozeScreen
 import com.appdev.alarmapp.ui.inappbuyScreen.InAppPurchase
 import com.appdev.alarmapp.utils.BottomNavItems
-import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.isOldOrNew
@@ -209,7 +210,7 @@ fun MainUiScreen(
         bottomBar = {
             if (backStackEntry.value?.destination?.route !in screenWithNoBar) {
                 BottomAppBar(
-                    backgroundColor = if (isDarkMode) Color(0xff1C1F26) else Color.White,
+                    backgroundColor = if (isDarkMode) Color(0xff2C2C2C) else Color.White,
                     cutoutShape = CircleShape,
                     contentPadding = PaddingValues(horizontal = 30.dp)
                 ) {
@@ -237,22 +238,34 @@ fun MainUiScreen(
                     Spacer(modifier = Modifier.weight(0.15f))
                 }
             }
-        }) { PV ->
+        }, modifier = Modifier.background(MaterialTheme.colorScheme.background)) { PV ->
         NavHost(
             navController = controller,
             startDestination = Routes.MainScreen.route,
             enterTransition = {
-                EnterTransition.None
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Right,
+                    animationSpec = tween(700)
+                )
             },
             exitTransition = {
-                ExitTransition.None
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Left,
+                    animationSpec = tween(700)
+                )
             },
             popEnterTransition = {
-                EnterTransition.None
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Right,
+                    animationSpec = tween(700)
+                )
             },
             popExitTransition = {
-                ExitTransition.None
-            }
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Left,
+                    animationSpec = tween(700)
+                )
+            },modifier = Modifier.background(MaterialTheme.colorScheme.background)
         ) {
             composable(route = Routes.MainScreen.route) {
                 MainScreen(alarmScheduler, controller, mainViewModel)
@@ -321,7 +334,7 @@ fun MainUiScreen(
             }
             composable(route = Routes.Preview.route) {
                 PreviewScreen(
-                    alarmScheduler,
+                    textToSpeech,
                     controller,
                     mainViewModel
                 )
