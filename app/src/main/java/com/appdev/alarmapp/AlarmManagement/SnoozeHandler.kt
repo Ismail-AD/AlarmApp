@@ -177,12 +177,9 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
 
 
     override fun onDismissClicked() {
-        Log.d("CHECKR", "ON DISMISSED IS CALLED")
-
-        Log.d("CHKSM", "DISMISS BUTTON TRIGERED .............")
-        mainViewModel.snoozeUpdate(false)
+        alarmScheduler.cancel(alarm)
         if (mainViewModel.dummyMissionList.isEmpty()) {
-            if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
+            if (alarm.isOneTime) {
                 mainViewModel.updateHandler(
                     EventHandlerAlarm.Vibrator(
                         setVibration = alarm.willVibrate
@@ -257,7 +254,6 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
                 )
                 mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = false))
                 mainViewModel.updateHandler(EventHandlerAlarm.update)
-                alarmScheduler.cancel(alarm)
             }
             if (alarm.listOfDays.isNotEmpty() && mainViewModel.isRealAlarm) {
                 val alarmEntity = AlarmEntity(

@@ -189,8 +189,9 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
     override fun onDismissClicked() {
         Log.d("CHKSM", "ON ALARM WORK FINISH IS CALLED.............")
+        alarmScheduler.cancel(alarm)
         if (mainViewModel.dummyMissionList.isEmpty()) {
-            if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
+            if (alarm.isOneTime) {
                 mainViewModel.updateHandler(
                     EventHandlerAlarm.Vibrator(
                         setVibration = alarm.willVibrate

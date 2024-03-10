@@ -517,7 +517,6 @@ fun AlarmCancelScreen(
                             )
                             startItNow = false
                             showSnoozed = true
-                            mainViewModel.snoozeUpdate(true)
                             textToSpeech.stop()
                             textToSpeech.shutdown()
                             vibrator.cancel()
