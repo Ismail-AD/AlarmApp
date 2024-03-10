@@ -3,6 +3,7 @@ package com.appdev.alarmapp.ui.MissionViewer
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -58,9 +59,7 @@ fun ShakeDetectionScreen(
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    if (dismissSettings.muteTone) {
-        Helper.stopStream()
-    }
+
     var progress by remember { mutableFloatStateOf(1f) }
 
     var shakeToBeDone by remember { mutableStateOf(mainViewModel.missionDetails.repeatTimes) }
@@ -80,7 +79,14 @@ fun ShakeDetectionScreen(
         targetValue = progress,
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec, label = ""
     ).value
+    LaunchedEffect(key1 = Unit){
+        if (dismissSettings.muteTone) {
+            Helper.stopStream()
+        }
+    }
+    BackHandler {
 
+    }
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
         val duration = dismissSettings.missionTime * 1000

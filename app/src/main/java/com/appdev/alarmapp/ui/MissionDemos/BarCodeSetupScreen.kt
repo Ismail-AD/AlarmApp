@@ -94,9 +94,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
-    if (Helper.isPlaying()) {
-        Helper.stopStream()
-    }
+
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
 

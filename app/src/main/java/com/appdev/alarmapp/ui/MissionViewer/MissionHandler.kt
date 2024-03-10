@@ -1,5 +1,6 @@
 package com.appdev.alarmapp.ui.MissionViewer
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -104,6 +105,9 @@ fun MissionHandlerScreen(
         if(dismissSettings.muteTone){
             Helper.stopStream()
         }
+    }
+    BackHandler {
+
     }
 
     LaunchedEffect(animatedProgress) {

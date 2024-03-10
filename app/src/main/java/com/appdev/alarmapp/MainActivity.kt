@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
                             val newIntent = Intent(this@MainActivity, SnoozeHandler::class.java)
                             mainViewModel.getMissionsById(alarm.id)
                             mainViewModel.missions.collect{
+                                Log.d("CHKAI","Missions ${it.listOfMissions}")
                                 if(it.listOfMissions.isEmpty()){
                                     newIntent.putExtra("Alarm", alarm)
                                     newIntent.putExtra(

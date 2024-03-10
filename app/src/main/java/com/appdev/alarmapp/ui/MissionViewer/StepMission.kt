@@ -11,6 +11,7 @@ import android.location.LocationManager
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
@@ -83,9 +85,9 @@ fun StepMission(
     controller: NavHostController,timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
-    if (Helper.isPlaying()) {
-        Helper.pauseStream()
-    }
+
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+
     val context = LocalContext.current
     var countdown by remember { mutableStateOf(5) }
 
@@ -126,7 +128,14 @@ fun StepMission(
     ).value
 
     val scope = rememberCoroutineScope()
+    LaunchedEffect(key1 = Unit){
+        if (dismissSettings.muteTone) {
+            Helper.stopStream()
+        }
+    }
+    BackHandler {
 
+    }
 
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L

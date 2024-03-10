@@ -181,7 +181,11 @@ private fun Content(
             textAlign = TextAlign.Center,
             text = "Place a QR/Barcode inside the box",
         )
+        Log.d("CHKBC","Start Process ${viewModel.detectedQrCodeState.startProcess}")
+        Log.d("CHKBC","Qr code state ${viewModel.detectedQrCodeState.qrCode.isNotEmpty()}")
+
         if (viewModel.detectedQrCodeState.qrCode.isNotEmpty() && viewModel.detectedQrCodeState.startProcess) {
+            Log.d("CHKBC","On Detect Called")
             onDetect()
         }
     }

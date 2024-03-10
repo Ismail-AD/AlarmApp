@@ -85,9 +85,7 @@ fun MemoryMissionScreen(
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
     var currentState by remember { mutableStateOf(billingState.value) }
     var loading by remember { mutableStateOf(true) }
-    if (Helper.isPlaying()) {
-        Helper.stopStream()
-    }
+
     val itemsList by remember {
         mutableStateOf(listOf("Very Easy", "Easy", "Normal", "Hard"))
     }

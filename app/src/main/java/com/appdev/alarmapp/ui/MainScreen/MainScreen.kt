@@ -255,7 +255,7 @@ fun MainScreen(
         if (!sharedPrefs.getBoolean(
                 "battery",
                 false
-            ) && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            )
         ) {
             showDialog = true
         }

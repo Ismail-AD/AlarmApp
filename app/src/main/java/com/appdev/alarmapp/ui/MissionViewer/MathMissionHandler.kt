@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.ui.MissionViewer
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -75,9 +76,7 @@ fun MathMissionHandler(
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    if (dismissSettings.muteTone) {
-        Helper.stopStream()
-    }
+
 
     var progress by remember { mutableFloatStateOf(1f) }
     var countdown by remember { mutableStateOf(3) }
@@ -102,6 +101,14 @@ fun MathMissionHandler(
     ).value
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(key1 = Unit){
+        if (dismissSettings.muteTone) {
+            Helper.stopStream()
+        }
+    }
+    BackHandler {
+
+    }
     LaunchedEffect(key1 = showWrong, key2 = rightAnswer) {
         if (missionViewModel.missionMathHandler.answer == 0 && countdown != 0) {
             qusetionString = getMathValues(missionLevel, missionViewModel)

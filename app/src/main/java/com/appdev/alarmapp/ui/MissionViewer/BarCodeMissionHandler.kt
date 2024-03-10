@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.ui.MissionViewer
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.animation.core.animateFloatAsState
@@ -69,9 +70,7 @@ fun BarCodeMissionScreen(
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    if (dismissSettings.muteTone) {
-        Helper.stopStream()
-    }
+
     var missionData by remember { mutableStateOf<String?>(null) }
     var progress by remember { mutableFloatStateOf(1f) }
     var isFlashOn by remember { mutableStateOf(false) }
@@ -90,13 +89,20 @@ fun BarCodeMissionScreen(
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec, label = ""
     ).value
 
+    LaunchedEffect(key1 = Unit){
+        if (dismissSettings.muteTone) {
+            Helper.stopStream()
+        }
+    }
     LaunchedEffect(key1 = mainViewModel.selectedCode){
         if(mainViewModel.missionDetails.codeId > 1){
             missionData = mainViewModel.selectedCode.qrCodeString
             dataToBeMatched = mainViewModel.selectedCode.qrCodeString
         }
     }
+    BackHandler {
 
+    }
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
         val duration = dismissSettings.missionTime * 1000

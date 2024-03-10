@@ -562,30 +562,15 @@ fun AlarmCancelScreen(
                         }
                         when (mainViewModel.missionDetails.missionName) {
                             "Memory" -> {
-                                controller.navigate(Routes.MissionScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.MissionScreen.route)
                             }
 
                             "Shake" -> {
-                                controller.navigate(Routes.MissionShakeScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.MissionShakeScreen.route)
                             }
 
                             "Math" -> {
-                                controller.navigate(Routes.MissionMathScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.MissionMathScreen.route)
                             }
 
                             "Typing" -> {
@@ -593,39 +578,19 @@ fun AlarmCancelScreen(
                             }
 
                             "Step" -> {
-                                controller.navigate(Routes.StepDetectorScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.StepDetectorScreen.route)
                             }
 
                             "Squat" -> {
-                                controller.navigate(Routes.SquatMissionScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.SquatMissionScreen.route)
                             }
 
                             "Photo" -> {
-                                controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.PhotoMissionPreviewScreen.route)
                             }
 
                             "QR/Barcode" -> {
-                                controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
-                                    popUpTo(Routes.PreviewAlarm.route) {
-                                        inclusive = true
-                                    }
-                                    launchSingleTop = true
-                                }
+                                controller.navigate(Routes.BarCodePreviewAlarmScreen.route)
                             }
 
                             else -> {

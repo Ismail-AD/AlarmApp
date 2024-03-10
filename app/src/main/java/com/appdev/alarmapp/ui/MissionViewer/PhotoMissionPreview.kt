@@ -10,6 +10,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.media.ThumbnailUtils
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -91,9 +92,6 @@ fun PhotoMissionScreen(
 ) {
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    if (dismissSettings.muteTone) {
-        Helper.stopStream()
-    }
     var loading by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(1f) }
     var isFlashOn by remember { mutableStateOf(false) }
@@ -256,6 +254,14 @@ fun PhotoMissionScreen(
                     launchSingleTop = true
                 }
             }
+        }
+    }
+    BackHandler {
+
+    }
+    LaunchedEffect(key1 = Unit){
+        if (dismissSettings.muteTone) {
+            Helper.stopStream()
         }
     }
 

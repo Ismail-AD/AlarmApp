@@ -5,6 +5,8 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -238,7 +240,8 @@ fun MainUiScreen(
                     Spacer(modifier = Modifier.weight(0.15f))
                 }
             }
-        }, modifier = Modifier.background(MaterialTheme.colorScheme.background)) { PV ->
+        }, modifier = Modifier.background(MaterialTheme.colorScheme.background)
+    ) { PV ->
         NavHost(
             navController = controller,
             startDestination = Routes.MainScreen.route,
@@ -265,7 +268,7 @@ fun MainUiScreen(
                     towards = AnimatedContentTransitionScope.SlideDirection.Companion.Left,
                     animationSpec = tween(700)
                 )
-            },modifier = Modifier.background(MaterialTheme.colorScheme.background)
+            }, modifier = Modifier.background(MaterialTheme.colorScheme.background)
         ) {
             composable(route = Routes.MainScreen.route) {
                 MainScreen(alarmScheduler, controller, mainViewModel)
@@ -358,7 +361,7 @@ fun MainUiScreen(
                 }, textToSpeech, controller, mainViewModel)
             }
             composable(route = Routes.MissionShakeScreen.route) {
-                ShakeDetectionScreen(mainViewModel = mainViewModel, controller,timerEndsCallback =
+                ShakeDetectionScreen(mainViewModel = mainViewModel, controller, timerEndsCallback =
                 object : TimerEndsCallback {
                     override fun onTimeEnds() {
                         TODO("Not yet implemented")
@@ -395,7 +398,18 @@ fun MainUiScreen(
             composable(route = Routes.BarCodeDemoScreen.route) {
                 BarCodeMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.BarCodeScanScreen.route) {
+            composable(route = Routes.BarCodeScanScreen.route, enterTransition = {
+                EnterTransition.None
+            },
+                exitTransition = {
+                    ExitTransition.None
+                },
+                popEnterTransition = {
+                    EnterTransition.None
+                },
+                popExitTransition = {
+                    ExitTransition.None
+                }) {
                 ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodePreviewAlarmScreen.route) {

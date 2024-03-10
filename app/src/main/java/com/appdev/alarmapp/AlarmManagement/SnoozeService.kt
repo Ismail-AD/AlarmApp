@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -88,7 +89,11 @@ class SnoozeService : Service() {
                 .build()
             Log.d("CHKSM", "START ID OF SERVICE $startId")
 
-            startForeground(startId, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(startId, notification,FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            } else{
+                startForeground(startId, notification)
+            }
 
             val totalTimeMillis = TimeUnit.MINUTES.toMillis(minutes.toLong())
             Log.d("CHKSN", "1. $minutes are minutes from intent and millis are $totalTimeMillis")

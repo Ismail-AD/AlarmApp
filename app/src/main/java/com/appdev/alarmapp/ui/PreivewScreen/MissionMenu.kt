@@ -330,27 +330,27 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                             launchSingleTop = true
                         }
                     }
-                    singleCard(
-                        isDarkMode = isDarkMode,
-                        imageId = R.drawable.strength,
-                        iconID = Icons.Filled.DirectionsWalk,
-                        title = "Squat"
-                    ) {
-                        showToast = false
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Squat"))
-                        mainViewModel.whichMissionHandle(
-                            whichMissionHandler.thisMission(
-                                missionMemory = false,
-                                missionMath = false,
-                                missionShake = false,
-                                isSteps = false, isSquat = true
-                            )
-                        )
-                        controller.navigate(Routes.CommonMissionScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
-                    }
+//                    singleCard(
+//                        isDarkMode = isDarkMode,
+//                        imageId = R.drawable.strength,
+//                        iconID = Icons.Filled.DirectionsWalk,
+//                        title = "Squat"
+//                    ) {
+//                        showToast = false
+//                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Squat"))
+//                        mainViewModel.whichMissionHandle(
+//                            whichMissionHandler.thisMission(
+//                                missionMemory = false,
+//                                missionMath = false,
+//                                missionShake = false,
+//                                isSteps = false, isSquat = true
+//                            )
+//                        )
+//                        controller.navigate(Routes.CommonMissionScreen.route) {
+//                            popUpTo(controller.graph.startDestinationId)
+//                            launchSingleTop = true
+//                        }
+//                    }
                 }
                 if (showRationale) {
                     AlertDialog(
