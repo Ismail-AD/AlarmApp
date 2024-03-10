@@ -226,7 +226,9 @@ fun SnoozeScreen(
             ) {
                 CustomButton(
                     onClick = {
-                        alarmEntity?.id?.let { utils.stopSnoozeTimer(it) }
+                        alarmEntity?.id?.let {
+                            utils.stopSnoozeTimer(it)
+                        }
                         if (mainViewModel.isRealAlarm) {
                             if (mainViewModel.dummyMissionList.isNotEmpty()) {
                                 val singleMission = mainViewModel.dummyMissionList.first()

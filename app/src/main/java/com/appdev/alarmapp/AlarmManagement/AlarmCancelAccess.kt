@@ -137,7 +137,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         val isScreenOnNow = isScreenOn()
         Log.d("CHKSM", "ON STOP TRIGGERED.............${mainViewModel.getRealUpdate()}")
 
-        if (mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
+        if (mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty() && mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
         ) { // Power button not pressed, bring the app to the foreground
             Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
 

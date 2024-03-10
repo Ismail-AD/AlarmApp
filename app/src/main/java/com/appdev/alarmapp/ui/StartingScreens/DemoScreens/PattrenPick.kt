@@ -76,14 +76,23 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
     }
     var remainingTime by remember { mutableStateOf(0L) }
     val alarmIdRec by mainViewModel.alarmID.collectAsStateWithLifecycle()
-    LaunchedEffect(key1 = alarmIdRec) {
-        if (alarmIdRec != 0L) {
+    var getId by remember {
+        mutableStateOf(false)
+    }
+    LaunchedEffect(key1 = alarmIdRec,key2 = getId) {
+        if (alarmIdRec != 0L && getId) {
             mainViewModel.insertMissions(
                 missionsEntity(
                     alarmIdRec,
                     mainViewModel.missionDetailsList
                 )
             )
+            controller.navigate(Routes.Setting.route) {
+                launchSingleTop = true
+                popUpTo(Routes.Pattern.route) {
+                    inclusive = true
+                }
+            }
         }
     }
 
@@ -207,12 +216,7 @@ fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
                     }
                     Log.d("CHKIT", mainViewModel.newAlarm.ringtone.rawResourceId.toString())
                     mainViewModel.newAlarmHandler(newAlarmHandler.insert)
-                    controller.navigate(Routes.Setting.route) {
-                        launchSingleTop = true
-                        popUpTo(Routes.Pattern.route) {
-                            inclusive = true
-                        }
-                    }
+                    getId = true
                 }, text = "Next")
             }
         }
