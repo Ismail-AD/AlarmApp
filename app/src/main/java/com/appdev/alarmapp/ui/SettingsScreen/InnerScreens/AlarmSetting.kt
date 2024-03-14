@@ -61,10 +61,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.DeviceAdminManage.DeviceAdminReceiver
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -79,9 +82,14 @@ import java.time.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
+fun AlarmSettings(
+    mainViewModel: MainViewModel,
+    controller: NavHostController,
+    checkOutViewModel: checkOutViewModel = hiltViewModel()
+) {
     val alarmList by mainViewModel.alarmList.collectAsStateWithLifecycle(initialValue = emptyList())
     val alarmSettings = mainViewModel.basicSettings.collectAsStateWithLifecycle()
+    val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
@@ -91,12 +99,23 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
     val deviceAdminComponent by remember {
         mutableStateOf(ComponentName(context, DeviceAdminReceiver::class.java))
     }
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
 
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
+    }
     val devicePolicyManager by remember {
         mutableStateOf(context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager)
     }
 
-    var switchStatePrevention by remember { mutableStateOf(alarmSettings.value.preventUninstall && devicePolicyManager.isAdminActive(deviceAdminComponent)) }
+    var switchStatePrevention by remember {
+        mutableStateOf(
+            alarmSettings.value.preventUninstall && devicePolicyManager.isAdminActive(
+                deviceAdminComponent
+            )
+        )
+    }
 
     val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -169,7 +188,8 @@ fun AlarmSettings(mainViewModel: MainViewModel, controller: NavHostController) {
                 isDarkMode,
                 title = "Default Setting for New Alarms",
                 onClick = {
-                    mainViewModel.missionData(MissionDataHandler.ResetList)
+//                    mainViewModel.missionData(MissionDataHandler.ResetList)
+
                     mainViewModel.setDefaultSettings(DefaultSettingsHandler.GoingToSetDefault(true))
                     controller.navigate(Routes.DefaultSettingsScreen.route) {
                         popUpTo(Routes.SettingsOfAlarmScreen.route) {

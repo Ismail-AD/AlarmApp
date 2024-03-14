@@ -492,7 +492,6 @@ fun StepMission(
         }
     }
     LaunchedEffect(key1 = isLocationEnabled, key2 = countdown) {
-        isLocationEnabled = locationEnabled(context)
         if (isLocationEnabled) {
             if (countdown > 0) {
                 scope.launch {
@@ -735,7 +734,7 @@ fun StepMission(
                     CustomButton(onClick = {
                         context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                         isLocationEnabled = locationEnabled(context)
-                    }, text = "Turn on the location")
+                    }, text = "Continue Step mission")
                 } else {
                     Text(
                         text = if (countdown != 0) "Stand up and take your position ! Starting in $countdown" else "Take Steps Softly",

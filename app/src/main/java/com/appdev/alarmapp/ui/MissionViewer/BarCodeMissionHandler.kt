@@ -462,7 +462,7 @@ fun BarCodeMissionScreen(
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true
                     }
-                } else{
+                } else {
                     timerEndsCallback.onTimeEnds()
                 }
             }

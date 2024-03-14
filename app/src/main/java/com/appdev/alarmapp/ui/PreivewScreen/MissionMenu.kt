@@ -114,7 +114,12 @@ fun MissionMenu(
     }
     BackHandler {
         if (mainViewModel.managingDefault) {
-            controller.popBackStack()
+            controller.navigate(Routes.DefaultSettingsScreen.route) {
+                popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
         } else {
             controller.navigate(Routes.Preview.route) {
                 popUpTo(controller.graph.startDestinationId)
@@ -140,7 +145,12 @@ fun MissionMenu(
                 Card(
                     onClick = {
                         if (mainViewModel.managingDefault) {
-                            controller.popBackStack()
+                            controller.navigate(Routes.DefaultSettingsScreen.route) {
+                                popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
                         } else {
                             controller.navigate(Routes.Preview.route) {
                                 popUpTo(controller.graph.startDestinationId)

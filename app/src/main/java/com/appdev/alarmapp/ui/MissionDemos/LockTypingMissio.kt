@@ -77,6 +77,8 @@ fun TypingMissionScreen(
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
     var currentState by remember { mutableStateOf(billingState.value) }
     var loading by remember { mutableStateOf(true) }
+    val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
+
 
     val context = LocalContext.current
     val state =
@@ -389,6 +391,9 @@ fun TypingMissionScreen(
                                                 mainViewModel.sentencesList
                                             )
                                         )
+//                                        if(currentState is BillingResultState.Success){
+                                            mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
+//                                        }
                                         mainViewModel.missionData(MissionDataHandler.SubmitData)
                                         mainViewModel.setDefaultSettings(
                                             DefaultSettingsHandler.GetNewObject(

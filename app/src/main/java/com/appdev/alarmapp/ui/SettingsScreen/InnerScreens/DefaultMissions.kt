@@ -240,7 +240,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -281,7 +283,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
                                     }
@@ -319,7 +323,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -358,7 +364,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -398,7 +406,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -435,7 +445,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.TypeMissionScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -461,7 +473,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.CameraRoutineScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -487,7 +501,9 @@ fun DefaultAlarmMissions(
                                             )
                                         )
                                         controller.navigate(Routes.BarCodeDemoScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
+                                            popUpTo(Routes.DefaultSettingsScreen.route){
+                                                inclusive = false
+                                            }
                                             launchSingleTop = true
                                         }
 
@@ -506,7 +522,7 @@ fun DefaultAlarmMissions(
                         }
 
                         // Display empty static slots
-                        if (currentState is BillingResultState.Success) {
+//                        if (currentState is BillingResultState.Success) {
                             repeat(emptyStaticSlots) {
                                 singleMission(isLock = false,
                                     Missions(),
@@ -518,32 +534,32 @@ fun DefaultAlarmMissions(
                                     }
                                 }
                             }
-                        } else {
-                            if (stateFlowObject.value.listOfMissions.isEmpty()) {
-                                singleMission(isLock = false,
-                                    Missions(),
-                                    remove = {},
-                                    moveToDetails = {}) {
-                                    controller.navigate(Routes.MissionMenuScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
-                                        launchSingleTop = true
-                                    }
-                                }
-                            }
-                            repeat(emptyStaticSlots) {
-                                singleMission(isLock = true,
-                                    Missions(),
-                                    remove = {},
-                                    moveToDetails = {}) {
-                                    controller.navigate(Routes.Purchase.route) {
-                                        popUpTo(Routes.DefaultSettingsScreen.route) {
-                                            inclusive = false
-                                        }
-                                        launchSingleTop=true
-                                    }
-                                }
-                            }
-                        }
+//                        } else {
+//                            if (stateFlowObject.value.listOfMissions.isEmpty()) {
+//                                singleMission(isLock = false,
+//                                    Missions(),
+//                                    remove = {},
+//                                    moveToDetails = {}) {
+//                                    controller.navigate(Routes.MissionMenuScreen.route) {
+//                                        popUpTo(controller.graph.startDestinationId)
+//                                        launchSingleTop = true
+//                                    }
+//                                }
+//                            }
+//                            repeat(emptyStaticSlots) {
+//                                singleMission(isLock = true,
+//                                    Missions(),
+//                                    remove = {},
+//                                    moveToDetails = {}) {
+//                                    controller.navigate(Routes.Purchase.route) {
+//                                        popUpTo(Routes.DefaultSettingsScreen.route) {
+//                                            inclusive = false
+//                                        }
+//                                        launchSingleTop=true
+//                                    }
+//                                }
+//                            }
+//                        }
 
                     }
                 }

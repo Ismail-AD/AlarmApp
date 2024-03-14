@@ -1449,7 +1449,7 @@ fun PreviewScreen(
                 Column(
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.inverseOnSurface)
-                        .padding(horizontal = 8.dp, vertical = 10.dp)
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 30.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -1535,7 +1535,7 @@ fun PreviewScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 15.dp),
+                            .padding(start = 15.dp, end = 15.dp, bottom = 15.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(

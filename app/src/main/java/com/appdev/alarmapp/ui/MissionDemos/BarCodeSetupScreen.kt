@@ -100,6 +100,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
 
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
+    val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
 
     var showRationale by remember(permissionState) {
         mutableStateOf(false)
@@ -241,6 +242,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 mainViewModel.missionData(
                                     MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
                                 )
+//                                if(currentState is BillingResultState.Success){
+                                    mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
+//                                }
 
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
                                 mainViewModel.setDefaultSettings(

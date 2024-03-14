@@ -100,7 +100,8 @@ fun MemoryMissionScreen(
     var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0) }
 
     val scope = rememberCoroutineScope()
-    val backStackEntry = controller.currentBackStackEntryAsState()
+    val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
+
 
     LaunchedEffect(key1 = mainViewModel.missionDetails.repeatProgress) {
         if (mainViewModel.missionDetails.repeatProgress > 1) {
@@ -451,24 +452,28 @@ fun MemoryMissionScreen(
                             textColor = if (isDarkMode) Color.LightGray else Color.Black
                         )
                         Spacer(modifier = Modifier.width(14.dp))
+//                        (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success
                         CustomButton(
-                            isLock = (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success,
+                            isLock = (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState is BillingResultState.Success,
                             onClick = {
                                 Log.d("CHKMD", "AT BAR CODE DS ${mainViewModel.managingDefault}")
-                                if ((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success) {
-                                    controller.navigate(Routes.Purchase.route) {
-                                        popUpTo(Routes.CommonMissionScreen.route) {
-                                            inclusive = false
-                                        }
-                                        launchSingleTop = true
-                                    }
-                                } else {
+//                                if ((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success) {
+//                                    controller.navigate(Routes.Purchase.route) {
+//                                        popUpTo(Routes.CommonMissionScreen.route) {
+//                                            inclusive = false
+//                                        }
+//                                        launchSingleTop = true
+//                                    }
+//                                } else {
                                     if (mainViewModel.managingDefault) {
                                         mainViewModel.missionData(
                                             MissionDataHandler.IsSelectedMission(
                                                 isSelected = true
                                             )
                                         )
+//                                        if(currentState is BillingResultState.Success){
+                                            mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
+//                                        }
                                         mainViewModel.missionData(MissionDataHandler.SubmitData)
                                         mainViewModel.setDefaultSettings(
                                             DefaultSettingsHandler.GetNewObject(
@@ -502,7 +507,7 @@ fun MemoryMissionScreen(
                                             launchSingleTop = true
                                         }
                                     }
-                                }
+//                                }
 
                             },
                             text = "Complete",

@@ -85,7 +85,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewModel, checkOutViewModel: checkOutViewModel = hiltViewModel()) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
-
+    val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
@@ -170,6 +170,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                     onClick = {
                         if (mainViewModel.managingDefault) {
                             if (selectedImageIndex > 1) {
+
                                 mainViewModel.missionData(
                                     MissionDataHandler.IsSelectedMission(
                                         isSelected = true
@@ -178,6 +179,9 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                 mainViewModel.missionData(
                                     MissionDataHandler.ImageId(mainViewModel.selectedImage.id)
                                 )
+//                                if(currentState is BillingResultState.Success){
+                                    mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
+//                                }
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
                                 mainViewModel.setDefaultSettings(
                                     DefaultSettingsHandler.GetNewObject(
