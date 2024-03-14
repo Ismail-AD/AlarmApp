@@ -145,10 +145,11 @@ fun TypingMissionScreen(
             ) {
                 Card(
                     onClick = {
-                        controller.navigate(Routes.MissionMenuScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
+                        controller.popBackStack()
+//                            controller.navigate(Routes.MissionMenuScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
                     },
                     border = BorderStroke(1.dp,  MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
@@ -308,9 +309,10 @@ fun TypingMissionScreen(
                         .fillMaxWidth()
                         .padding(vertical = 8.dp, horizontal = 20.dp)
                         .clickable {
-
                             controller.navigate(Routes.SentenceScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
+                                popUpTo(Routes.TypeMissionScreen.route){
+                                    inclusive = false
+                                }
                                 launchSingleTop = true
                             }
                         }
@@ -373,9 +375,9 @@ fun TypingMissionScreen(
                         )
                         Spacer(modifier = Modifier.width(14.dp))
                         CustomButton(
-                            isLock = currentState !is BillingResultState.Success,
+                            isLock = currentState is BillingResultState.Success,
                             onClick = {
-                                if(currentState is BillingResultState.Success){
+//                                if(currentState !is BillingResultState.Success){
                                     if (mainViewModel.managingDefault) {
                                         mainViewModel.missionData(
                                             MissionDataHandler.IsSelectedMission(
@@ -424,14 +426,14 @@ fun TypingMissionScreen(
                                             launchSingleTop = true
                                         }
                                     }
-                                } else{
-                                    controller.navigate(Routes.Purchase.route) {
-                                        popUpTo(Routes.TypeMissionScreen.route) {
-                                            inclusive = false
-                                        }
-                                        launchSingleTop = true
-                                    }
-                                }
+//                                } else{
+//                                    controller.navigate(Routes.Purchase.route) {
+//                                        popUpTo(Routes.TypeMissionScreen.route) {
+//                                            inclusive = false
+//                                        }
+//                                        launchSingleTop = true
+//                                    }
+//                                }
                             },
                             text = "Complete",
                             width = 0.75f,

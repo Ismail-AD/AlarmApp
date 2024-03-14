@@ -58,10 +58,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -79,11 +83,14 @@ import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
+fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewModel, checkOutViewModel: checkOutViewModel = hiltViewModel()) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
 
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
+
 
 
     var showRationale by remember(permissionState) {
@@ -105,6 +112,9 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
             guideOrNot = permissionState.status.isGranted
         }
     }
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
+    }
     LaunchedEffect(key1 = imagesList) {
         loading = imagesList.isEmpty()
         delay(700)
@@ -119,6 +129,8 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
             showToast = false
         }
     }
+    val backStackEntry = controller.currentBackStackEntryAsState()
+
     BackHandler {
         controller.navigate(Routes.MissionMenuScreen.route) {
             popUpTo(controller.graph.startDestinationId)
@@ -188,6 +200,9 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                 showToast = true
                             }
                         } else {
+//                            if (currentState !is BillingResultState.Success) {
+//                                mainViewModel.missionData(MissionDataHandler.ResetList)
+//                            }
                             if (selectedImageIndex > 1) {
                                 mainViewModel.missionData(
                                     MissionDataHandler.IsSelectedMission(
@@ -251,12 +266,13 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                 ) {
                     Card(
                         onClick = {
-                            controller.navigate(Routes.MissionMenuScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
+                            controller.popBackStack()
+//                            controller.navigate(Routes.MissionMenuScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
                         },
-                        border = BorderStroke(1.dp,MaterialTheme.colorScheme.surfaceTint),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                         shape = CircleShape,
                         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
@@ -355,7 +371,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                         .height(130.dp),
                                     shape = RoundedCornerShape(10.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if(isDarkMode) Color(
+                                        containerColor = if (isDarkMode) Color(
                                             0xff3F434F
                                         ) else Color.LightGray
                                     )
@@ -377,7 +393,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                             )
                                             Text(
                                                 text = "Add",
-                                                color =  MaterialTheme.colorScheme.surfaceTint,
+                                                color = MaterialTheme.colorScheme.surfaceTint,
                                                 textAlign = TextAlign.Center,
                                                 modifier = Modifier.padding(start = 4.dp)
                                             )

@@ -566,10 +566,11 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                        popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
-
 
                                 }
 
@@ -607,7 +608,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
 
@@ -647,7 +650,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
 
@@ -688,7 +693,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
                                 }
@@ -726,7 +733,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
 
@@ -762,7 +771,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.TypeMissionScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
 
@@ -788,7 +799,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CameraRoutineScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
 
@@ -814,7 +827,9 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.BarCodeDemoScreen.route) {
-                                        popUpTo(controller.graph.startDestinationId)
+                                         popUpTo(Routes.Preview.route){
+                                            inclusive = false
+                                        }
                                         launchSingleTop = true
                                     }
 
@@ -831,7 +846,7 @@ fun PreviewScreen(
                     }
 
                     // Display empty static slots
-                    if (currentState is BillingResultState.Success) {
+//                    if (currentState is BillingResultState.Success) {
                         repeat(emptyStaticSlots) {
                             singleMission(isLock = false,
                                 Missions(),
@@ -843,31 +858,31 @@ fun PreviewScreen(
                                 }
                             }
                         }
-                    } else {
-                        if (mainViewModel.missionDetailsList.isEmpty()) {
-                            singleMission(isLock = false,
-                                Missions(),
-                                remove = {},
-                                moveToDetails = {}) {
-                                controller.navigate(Routes.MissionMenuScreen.route) {
-                                    launchSingleTop = true
-                                }
-                            }
-                        }
-                        repeat(emptyStaticSlots) {
-                            singleMission(isLock = true,
-                                Missions(),
-                                remove = {},
-                                moveToDetails = {}) {
-                                controller.navigate(Routes.Purchase.route) {
-                                    popUpTo(Routes.Preview.route) {
-                                        inclusive = false
-                                    }
-                                    launchSingleTop = true
-                                }
-                            }
-                        }
-                    }
+//                    } else {
+//                        if (mainViewModel.missionDetailsList.isEmpty()) {
+//                            singleMission(isLock = false,
+//                                Missions(),
+//                                remove = {},
+//                                moveToDetails = {}) {
+//                                controller.navigate(Routes.MissionMenuScreen.route) {
+//                                    launchSingleTop = true
+//                                }
+//                            }
+//                        }
+//                        repeat(emptyStaticSlots) {
+//                            singleMission(isLock = true,
+//                                Missions(),
+//                                remove = {},
+//                                moveToDetails = {}) {
+//                                controller.navigate(Routes.Purchase.route) {
+//                                    popUpTo(Routes.Preview.route) {
+//                                        inclusive = false
+//                                    }
+//                                    launchSingleTop = true
+//                                }
+//                            }
+//                        }
+//                    }
                 }
 
             }
@@ -1358,7 +1373,7 @@ fun PreviewScreen(
 
         if (showLabel) {
             ModalBottomSheet(onDismissRequest = {
-                if (currentState is BillingResultState.Success) {
+//                if (currentState is BillingResultState.Success) {
                     if (mainViewModel.whichAlarm.isOld) {
                         mainViewModel.updateHandler(
                             EventHandlerAlarm.IsLabel(
@@ -1382,18 +1397,14 @@ fun PreviewScreen(
                             )
                         )
                     }
-                } else {
-                    filename = ""
-                    playing = false
-                    textFieldValueState = TextFieldValue(
-                        text = filename,
-                        selection = TextRange(filename.length)
-                    )
-                }
-                Log.d(
-                    "CHKZA",
-                    "${currentState is BillingResultState.Success} also ${textFieldValueState.text} tezt field now ${filename}"
-                )
+//                } else {
+//                    filename = ""
+//                    textFieldValueState = TextFieldValue(
+//                        text = filename,
+//                        selection = TextRange(filename.length)
+//                    )
+//                }
+                playing = false
                 showLabel = false
             }, sheetState = sheetStateLabel) {
                 Column(
@@ -1556,17 +1567,16 @@ fun PreviewScreen(
                                     if (textFieldValueState.text.trim().isEmpty()) {
                                         showToast = true
                                     } else {
-                                        if (currentState !is BillingResultState.Success) {
-                                            controller.navigate(Routes.Purchase.route) {
-                                                popUpTo(Routes.LabelScreen.route) {
-                                                    inclusive = false
-                                                }
-                                                launchSingleTop = true
-                                            }
-                                        } else {
+//                                        if (currentState !is BillingResultState.Success) {
+//                                            controller.navigate(Routes.Purchase.route) {
+//                                                popUpTo(Routes.LabelScreen.route) {
+//                                                    inclusive = false
+//                                                }
+//                                                launchSingleTop = true
+//                                            }
+//                                        } else {
                                             switchStateLabel = newSwitchState
-                                        }
-                                        // Handle the new switch state
+//                                        }
                                     }
                                 },
                                 colors = SwitchDefaults.colors(
@@ -2014,7 +2024,11 @@ fun SingleOption(
                 }
             ) {
                 Text(
-                    data.trim(), fontSize = 15.sp,
+                    if (data.length > 10) {
+                        data.take(10) + "..."
+                    } else {
+                        data
+                    }, fontSize = 15.sp,
                     letterSpacing = 0.sp,
                     color = signatureBlue
                 )

@@ -54,8 +54,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.Helper
@@ -68,7 +72,11 @@ import com.google.accompanist.permissions.shouldShowRationale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
+fun MissionMenu(
+    controller: NavHostController,
+    mainViewModel: MainViewModel,
+    checkOutViewModel: checkOutViewModel = hiltViewModel()
+) {
     val locPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
     var showRationale by remember(locPermissionState) {
         mutableStateOf(false)
@@ -93,8 +101,16 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
             showToast = false
         }
     }
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
+    }
     LaunchedEffect(key1 = Unit) {
-        mainViewModel.missionData(MissionDataHandler.ResetData)
+//        if (currentState !is BillingResultState.Success) {
+//            mainViewModel.missionData(MissionDataHandler.ResetData)
+//        }
+        mainViewModel.updateSentenceList(emptySet())
     }
     BackHandler {
         if (mainViewModel.managingDefault) {
@@ -190,7 +206,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                             )
                         )
                         controller.navigate(Routes.CommonMissionScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
                         }
                     }
@@ -201,7 +219,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                     ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Typing"))
                         controller.navigate(Routes.TypeMissionScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
                         }
                     }
@@ -220,7 +240,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                             )
                         )
                         controller.navigate(Routes.CommonMissionScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
                         }
                     }
@@ -271,7 +293,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                                     )
                                 )
                                 controller.navigate(Routes.CommonMissionScreen.route) {
-                                    popUpTo(controller.graph.startDestinationId)
+                                    popUpTo(Routes.MissionMenuScreen.route) {
+                                        inclusive = false
+                                    }
                                     launchSingleTop = true
                                 }
                             } else {
@@ -289,7 +313,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                     ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "QR/Barcode"))
                         controller.navigate(Routes.BarCodeDemoScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
                         }
                     }
@@ -308,7 +334,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                             )
                         )
                         controller.navigate(Routes.CommonMissionScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
                         }
                     }
@@ -326,7 +354,9 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                     ) {
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Photo"))
                         controller.navigate(Routes.CameraRoutineScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
                         }
                     }
@@ -358,10 +388,16 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                             showRationale = false
                         },
                         title = {
-                            Text(text = "Permissions required by the Application",color =MaterialTheme.colorScheme.surfaceTint)
+                            Text(
+                                text = "Permissions required by the Application",
+                                color = MaterialTheme.colorScheme.surfaceTint
+                            )
                         },
                         text = {
-                            Text(text = "The Application requires the permissions to work",color =MaterialTheme.colorScheme.surfaceTint)
+                            Text(
+                                text = "The Application requires the permissions to work",
+                                color = MaterialTheme.colorScheme.surfaceTint
+                            )
                         },
                         confirmButton = {
                             TextButton(
@@ -370,7 +406,7 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                                     locPermissionState.launchPermissionRequest()
                                 },
                             ) {
-                                Text("Continue",color =MaterialTheme.colorScheme.surfaceTint)
+                                Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
                             }
                         },
                         dismissButton = {
@@ -379,7 +415,7 @@ fun MissionMenu(controller: NavHostController, mainViewModel: MainViewModel) {
                                     showRationale = false
                                 },
                             ) {
-                                Text("Dismiss",color =MaterialTheme.colorScheme.surfaceTint)
+                                Text("Dismiss", color = MaterialTheme.colorScheme.surfaceTint)
                             }
                         },
                     )

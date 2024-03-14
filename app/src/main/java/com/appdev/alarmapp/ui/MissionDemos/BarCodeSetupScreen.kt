@@ -68,10 +68,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -92,7 +95,7 @@ import kotlinx.coroutines.launch
     ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class,
 )
 @Composable
-fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewModel) {
+fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewModel, checkOutViewModel: checkOutViewModel = hiltViewModel()) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
 
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
@@ -100,6 +103,11 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
 
     var showRationale by remember(permissionState) {
         mutableStateOf(false)
+    }
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
     }
     val sheetState = rememberModalBottomSheetState()
     val configSheetState = rememberModalBottomSheetState()
@@ -256,6 +264,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 showToast = true
                             }
                         } else {
+//                            if (currentState !is BillingResultState.Success) {
+//                                mainViewModel.missionData(MissionDataHandler.ResetList)
+//                            }
                             if (selectedCodeIndex > 1) {
                                 mainViewModel.missionData(
                                     MissionDataHandler.IsSelectedMission(
@@ -318,10 +329,11 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 ) {
                     Card(
                         onClick = {
-                            controller.navigate(Routes.MissionMenuScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
+                            controller.popBackStack()
+//                            controller.navigate(Routes.MissionMenuScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
                         },
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                         shape = CircleShape,

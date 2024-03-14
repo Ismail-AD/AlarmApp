@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -211,10 +212,10 @@ fun NotificationScreen(controller: NavHostController) {
                 showRationale = false
             },
             title = {
-                Text(text = "Permissions required by the Application")
+                Text(text = "Permissions required by the Application", color = MaterialTheme.colorScheme.surfaceTint)
             },
             text = {
-                Text(text = "The Application requires the following permissions to work:\n POST_NOTIFICATIONS")
+                Text(text = "The Application requires the following permissions to work:\n POST_NOTIFICATIONS", color = MaterialTheme.colorScheme.surfaceTint)
             },
             confirmButton = {
                 TextButton(
@@ -223,7 +224,7 @@ fun NotificationScreen(controller: NavHostController) {
                         openAppSettings(context)
                     },
                 ) {
-                    Text("Continue")
+                    Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
                 }
             },
             dismissButton = {
@@ -232,7 +233,7 @@ fun NotificationScreen(controller: NavHostController) {
                         showRationale = false
                     },
                 ) {
-                    Text("Dismiss")
+                    Text("Dismiss", color = MaterialTheme.colorScheme.surfaceTint)
                 }
             },
         )

@@ -220,16 +220,16 @@ fun SoundPowerUp(
                     .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp))
             ) {
                 SingleFeature(currentState !is BillingResultState.Success,title = "Time Reminder", isDarkMode, timeReminderSwitch) {
-                    if(currentState is BillingResultState.Success) {
+//                    if(currentState is BillingResultState.Success) {
                         timeReminderSwitch = it
-                    } else{
-                        controller.navigate(Routes.Purchase.route) {
-                            popUpTo(Routes.SoundPowerUpScreen.route){
-                                inclusive=false
-                            }
-                            launchSingleTop = true
-                        }
-                    }
+//                    } else{
+//                        controller.navigate(Routes.Purchase.route) {
+//                            popUpTo(Routes.SoundPowerUpScreen.route){
+//                                inclusive=false
+//                            }
+//                            launchSingleTop = true
+//                        }
+//                    }
                 }
 
             }
@@ -258,16 +258,16 @@ fun SoundPowerUp(
                     .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(10.dp))
             ) {
                 SingleFeature(currentState !is BillingResultState.Success,title = "Extra Loud Effect", isDarkMode, loudEffectSwitch) {
-                    if(currentState is BillingResultState.Success){
+//                    if(currentState is BillingResultState.Success){
                         loudEffectSwitch = it
-                    } else{
-                        controller.navigate(Routes.Purchase.route) {
-                            popUpTo(Routes.SoundPowerUpScreen.route){
-                                inclusive=false
-                            }
-                            launchSingleTop = true
-                        }
-                    }
+//                    } else{
+//                        controller.navigate(Routes.Purchase.route) {
+//                            popUpTo(Routes.SoundPowerUpScreen.route){
+//                                inclusive=false
+//                            }
+//                            launchSingleTop = true
+//                        }
+//                    }
 
                 }
 
@@ -392,12 +392,12 @@ fun SingleFeature(
         Switch(
             checked = switchState,
             onCheckedChange = { newSwitchState ->
-                if(isLock){
-                    update(false)
-                } else{
+//                if(isLock){
+//                    update(false)
+//                } else{
                     switchState = newSwitchState
                     update(switchState)
-                }
+//                }
                 // Handle the new switch state
             },
             colors = SwitchDefaults.colors(

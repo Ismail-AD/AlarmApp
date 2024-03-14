@@ -647,6 +647,7 @@ fun MainScreen(
 
             LazyColumn() {
                 items(allAlarms, key = { alarm -> alarm.id }) { alarm ->
+                    Log.d("CHKVM","${alarm.listOfMissions }")
                     AlarmBox(isDarkMode, delete = {
                         alarmScheduler.cancel(alarm)
                         mainViewModel.deleteAlarm(it)

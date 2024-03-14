@@ -4,6 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioManager
+import android.os.Build
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -73,8 +77,17 @@ fun SnoozeScreen(
     val closestSnoozeTimer by remember {
         mutableStateOf(utils.findClosestSnoozeTimer())
     }
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     var loading by remember { mutableStateOf(false) }
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager =
+            context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        vibratorManager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
 
 
     val systemUiController = rememberSystemUiController()
@@ -327,6 +340,13 @@ fun SnoozeScreen(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
                                 )
+                                if(Utils(context).areSnoozeTimersEmpty()){
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
+                                    Utils(context).removeVolume()
+                                }
+                                Helper.stopStream()
+                                vibrator.cancel()
+                                textToSpeech.stop()
                                 onDismissCallback.onDismissClicked()
                             }
                         }

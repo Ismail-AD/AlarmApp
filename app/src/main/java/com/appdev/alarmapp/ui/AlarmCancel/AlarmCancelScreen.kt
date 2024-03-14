@@ -46,10 +46,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.SnoozeCallback
+import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
@@ -75,25 +77,27 @@ import java.util.Locale
 
 @Composable
 fun AlarmCancelScreen(
-    onDismissCallback: DismissCallback,
-    snoozeCallback: SnoozeCallback ,
+    intent: Intent = Intent(),
     textToSpeech: TextToSpeech,
+    onDismissCallback: DismissCallback,
+    snoozeCallback: SnoozeCallback,
     controller: NavHostController,
     mainViewModel: MainViewModel,
-    intent: Intent = Intent()
 ) {
     val context = LocalContext.current
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
+
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+
     var startItNow by remember { mutableStateOf(false) }
-    var timeIsDone by remember { mutableStateOf(false) }
-    var speechIsDone by remember { mutableStateOf(false) }
+    val alarmEntity: AlarmEntity? by remember {
+        mutableStateOf(intent.getParcelableExtra("Alarm"))
+    }
+    var timeIsDone by remember { mutableStateOf(alarmEntity?.isTimeReminder ?: false) }
+    var speechIsDone by remember { mutableStateOf(alarmEntity?.isLabel ?: false) }
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) }
-    Log.d("CHKMUS","$currentVolume is mobile's volume at this time")
-    val scope = rememberCoroutineScope()
-
-    val systemUiController = rememberSystemUiController()
     val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val vibratorManager =
             context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -102,6 +106,14 @@ fun AlarmCancelScreen(
         @Suppress("DEPRECATION")
         context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
+    var ringtone by remember {
+        mutableStateOf(Ringtone())
+    }
+
+
+    val scope = rememberCoroutineScope()
+
+    val systemUiController = rememberSystemUiController()
 
     SideEffect {
         systemUiController.setSystemBarsColor(
@@ -120,9 +132,7 @@ fun AlarmCancelScreen(
     var alarmScheduler by remember {
         mutableStateOf(AlarmScheduler(context, mainViewModel))
     }
-    var ringtone by remember {
-        mutableStateOf(Ringtone())
-    }
+
     var showSnoozed by remember {
         mutableStateOf(false)
     }
@@ -130,27 +140,24 @@ fun AlarmCancelScreen(
     val dismissSettingsReceived: DismissSettings? by remember {
         mutableStateOf(intent.getParcelableExtra("dismissSet"))
     }
-    val alarmEntity: AlarmEntity? by remember {
-        mutableStateOf(intent.getParcelableExtra("Alarm"))
-    }
 
 
 
     DisposableEffect(key1 = Unit) {
-        alarmEntity?.let {
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            val newVolume = (it.customVolume / 100f * maxVolume).toInt()
+        if(!Helper.isPlaying()){
+            alarmEntity?.let {
+                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
-            // Ensure the new volume is within the valid range (0 to maxVolume)
-            val clampedVolume = newVolume.coerceIn(0, maxVolume)
-            Log.d("CHKMUS","$clampedVolume is the volume of music now")
+                // Ensure the new volume is within the valid range (0 to maxVolume)
+                val clampedVolume = newVolume.coerceIn(0, maxVolume)
+                Log.d("CHKMUS", "$clampedVolume is the volume of music now")
 
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clampedVolume, 0)
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clampedVolume, 0)
+            }
         }
         onDispose {
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
-            textToSpeech.stop()
-            vibrator.cancel()
+//            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
             if (isDarkMode) {
                 systemUiController.setSystemBarsColor(
                     color = Color.Black,
@@ -179,109 +186,152 @@ fun AlarmCancelScreen(
         }
     }
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
+        Log.d("CHKSP", "Speech Begins and values are $timeIsDone  and $speechIsDone")
+        if(!Helper.isPlaying()){
 
 
-        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {
+            textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
 
-            }
+                }
 
-            override fun onDone(utteranceId: String?) {
-                startItNow = true
-            }
+                override fun onDone(utteranceId: String?) {
+                    Log.d("CHKSP", "on Done called and values are $timeIsDone  and $speechIsDone")
 
-            override fun onError(utteranceId: String?) {
-            }
-        })
-        alarmEntity?.let {
-            Helper.updateCustomValue(it.customVolume)
-            Log.d("CHKMUS","${it.customVolume} is custom volume now")
-            if (it.willVibrate) {
-                vibrator.cancel()
-                val vibrationEffect = VibrationEffect.createWaveform(
-                    longArrayOf(
-                        0,
-                        250
-                    ), // Pattern for continuous vibration (0 indicates vibration, 1000 milliseconds off)
-                    0 // Repeat at index 0
-                )
-                vibrator.vibrate(vibrationEffect)
+                    if (timeIsDone) {
+                        timeIsDone = false
+                    }
+                    else if(speechIsDone){
+                        speechIsDone = false
+                    }
+                }
+
+                override fun onError(utteranceId: String?) {
+                }
+            })
+            alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
+                Log.d("CHKMUS", "${it.customVolume} is custom volume now")
+                if (it.willVibrate) {
+                    vibrator.cancel()
+                    val vibrationEffect = VibrationEffect.createWaveform(
+                        longArrayOf(
+                            0,
+                            250
+                        ), // Pattern for continuous vibration (0 indicates vibration, 1000 milliseconds off)
+                        0 // Repeat at index 0
+                    )
+                    vibrator.vibrate(vibrationEffect)
+                }
+                if (it.isTimeReminder && timeIsDone) {
+                    scope.launch {
+                        delay(500)
+                        startCurrentTimeAndDate(
+                            textToSpeech,
+                            System.currentTimeMillis().toString() + (0..19992).random()
+                        )
+                    }
+                }
+                if (it.isLabel && !timeIsDone && speechIsDone) {
+                    scope.launch {
+                        delay(500)
+                        playTextToSpeech(
+                            text = it.labelTextForSpeech,
+                            textToSpeech = textToSpeech,
+                            id = System.currentTimeMillis().toString() + (0..19992).random()
+                        )
+                    }
+                }
+
+
             }
         }
+
         dismissSettingsReceived?.let { dset ->
             if (dset.dismissTime > 0 && mainViewModel.isRealAlarm) {
                 delay(dset.dismissTime * 60 * 1000L) // Convert minutes to milliseconds
                 Helper.stopStream()
                 textToSpeech.stop()
                 vibrator.cancel()
-                textToSpeech.shutdown()
                 onDismissCallback.onDismissClicked()
             }
         }
     }
 
-    LaunchedEffect(key1 = Unit){
-        if(!mainViewModel.isRealAlarm && !previewMode){
-            Log.d("CHKMUS","Mission Viewer Music Started")
+    LaunchedEffect(key1 = Unit,key2 = timeIsDone, key3 = speechIsDone) {
+        Log.d("CHKSP", "Going to check to play tone and values are $timeIsDone  and $speechIsDone")
+
+        if (!mainViewModel.isRealAlarm && !previewMode) {
+            Log.d("CHKMUS", "Mission Viewer Music Started")
             Helper.playStream(context, R.raw.alarmsound)
         }
 
-        Log.d("CHKMUS","IS MUSIC PLAYING BEFORE GOING TO PLAY ${Helper.isPlaying()}")
-        if ((mainViewModel.isRealAlarm || previewMode)) {
+        Log.d("CHKMUS", "IS MUSIC PLAYING BEFORE GOING TO PLAY ${Helper.isPlaying()}")
+        if ((mainViewModel.isRealAlarm || previewMode) && !timeIsDone && !speechIsDone && !Helper.isPlaying()) {
             alarmEntity?.let { alarm ->
                 if (alarm.ringtone.rawResourceId != -1) {
-                    Log.d("CHKMUS","ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
+                    Log.d("CHKMUS", "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
                     ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
-                    if (alarm.isTimeReminder) {
-                        if (!startItNow) {
-                            scope.launch {
-                                delay(500)
-                                startCurrentTimeAndDate(
-                                    alarm.labelTextForSpeech,
-                                    textToSpeech,
-                                    System.currentTimeMillis().toString() + (0..19992).random()
-                                )
-                            }
-                        }
-                    }
-
-                    if (!alarm.isTimeReminder) {
-                        if (alarm.isLabel) {
-                            scope.launch {
-                                delay(500)
-                                playTextToSpeech(
-                                    text = alarm.labelTextForSpeech,
-                                    textToSpeech = textToSpeech,
-                                    id = System.currentTimeMillis().toString() + (0..19992).random()
-                                )
-                            }
-                        }
-                        if (alarm.isGentleWakeUp) {
-                            Log.d("CHKMUS","IS GENTLE WAKE-UP")
-                            Helper.updateLow(true)
-                            Helper.startIncreasingVolume(
-                                convertToMilliseconds(
-                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                                )
+                    if (alarm.isGentleWakeUp) {
+                        Helper.updateLow(true)
+                        Helper.startIncreasingVolume(
+                            convertToMilliseconds(
+                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
                             )
-                        }
-
-                        Helper.playStream(context.applicationContext, alarm.ringtone.rawResourceId)
-                    } else {
-                        if (startItNow) {
-                            if (alarm.isGentleWakeUp) {
-                                Helper.updateLow(true)
-                                Helper.startIncreasingVolume(
-                                    convertToMilliseconds(
-                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                                    )
-                                )
-                            }
-                            Helper.playStream(context, alarm.ringtone.rawResourceId)
-                        }
+                        )
                     }
+                    Helper.playStream(context, alarm.ringtone.rawResourceId)
+//                    if (alarm.isTimeReminder) {
+//                        if (!startItNow) {
+//                            scope.launch {
+//                                delay(500)
+//                                startCurrentTimeAndDate(
+//                                    alarm.labelTextForSpeech,
+//                                    textToSpeech,
+//                                    System.currentTimeMillis().toString() + (0..19992).random()
+//                                )
+//                            }
+//                        }
+//                    }
+
+//                    if (!alarm.isTimeReminder) {
+//                        if (alarm.isLabel) {
+//                            scope.launch {
+//                                delay(500)
+//                                playTextToSpeech(
+//                                    text = alarm.labelTextForSpeech,
+//                                    textToSpeech = textToSpeech,
+//                                    id = System.currentTimeMillis().toString() + (0..19992).random()
+//                                )
+//                            }
+//                        }
+//                        if (alarm.isGentleWakeUp) {
+//                            Log.d("CHKMUS", "IS GENTLE WAKE-UP")
+//                            Helper.updateLow(true)
+//                            Helper.startIncreasingVolume(
+//                                convertToMilliseconds(
+//                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+//                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+//                                )
+//                            )
+//                        }
+//
+//                        Helper.playStream(context.applicationContext, alarm.ringtone.rawResourceId)
+//                    } else {
+//                        if (startItNow) {
+//                            if (alarm.isGentleWakeUp) {
+//                                Helper.updateLow(true)
+//                                Helper.startIncreasingVolume(
+//                                    convertToMilliseconds(
+//                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+//                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+//                                    )
+//                                )
+//                            }
+//                            Helper.playStream(context, alarm.ringtone.rawResourceId)
+//                        }
+//                    }
                     if (alarm.isLoudEffect) {
                         scope.launch {
                             delay(40000L)
@@ -291,45 +341,54 @@ fun AlarmCancelScreen(
                     }
                 } else if (alarm.ringtone.uri != null) {
                     ringtone = ringtone.copy(uri = alarm.ringtone.uri)
-
-                    if (alarm.isTimeReminder) {
-                        if (!startItNow) {
-                            scope.launch {
-                                delay(500)
-                                startCurrentTimeAndDate(
-                                    alarm.labelTextForSpeech,
-                                    textToSpeech,
-                                    System.currentTimeMillis().toString()
-                                )
-                            }
-                        }
-                    }
-
-                    if (!alarm.isTimeReminder) {
-                        if (alarm.isGentleWakeUp) {
-                            Helper.updateLow(true)
-                            Helper.startIncreasingVolume(
-                                convertToMilliseconds(
-                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                                )
+                    if (alarm.isGentleWakeUp) {
+                        Helper.updateLow(true)
+                        Helper.startIncreasingVolume(
+                            convertToMilliseconds(
+                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
                             )
-                        }
-                        Helper.playStream(context, uri = alarm.ringtone.uri)
-                    } else {
-                        if (startItNow) {
-                            if (alarm.isGentleWakeUp) {
-                                Helper.updateLow(true)
-                                Helper.startIncreasingVolume(
-                                    convertToMilliseconds(
-                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                                    )
-                                )
-                            }
-                            Helper.playStream(context, uri = alarm.ringtone.uri)
-                        }
+                        )
                     }
+                    Helper.playStream(context, uri = alarm.ringtone.uri)
+//                    if (alarm.isTimeReminder) {
+//                        if (!startItNow) {
+//                            scope.launch {
+//                                delay(500)
+//                                startCurrentTimeAndDate(
+//                                    alarm.labelTextForSpeech,
+//                                    textToSpeech,
+//                                    System.currentTimeMillis().toString()
+//                                )
+//                            }
+//                        }
+//                    }
+//
+//                    if (!alarm.isTimeReminder) {
+//                        if (alarm.isGentleWakeUp) {
+//                            Helper.updateLow(true)
+//                            Helper.startIncreasingVolume(
+//                                convertToMilliseconds(
+//                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+//                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+//                                )
+//                            )
+//                        }
+//                        Helper.playStream(context, uri = alarm.ringtone.uri)
+//                    } else {
+//                        if (startItNow) {
+//                            if (alarm.isGentleWakeUp) {
+//                                Helper.updateLow(true)
+//                                Helper.startIncreasingVolume(
+//                                    convertToMilliseconds(
+//                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+//                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+//                                    )
+//                                )
+//                            }
+//                            Helper.playStream(context, uri = alarm.ringtone.uri)
+//                        }
+//                    }
 
                     if (alarm.isLoudEffect) {
                         scope.launch {
@@ -342,44 +401,53 @@ fun AlarmCancelScreen(
 
                 } else if (alarm.ringtone.file != null) {
                     ringtone = ringtone.copy(file = alarm.ringtone.file)
-
-                    if (alarm.isTimeReminder) {
-                        if (!startItNow) {
-                            scope.launch {
-                                delay(500)
-                                startCurrentTimeAndDate(
-                                    alarm.labelTextForSpeech,
-                                    textToSpeech,
-                                    System.currentTimeMillis().toString()
-                                )
-                            }
-                        }
-                    }
-                    if (!alarm.isTimeReminder) {
-                        if (alarm.isGentleWakeUp) {
-                            Helper.updateLow(true)
-                            Helper.startIncreasingVolume(
-                                convertToMilliseconds(
-                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                                )
+                    if (alarm.isGentleWakeUp) {
+                        Helper.updateLow(true)
+                        Helper.startIncreasingVolume(
+                            convertToMilliseconds(
+                                if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+                                if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
                             )
-                        }
-                        Helper.playFile(alarm.ringtone.file!!, context)
-                    } else {
-                        if (startItNow) {
-                            if (alarm.isGentleWakeUp) {
-                                Helper.updateLow(true)
-                                Helper.startIncreasingVolume(
-                                    convertToMilliseconds(
-                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
-                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
-                                    )
-                                )
-                            }
-                            Helper.playFile(alarm.ringtone.file!!, context)
-                        }
+                        )
                     }
+                    Helper.playFile(alarm.ringtone.file!!, context)
+//                    if (alarm.isTimeReminder) {
+//                        if (!startItNow) {
+//                            scope.launch {
+//                                delay(500)
+//                                startCurrentTimeAndDate(
+//                                    alarm.labelTextForSpeech,
+//                                    textToSpeech,
+//                                    System.currentTimeMillis().toString()
+//                                )
+//                            }
+//                        }
+//                    }
+//                    if (!alarm.isTimeReminder) {
+//                        if (alarm.isGentleWakeUp) {
+//                            Helper.updateLow(true)
+//                            Helper.startIncreasingVolume(
+//                                convertToMilliseconds(
+//                                    if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+//                                    if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+//                                )
+//                            )
+//                        }
+//                        Helper.playFile(alarm.ringtone.file!!, context)
+//                    } else {
+//                        if (startItNow) {
+//                            if (alarm.isGentleWakeUp) {
+//                                Helper.updateLow(true)
+//                                Helper.startIncreasingVolume(
+//                                    convertToMilliseconds(
+//                                        if (alarm.wakeUpTime <= 10) alarm.wakeUpTime else 0,
+//                                        if (alarm.wakeUpTime > 10) alarm.wakeUpTime else 0
+//                                    )
+//                                )
+//                            }
+//                            Helper.playFile(alarm.ringtone.file!!, context)
+//                        }
+//                    }
                     if (alarm.isLoudEffect) {
                         scope.launch {
                             delay(40000L)
@@ -392,7 +460,6 @@ fun AlarmCancelScreen(
                 }
             }
         }
-
 
 
     }
@@ -435,7 +502,7 @@ fun AlarmCancelScreen(
             .fillMaxSize()
             .background(backColor), contentAlignment = Alignment.TopCenter
     ) {
-        Log.d("GOINGTO","In COMPOSABLE ${Helper.isPlaying()}")
+        Log.d("GOINGTO", "In COMPOSABLE ${Helper.isPlaying()}")
 
         Column(
             modifier = Modifier
@@ -515,10 +582,10 @@ fun AlarmCancelScreen(
                             snoozeAlarm(
                                 it, alarmScheduler, notifyIt, mainViewModel
                             )
-                            startItNow = false
+//                            startItNow = false
                             showSnoozed = true
+                            mainViewModel.snoozeUpdate(true)
                             textToSpeech.stop()
-                            textToSpeech.shutdown()
                             vibrator.cancel()
                             Helper.stopStream()
 //                            controller.navigate(Routes.SnoozeScr.route) {
@@ -593,10 +660,13 @@ fun AlarmCancelScreen(
                             }
 
                             else -> {
+                                if(Utils(context).areSnoozeTimersEmpty() && !previewMode){
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
+                                    Utils(context).removeVolume()
+                                }
                                 Helper.stopStream()
                                 textToSpeech.stop()
                                 vibrator.cancel()
-                                textToSpeech.shutdown()
                                 Log.d(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
@@ -705,10 +775,10 @@ fun snoozeAlarm(
     val snoozeMinutes =
         alarmEntity.snoozeTime // Set the snooze duration in minutes (adjust as needed)
     val currentTimeMillis = System.currentTimeMillis()
-    Log.d("CHKNB","CURRENT TIME : ${convertMillisToLocalTime(currentTimeMillis)}")
+    Log.d("CHKNB", "CURRENT TIME : ${convertMillisToLocalTime(currentTimeMillis)}")
 
     val snoozeTimeMillis = currentTimeMillis + (snoozeMinutes * 60 * 1000)
-    Log.d("CHKNB","TIME OF TRIGGER: ${convertMillisToLocalTime(snoozeTimeMillis)}")
+    Log.d("CHKNB", "TIME OF TRIGGER: ${convertMillisToLocalTime(snoozeTimeMillis)}")
     mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = snoozeTimeMillis))
     mainViewModel.updateHandler(EventHandlerAlarm.update)
 
@@ -733,7 +803,7 @@ fun playTextToSpeech(textToSpeech: TextToSpeech, id: String, text: String) {
     textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, id)
 }
 
-fun startCurrentTimeAndDate(text: String, textToSpeech: TextToSpeech, id: String) {
+fun startCurrentTimeAndDate(textToSpeech: TextToSpeech, id: String) {
     val params = Bundle()
     params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, id)
 
@@ -745,7 +815,7 @@ fun startCurrentTimeAndDate(text: String, textToSpeech: TextToSpeech, id: String
         .format(sdf.parse(currentDateAndTime) ?: Date())
 
     // Play the formatted time and date as audio
-    textToSpeech.speak(formattedTimeAndDate + text, TextToSpeech.QUEUE_FLUSH, params, id)
+    textToSpeech.speak(formattedTimeAndDate, TextToSpeech.QUEUE_FLUSH, params, id)
 }
 
 

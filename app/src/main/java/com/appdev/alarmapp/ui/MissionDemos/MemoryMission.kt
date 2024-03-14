@@ -58,6 +58,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.andyliu.compose_wheel_picker.HorizontalWheelPicker
 import com.appdev.alarmapp.BillingResultState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
@@ -99,6 +100,8 @@ fun MemoryMissionScreen(
     var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0) }
 
     val scope = rememberCoroutineScope()
+    val backStackEntry = controller.currentBackStackEntryAsState()
+
     LaunchedEffect(key1 = mainViewModel.missionDetails.repeatProgress) {
         if (mainViewModel.missionDetails.repeatProgress > 1) {
             mainViewModel.missionData(MissionDataHandler.MissionProgress(1))
@@ -147,10 +150,11 @@ fun MemoryMissionScreen(
             ) {
                 Card(
                     onClick = {
-                        controller.navigate(Routes.MissionMenuScreen.route) {
-                            popUpTo(controller.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
+                            controller.popBackStack()
+//                            controller.navigate(Routes.MissionMenuScreen.route) {
+//                                popUpTo(controller.graph.startDestinationId)
+//                                launchSingleTop = true
+//                            }
                     },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                     shape = CircleShape,
@@ -484,9 +488,9 @@ fun MemoryMissionScreen(
                                             launchSingleTop = true
                                         }
                                     } else {
-                                        if (currentState !is BillingResultState.Success) {
-                                            mainViewModel.missionData(MissionDataHandler.ResetList)
-                                        }
+//                                        if (currentState !is BillingResultState.Success) {
+//                                            mainViewModel.missionData(MissionDataHandler.ResetList)
+//                                        }
                                         mainViewModel.missionData(
                                             MissionDataHandler.IsSelectedMission(
                                                 isSelected = true

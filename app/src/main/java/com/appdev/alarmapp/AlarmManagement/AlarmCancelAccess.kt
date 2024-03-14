@@ -3,8 +3,12 @@ package com.appdev.alarmapp.AlarmManagement
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.KeyEvent
@@ -14,6 +18,10 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
@@ -66,13 +74,27 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     private var isScreenOnBeforeAlarm = false
     lateinit var alarm: AlarmEntity
     lateinit var alarmScheduler: AlarmScheduler
+    lateinit var vibrator: Vibrator
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("CHKSM", "ON CREATE CALLED")
-
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager =
+                getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
         isScreenOnBeforeAlarm = isScreenOn()
         alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
+        if (Utils(this).isVolumeEmpty() && mainViewModel.isRealAlarm) {
+            Utils(this).saveVolume(currentVolume)
+        }
 
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -136,11 +158,12 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     override fun onStop() {
         val isScreenOnNow = isScreenOn()
         Log.d("CHKSM", "ON STOP TRIGGERED.............${mainViewModel.getRealUpdate()}")
-
         if (mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty() && mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
         ) { // Power button not pressed, bring the app to the foreground
             Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
-
+            Helper.stopStream()
+            vibrator.cancel()
+            textToSpeech.stop()
             val newIntent = Intent(this, javaClass)
             newIntent.putExtra("Alarm", receivedAlarm)
             newIntent.putExtra("Preview", previewMode)
@@ -190,8 +213,10 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     override fun onDismissClicked() {
         Log.d("CHKSM", "ON ALARM WORK FINISH IS CALLED.............")
         alarmScheduler.cancel(alarm)
-        if (mainViewModel.dummyMissionList.isEmpty()) {
-            if (alarm.isOneTime) {
+        mainViewModel.snoozeUpdate(false)
+
+        if (mainViewModel.dummyMissionList.isEmpty() && mainViewModel.isRealAlarm) {
+            if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
                 mainViewModel.updateHandler(
                     EventHandlerAlarm.Vibrator(
                         setVibration = alarm.willVibrate
@@ -326,15 +351,17 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             }
             Helper.updateCustomValue(100f)
             Helper.stopStream()
+            vibrator.cancel()
+            textToSpeech.stop()
             startActivity(Intent(this, MainActivity::class.java))
             Log.d(
                 "CHKSM",
                 "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}"
             )
             finish()
+        } else if (previewMode) {
+            finish()
         }
-
-
     }
 }
 
@@ -425,17 +452,17 @@ fun AlarmNavGraph(
     ) {
         composable(route = Routes.PreviewAlarm.route) {
             AlarmCancelScreen(
+                intent, textToSpeech,
                 onDismissCallback,
                 onSnoozeCallback,
-                textToSpeech,
                 controller,
                 mainViewModel,
-                intent
             )
         }
 
         composable(route = Routes.MissionShakeScreen.route) {
             ShakeDetectionScreen(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller, timerEndsCallback =
                 object : TimerEndsCallback {
@@ -449,6 +476,7 @@ fun AlarmNavGraph(
         }
         composable(route = Routes.BarCodePreviewAlarmScreen.route) {
             BarCodeMissionScreen(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller = controller, timerEndsCallback =
                 object : TimerEndsCallback {
@@ -462,6 +490,7 @@ fun AlarmNavGraph(
         }
         composable(route = Routes.StepDetectorScreen.route) {
             StepMission(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller, timerEndsCallback =
                 object : TimerEndsCallback {
@@ -478,6 +507,7 @@ fun AlarmNavGraph(
         }
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
             PhotoMissionScreen(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller = controller, timerEndsCallback =
                 object : TimerEndsCallback {
@@ -492,6 +522,7 @@ fun AlarmNavGraph(
 
         composable(route = Routes.TypingPreviewScreen.route) {
             TypingMissionHandler(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller = controller, timerEndsCallback =
                 object : TimerEndsCallback {
@@ -505,6 +536,7 @@ fun AlarmNavGraph(
         }
         composable(route = Routes.MissionMathScreen.route) {
             MathMissionHandler(
+                intent, textToSpeech,
                 mainViewModel,
                 missionLevel = mainViewModel.missionDetails.missionLevel,
                 controller = controller, timerEndsCallback = object : TimerEndsCallback {
@@ -545,6 +577,7 @@ fun AlarmNavGraph(
                 else -> 100.dp
             }
             MissionHandlerScreen(
+                intent, textToSpeech,
                 cubeHeightWidth, columnPadding, lazyRowHeight,
                 controller, totalSize = sizeOfBlocks,
                 mainViewModel = mainViewModel, timerEndsCallback = object : TimerEndsCallback {

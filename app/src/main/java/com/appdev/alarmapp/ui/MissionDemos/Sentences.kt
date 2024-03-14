@@ -1,6 +1,7 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -132,14 +133,17 @@ fun SentenceSelection(
     var showDialog by remember {
         mutableStateOf(false)
     }
+    BackHandler {
+
+    }
 
     var selectedPhrases by remember {
         mutableStateOf(
-            if(convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()){
+            if (convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()) {
                 convertStringToSet(mainViewModel.missionDetails.selectedSentences).intersect(
-                    motivationalPhrases.toSet())
-            }
-            else if (mainViewModel.sentencesList.isNotEmpty()) {
+                    motivationalPhrases.toSet()
+                )
+            } else if (mainViewModel.sentencesList.isNotEmpty()) {
                 mainViewModel.sentencesList.intersect(motivationalPhrases.toSet())
             } else {
                 setOf(motivationalPhrases[0])
@@ -148,10 +152,11 @@ fun SentenceSelection(
     }
     var selectedBasicPhrases by remember {
         mutableStateOf(
-            if(convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()){
-                convertStringToSet(mainViewModel.missionDetails.selectedSentences).intersect(basicPhrases.toSet())
-            }
-            else if (mainViewModel.sentencesList.isNotEmpty()) {
+            if (convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()) {
+                convertStringToSet(mainViewModel.missionDetails.selectedSentences).intersect(
+                    basicPhrases.toSet()
+                )
+            } else if (mainViewModel.sentencesList.isNotEmpty()) {
                 mainViewModel.sentencesList.intersect(basicPhrases.toSet())
             } else {
                 emptySet()
@@ -187,14 +192,15 @@ fun SentenceSelection(
         loading = phraseList.isEmpty()
         if (!loading) {
             selectedMyPhrases =
-                if(convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()){
-                convertStringToSet(mainViewModel.missionDetails.selectedSentences).intersect(
-                    phraseList.toSet())
+                if (convertStringToSet(mainViewModel.missionDetails.selectedSentences).isNotEmpty()) {
+                    convertStringToSet(mainViewModel.missionDetails.selectedSentences).intersect(
+                        phraseList.toSet()
+                    )
                 } else if (mainViewModel.sentencesList.isNotEmpty()) {
                     mainViewModel.sentencesList.intersect(phraseList.toSet())
-            } else {
-                emptySet()
-            }
+                } else {
+                    selectedMyPhrases.intersect(phraseList.toSet())
+                }
         } else {
             loading = false
         }
@@ -237,10 +243,7 @@ fun SentenceSelection(
         ) {
             Card(
                 onClick = {
-                    controller.navigate(Routes.TypeMissionScreen.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
+                    controller.popBackStack()
                 },
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
                 shape = CircleShape,
@@ -315,7 +318,8 @@ fun SentenceSelection(
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
                 edgePadding = 5.dp,
-                containerColor = MaterialTheme.colorScheme.onBackground,indicator = { tabPositions ->
+                containerColor = MaterialTheme.colorScheme.onBackground,
+                indicator = { tabPositions ->
                     SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]), // Adjust offset as needed
                         color = MaterialTheme.colorScheme.surfaceTint
@@ -334,8 +338,13 @@ fun SentenceSelection(
                             }
                         },
                         text = {
-                            Text(text = item.name, color = MaterialTheme.colorScheme.surfaceTint, fontSize = 15.sp)
-                        }, icon = {
+                            Text(
+                                text = item.name,
+                                color = MaterialTheme.colorScheme.surfaceTint,
+                                fontSize = 15.sp
+                            )
+                        },
+                        icon = {
                             val selectedList =
                                 if (index == 0) selectedPhrases else if (index == 1) selectedBasicPhrases else selectedMyPhrases
                             if (selectedList.isNotEmpty()) {
@@ -349,11 +358,14 @@ fun SentenceSelection(
                                 ) {
                                     Text(
                                         text = selectedList.size.toString(),
-                                        modifier = Modifier.padding(horizontal = 13.dp), color = Color.White
+                                        modifier = Modifier.padding(horizontal = 13.dp),
+                                        color = Color.White
                                     )
                                 }
                             }
-                        }, selectedContentColor = MaterialTheme.colorScheme.surfaceTint, unselectedContentColor = MaterialTheme.colorScheme.surfaceTint
+                        },
+                        selectedContentColor = MaterialTheme.colorScheme.surfaceTint,
+                        unselectedContentColor = MaterialTheme.colorScheme.surfaceTint
                     )
                 }
             }
@@ -399,7 +411,8 @@ fun SentenceSelection(
                                         Text(
                                             text = "Select All",
                                             modifier = Modifier
-                                                .padding(start = 8.dp), color = MaterialTheme.colorScheme.surfaceTint
+                                                .padding(start = 8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceTint
                                         )
                                     }
                                 }
@@ -440,7 +453,8 @@ fun SentenceSelection(
                                             },
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .padding(8.dp), color = MaterialTheme.colorScheme.surfaceTint
+                                                .padding(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceTint
                                         )
                                     }
                                 }
@@ -484,7 +498,8 @@ fun SentenceSelection(
                                         Text(
                                             text = "Select All",
                                             modifier = Modifier
-                                                .padding(start = 8.dp), MaterialTheme.colorScheme.surfaceTint
+                                                .padding(start = 8.dp),
+                                            MaterialTheme.colorScheme.surfaceTint
                                         )
                                     }
                                 }
@@ -526,7 +541,8 @@ fun SentenceSelection(
                                             },
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .padding(8.dp), color = MaterialTheme.colorScheme.surfaceTint
+                                                .padding(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceTint
                                         )
                                     }
                                 }
@@ -549,7 +565,10 @@ fun SentenceSelection(
                                 .clickable {
                                     showFileSave = true
                                 },
-                            border = BorderStroke(width = 1.dp, color = MaterialTheme.colorScheme.surfaceTint),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.surfaceTint
+                            ),
                             colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                         ) {
                             Box(
@@ -570,9 +589,11 @@ fun SentenceSelection(
                                         tint = MaterialTheme.colorScheme.surfaceTint
                                     )
                                     Text(
-                                        "Create new", fontSize = 18.sp,
+                                        "Create new",
+                                        fontSize = 18.sp,
                                         letterSpacing = 0.sp,
-                                        color = MaterialTheme.colorScheme.surfaceTint, textAlign = TextAlign.Center
+                                        color = MaterialTheme.colorScheme.surfaceTint,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
@@ -618,7 +639,8 @@ fun SentenceSelection(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .padding(8.dp), color = MaterialTheme.colorScheme.surfaceTint
+                                            .padding(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceTint
                                     )
 
                                     Box(
@@ -631,7 +653,7 @@ fun SentenceSelection(
                                             }, contentAlignment = Alignment.Center
                                     ) {
                                         Image(
-                                            painter = painterResource(id = if(isDarkMode) R.drawable.dots else R.drawable.dotsblack),
+                                            painter = painterResource(id = if (isDarkMode) R.drawable.dots else R.drawable.dotsblack),
                                             contentDescription = "",
                                             modifier = Modifier
                                                 .size(23.dp)
@@ -829,11 +851,12 @@ fun SentenceSelection(
                                         updateAttempt = false
                                     }
                                 } else {
+                                    val customPhrase = CustomPhrase(
+                                        phraseId = System.currentTimeMillis(),
+                                        phraseData = filename
+                                    )
                                     mainViewModel.insertPhrase(
-                                        CustomPhrase(
-                                            phraseId = System.currentTimeMillis(),
-                                            phraseData = filename
-                                        )
+                                        customPhrase
                                     )
                                 }
                                 showToast = false
@@ -860,7 +883,10 @@ fun SentenceSelection(
                 }) {
                     Column(
                         modifier = Modifier
-                            .background(MaterialTheme.colorScheme.onBackground, shape = RoundedCornerShape(5.dp))
+                            .background(
+                                MaterialTheme.colorScheme.onBackground,
+                                shape = RoundedCornerShape(5.dp)
+                            )
                     ) {
                         Text(
                             text = "Exit without saving the",
@@ -927,7 +953,11 @@ fun singleSheetItem(name: String, icon: ImageVector, onCLick: () -> Unit) {
             .clickable { onCLick() }
             .padding(vertical = 10.dp, horizontal = 20.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = "", tint = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.75f))
+        Icon(
+            imageVector = icon,
+            contentDescription = "",
+            tint = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.75f)
+        )
         Text(
             text = name,
             modifier = Modifier.padding(start = 10.dp),

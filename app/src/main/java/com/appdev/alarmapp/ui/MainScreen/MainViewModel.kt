@@ -116,7 +116,7 @@ class MainViewModel @Inject constructor(
     var previewMode by mutableStateOf(false)
     var hasSnoozed by mutableStateOf(false)
     var isSnoozed by mutableStateOf(false)
-
+    var oldDummyListSize by mutableStateOf(0)
 
 
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
@@ -125,6 +125,10 @@ class MainViewModel @Inject constructor(
     // Function to update the snooze time
     fun updateSnoozeTime(newTime: Long) {
         _snoozeTime.value = newTime
+    }
+
+    fun updateDummyListOldSize(newSize: Int) {
+        oldDummyListSize = newSize
     }
 
     var managingDefault by mutableStateOf(false)
@@ -511,6 +515,17 @@ class MainViewModel @Inject constructor(
     fun missionData(missionDataHandler: MissionDataHandler) {
 
         when (missionDataHandler) {
+            is MissionDataHandler.AddCompleteMission -> missionDetails = missionDetails.copy(
+                missionID = missionDataHandler.missionId,
+                repeatTimes = missionDataHandler.repeat,
+                missionLevel = missionDataHandler.missionLevel,
+                missionName = missionDataHandler.missionName,
+                repeatProgress = missionDataHandler.repeatProgress,
+                isSelected = missionDataHandler.isSelected,
+                selectedSentences = convertSetToString(missionDataHandler.setOfSentences),
+                imageId = missionDataHandler.imageId, codeId = missionDataHandler.codeId
+            )
+
             is MissionDataHandler.MissionLevel -> missionDetails =
                 missionDetails.copy(missionLevel = missionDataHandler.missionLevel)
 
@@ -520,8 +535,11 @@ class MainViewModel @Inject constructor(
             is MissionDataHandler.MissionName -> missionDetails =
                 missionDetails.copy(missionName = missionDataHandler.missionName)
 
-            is MissionDataHandler.MissionProgress -> missionDetails =
-                missionDetails.copy(repeatProgress = missionDataHandler.repeatProgress)
+            is MissionDataHandler.MissionProgress -> {
+                Log.d("CHKVM", "New Value to be assigned ${missionDataHandler.repeatProgress}")
+                missionDetails =
+                    missionDetails.copy(repeatProgress = missionDataHandler.repeatProgress)
+            }
 
             is MissionDataHandler.IsSelectedMission -> {
                 missionDetails = missionDetails.copy(isSelected = missionDataHandler.isSelected)
@@ -564,16 +582,6 @@ class MainViewModel @Inject constructor(
             }
 
             MissionDataHandler.ResetList -> missionDetailsList = emptyList()
-            is MissionDataHandler.AddCompleteMission -> missionDetails = missionDetails.copy(
-                missionID = missionDataHandler.missionId,
-                repeatTimes = missionDataHandler.repeat,
-                missionLevel = missionDataHandler.missionLevel,
-                missionName = missionDataHandler.missionName,
-                repeatProgress = missionDataHandler.repeatProgress,
-                isSelected = missionDataHandler.isSelected,
-                selectedSentences = convertSetToString(missionDataHandler.setOfSentences),
-                imageId = missionDataHandler.imageId, codeId = missionDataHandler.codeId
-            )
 
             MissionDataHandler.ResetData -> missionDetails = missionDetails.copy(
                 missionID = -1,

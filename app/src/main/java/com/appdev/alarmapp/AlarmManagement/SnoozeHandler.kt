@@ -1,8 +1,12 @@
 package com.appdev.alarmapp.AlarmManagement
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.KeyEvent
@@ -52,6 +56,8 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
 
     lateinit var alarm: AlarmEntity
     lateinit var alarmScheduler: AlarmScheduler
+    lateinit var vibrator: Vibrator
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +71,14 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
             }
         }
         onBackPressedDispatcher.addCallback(this, callback)
-
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager =
+                getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
         if (!previewMode) {
             mainViewModel.updateIsReal(true)
         }
@@ -112,12 +125,12 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
 
     override fun onTimeEnds() {
 //        Log.d("CHKMIS", "On timer ends triggerd ! value is ${Utils(this).getAlarmState(alarm.id.toString())}")
-            val newIntent = Intent(this, AlarmCancelAccess::class.java)
-            newIntent.putExtra("Alarm", alarm)
-            newIntent.putExtra("notify", notify)
-            newIntent.putExtra("dismissSet", dismissSettings)
-            startActivity(newIntent)
-            finish()
+        val newIntent = Intent(this, AlarmCancelAccess::class.java)
+        newIntent.putExtra("Alarm", alarm)
+        newIntent.putExtra("notify", notify)
+        newIntent.putExtra("dismissSet", dismissSettings)
+        startActivity(newIntent)
+        finish()
     }
 
 //    override fun onSnoozeClicked() {
@@ -142,6 +155,9 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
                 alarm.id
             ) == null
         ) { // Power button not pressed, bring the app to the foreground
+            Helper.stopStream()
+            vibrator.cancel()
+            textToSpeech.stop()
             Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
 
             val newIntent = Intent(this, AlarmCancelAccess::class.java)
@@ -178,8 +194,9 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
 
     override fun onDismissClicked() {
         alarmScheduler.cancel(alarm)
+        mainViewModel.snoozeUpdate(false)
         if (mainViewModel.dummyMissionList.isEmpty()) {
-            if (alarm.isOneTime) {
+            if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
                 mainViewModel.updateHandler(
                     EventHandlerAlarm.Vibrator(
                         setVibration = alarm.willVibrate
@@ -313,7 +330,6 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
                 Helper.stopIncreasingVolume()
             }
             Helper.updateCustomValue(100f)
-            Helper.stopStream()
 //            Log.d("CHKSM", "alarm with id is STOPPED/REMOVED VIA DISMISS ${alarm.id}")
 //
 //
@@ -384,6 +400,7 @@ fun snoozeAlarmNavGraph(
 
         composable(route = Routes.MissionShakeScreen.route) {
             ShakeDetectionScreen(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller,
                 timerEndsCallback,
@@ -392,6 +409,7 @@ fun snoozeAlarmNavGraph(
         }
         composable(route = Routes.BarCodePreviewAlarmScreen.route) {
             BarCodeMissionScreen(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller = controller, timerEndsCallback,
                 onDismissCallback
@@ -399,6 +417,7 @@ fun snoozeAlarmNavGraph(
         }
         composable(route = Routes.StepDetectorScreen.route) {
             StepMission(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller,
                 timerEndsCallback,
@@ -410,6 +429,7 @@ fun snoozeAlarmNavGraph(
         }
         composable(route = Routes.PhotoMissionPreviewScreen.route) {
             PhotoMissionScreen(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller = controller, timerEndsCallback,
                 onDismissCallback
@@ -418,6 +438,7 @@ fun snoozeAlarmNavGraph(
 
         composable(route = Routes.TypingPreviewScreen.route) {
             TypingMissionHandler(
+                intent, textToSpeech,
                 mainViewModel = mainViewModel,
                 controller = controller, timerEndsCallback,
                 onDismissCallback
@@ -425,6 +446,7 @@ fun snoozeAlarmNavGraph(
         }
         composable(route = Routes.MissionMathScreen.route) {
             MathMissionHandler(
+                intent, textToSpeech,
                 mainViewModel,
                 missionLevel = mainViewModel.missionDetails.missionLevel,
                 controller = controller,
@@ -462,6 +484,7 @@ fun snoozeAlarmNavGraph(
                 else -> 100.dp
             }
             MissionHandlerScreen(
+                intent, textToSpeech,
                 cubeHeightWidth,
                 columnPadding,
                 lazyRowHeight,

@@ -289,7 +289,7 @@ fun MainUiScreen(
             }
 
             composable(route = Routes.TypingPreviewScreen.route) {
-                TypingMissionHandler(mainViewModel = mainViewModel,
+                TypingMissionHandler(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
                     object : TimerEndsCallback {
@@ -349,7 +349,7 @@ fun MainUiScreen(
                 )
             }
             composable(route = Routes.PreviewAlarm.route) {
-                AlarmCancelScreen(onDismissCallback = object : DismissCallback {
+                AlarmCancelScreen(textToSpeech = textToSpeech,onDismissCallback = object : DismissCallback {
                     override fun onDismissClicked() {
                         // Provide implementation here if needed
                     }
@@ -358,10 +358,11 @@ fun MainUiScreen(
                         TODO("Not yet implemented")
                     }
 
-                }, textToSpeech, controller, mainViewModel)
+                }, controller = controller, mainViewModel = mainViewModel)
             }
             composable(route = Routes.MissionShakeScreen.route) {
-                ShakeDetectionScreen(mainViewModel = mainViewModel, controller, timerEndsCallback =
+                ShakeDetectionScreen(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                    controller = controller, timerEndsCallback =
                 object : TimerEndsCallback {
                     override fun onTimeEnds() {
                         TODO("Not yet implemented")
@@ -377,7 +378,7 @@ fun MainUiScreen(
                 CameraMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.PhotoMissionPreviewScreen.route) {
-                PhotoMissionScreen(mainViewModel = mainViewModel,
+                PhotoMissionScreen(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
                     object : TimerEndsCallback {
@@ -413,7 +414,7 @@ fun MainUiScreen(
                 ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-                BarCodeMissionScreen(mainViewModel = mainViewModel,
+                BarCodeMissionScreen(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
                     object : TimerEndsCallback {
@@ -429,7 +430,8 @@ fun MainUiScreen(
                     })
             }
             composable(route = Routes.StepDetectorScreen.route) {
-                StepMission(mainViewModel = mainViewModel, controller, timerEndsCallback =
+                StepMission(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                    controller = controller, timerEndsCallback =
                 object : TimerEndsCallback {
                     override fun onTimeEnds() {
                         TODO("Not yet implemented")
@@ -457,8 +459,8 @@ fun MainUiScreen(
                 MissionMenu(controller = controller, mainViewModel)
             }
             composable(route = Routes.MissionMathScreen.route) {
-                MathMissionHandler(
-                    mainViewModel,
+                MathMissionHandler(textToSpeech =  textToSpeech,
+                    mainViewModel = mainViewModel,
                     missionLevel = mainViewModel.missionDetails.missionLevel,
                     controller = controller, timerEndsCallback =
                     object : TimerEndsCallback {
@@ -504,8 +506,10 @@ fun MainUiScreen(
                     else -> 100.dp
                 }
                 MissionHandlerScreen(
-                    cubeHeightWidth, columnPadding, lazyRowHeight,
-                    controller, totalSize = sizeOfBlocks,
+                    textToSpeech =  textToSpeech,
+                    cubeHeightWidth = cubeHeightWidth, colPadding = columnPadding,
+                    rowHeight = lazyRowHeight,
+                    controller = controller, totalSize = sizeOfBlocks,
                     mainViewModel = mainViewModel, timerEndsCallback =
                     object : TimerEndsCallback {
                         override fun onTimeEnds() {
