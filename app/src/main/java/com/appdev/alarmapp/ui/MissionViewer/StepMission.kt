@@ -628,7 +628,7 @@ fun StepMission(
                         }
 
                         else -> {
-                            if(Utils(context).areSnoozeTimersEmpty() && !previewMode){
+                            if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
                                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
                                 Utils(context).removeVolume()
                             }
@@ -639,7 +639,7 @@ fun StepMission(
                         }
                     }
                 } else {
-                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode){
+                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
                         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
                         Utils(context).removeVolume()
                     }

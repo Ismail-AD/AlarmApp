@@ -158,7 +158,9 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     override fun onStop() {
         val isScreenOnNow = isScreenOn()
         Log.d("CHKSM", "ON STOP TRIGGERED.............${mainViewModel.getRealUpdate()}")
-        if (mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty() && mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
+        Log.d("CHKSM", "ON STOP TRIGGERED........first list check ${mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()}")
+
+        if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.missionDetailsList.isEmpty())  && mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
         ) { // Power button not pressed, bring the app to the foreground
             Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
             Helper.stopStream()
@@ -170,6 +172,19 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             newIntent.putExtra("notify", notify)
             newIntent.putExtra("dismissSet", dismissSettings)
             startActivity(newIntent)
+            finish()
+        } else if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.missionDetailsList.isEmpty())  && mainViewModel.isRealAlarm
+        ){
+            Helper.stopStream()
+            vibrator.cancel()
+            textToSpeech.stop()
+            val newIntent = Intent(this, javaClass)
+            newIntent.putExtra("Alarm", receivedAlarm)
+            newIntent.putExtra("Preview", previewMode)
+            newIntent.putExtra("notify", notify)
+            newIntent.putExtra("dismissSet", dismissSettings)
+            startActivity(newIntent)
+            finish()
         }
         Log.d("CHKSM", "ON STOP CALLED.............")
         super.onStop()

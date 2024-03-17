@@ -340,7 +340,7 @@ fun SnoozeScreen(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
                                 )
-                                if(Utils(context).areSnoozeTimersEmpty()){
+                                if(Utils(context).areSnoozeTimersEmpty() && !Utils(context).isVolumeEmpty()){
                                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
                                     Utils(context).removeVolume()
                                 }
