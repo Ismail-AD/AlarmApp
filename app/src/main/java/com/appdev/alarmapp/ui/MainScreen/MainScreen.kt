@@ -220,22 +220,24 @@ fun MainScreen(
                 calculateTimeUntil(it.nextTimeInMillis)
             }
         }
-        if (timeUntilNextAlarm < 0) {
-            upcomingAlarm = alarmList
-                .filter { it.isActive }
-                .minByOrNull {
-                    if (it.nextTimeInMillis < System.currentTimeMillis()) {
-                        checkForNextOccur(it)
-                    } else {
-                        it.nextTimeInMillis
+        timeUntilNextAlarm?.let {
+            if (it.seconds < 0 || it.minutes < 0 || it.hours < 0 || it.days < 0) {
+                upcomingAlarm = alarmList
+                    .filter { it.isActive }
+                    .minByOrNull {
+                        if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                            checkForNextOccur(it)
+                        } else {
+                            it.nextTimeInMillis
+                        }
                     }
-                }
-            timeUntilNextAlarm = upcomingAlarm?.let {
-                if (it.nextTimeInMillis < System.currentTimeMillis()) {
-                    Log.d("CHJ", "${it.isOneTime}")
-                    calculateTimeUntil(checkForNextOccur(it))
-                } else {
-                    calculateTimeUntil(it.nextTimeInMillis)
+                timeUntilNextAlarm = upcomingAlarm?.let {
+                    if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                        Log.d("CHJ", "${it.isOneTime}")
+                        calculateTimeUntil(checkForNextOccur(it))
+                    } else {
+                        calculateTimeUntil(it.nextTimeInMillis)
+                    }
                 }
             }
         }
@@ -681,7 +683,7 @@ fun MainScreen(
 
             LazyColumn() {
                 items(allAlarms, key = { alarm -> alarm.id }) { alarm ->
-                    Log.d("CHKVM","${alarm.listOfMissions }")
+                    Log.d("CHKVM", "${alarm.listOfMissions}")
                     AlarmBox(isDarkMode, delete = {
                         alarmScheduler.cancel(alarm)
                         mainViewModel.deleteAlarm(it)
@@ -1280,192 +1282,193 @@ fun AlarmBox(
 //        swipeThreshold = 50.dp,
 //        startActions = listOf(deleteIt)
 //    ) {
-        Card(
-            onClick = { onAlarmCLick() },
+    Card(
+        onClick = { onAlarmCLick() },
+        modifier = Modifier
+            .padding(horizontal = 23.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Column(
             modifier = Modifier
-                .padding(horizontal = 23.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                .fillMaxSize()
         ) {
-            Column(
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(start = 15.dp, end = 15.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(start = 15.dp, end = 15.dp, top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Text(
+                    text = formattedTheTime(alarm.localTime.hour, alarm.localTime.minute),
+                    color = MaterialTheme.colorScheme.surfaceTint,
+                    textDecoration = if (alarm.skipTheAlarm) TextDecoration.LineThrough else TextDecoration.None,
+                    fontSize = 30.sp, fontWeight = FontWeight.Medium
+                )
+                alarm.localTime.let {
                     Text(
-                        text = formattedTheTime(alarm.localTime.hour, alarm.localTime.minute),
+                        text = getAMPM(it),
                         color = MaterialTheme.colorScheme.surfaceTint,
                         textDecoration = if (alarm.skipTheAlarm) TextDecoration.LineThrough else TextDecoration.None,
-                        fontSize = 30.sp, fontWeight = FontWeight.Medium
+                        fontSize = 25.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 5.dp)
                     )
-                    alarm.localTime.let {
-                        Text(
-                            text = getAMPM(it),
-                            color = MaterialTheme.colorScheme.surfaceTint,
-                            textDecoration = if (alarm.skipTheAlarm) TextDecoration.LineThrough else TextDecoration.None,
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(start = 5.dp)
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Switch(
-                            checked = switchState,
-                            onCheckedChange = { newSwitchState ->
-                                switchState = newSwitchState
-                                updateAlarm(switchState)
-                                // Handle the new switch state
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = if (isDarkMode) Color.White else Color(
-                                    0xff13A7CB
-                                ), // Color when switch is ON
-                                checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
-                                    0xff7FCFE1
-                                ), // Track color when switch is ON
-                                uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
-                                    0xff656D7D
-                                ), // Color when switch is OFF
-                                uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
-                                    0xff9E9E9E
-                                ) // Track color when switch is OFF
-                            ), modifier = Modifier.scale(0.8f)
-                        )
-                    }
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(start = 15.dp, end = 15.dp, bottom = 8.dp, top = 4.dp)
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd
                 ) {
-                    Text(
-                        text = if (alarm.listOfDays.isNotEmpty()) {
-                            getRepeatText(alarm.listOfDays)
-                        } else if (alarm.isOneTime) {
-                            "one-time"
-                        } else {
-                            "one-time"
+                    Switch(
+                        checked = switchState,
+                        onCheckedChange = { newSwitchState ->
+                            switchState = newSwitchState
+                            updateAlarm(switchState)
+                            // Handle the new switch state
                         },
-                        color = Color.Gray,
-                        fontSize = 14.sp, fontWeight = FontWeight.Medium
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                0xff13A7CB
+                            ), // Color when switch is ON
+                            checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                0xff7FCFE1
+                            ), // Track color when switch is ON
+                            uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                0xff656D7D
+                            ), // Color when switch is OFF
+                            uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                0xff9E9E9E
+                            ) // Track color when switch is OFF
+                        ), modifier = Modifier.scale(0.8f)
                     )
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant)
-                        .padding(start = 15.dp, end = 25.dp, bottom = 8.dp, top = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Mission ",
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontSize = 15.sp
-                    )
-                    alarm.listOfMissions.forEach {
-                        Spacer(modifier = Modifier.width(5.dp))
-                        when (it.missionName) {
-                            "Memory" -> {
-                                Icon(
-                                    imageVector = Icons.Filled.AutoAwesomeMosaic,
-                                    contentDescription = "",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            "Shake" -> {
-                                Icon(
-                                    imageVector = Icons.Filled.ScreenRotation,
-                                    contentDescription = "",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            "Math" -> {
-                                Icon(
-                                    imageVector = Icons.Filled.Calculate,
-                                    contentDescription = "",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            "Photo" -> {
-                                Icon(
-                                    imageVector = Icons.Filled.CameraEnhance,
-                                    contentDescription = "",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            "QR/Barcode" -> {
-                                Icon(
-                                    imageVector = Icons.Filled.QrCode2,
-                                    contentDescription = "",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            "Typing" -> {
-                                Icon(
-                                    imageVector = Icons.Filled.Keyboard,
-                                    contentDescription = "",
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    if (alarm.listOfMissions.isEmpty()) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "",
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(), contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clickable {
-                                    //ASSIGN CLICKED MEMEBR AT TOP THE PASSED VALUE IN THIS COMPOSABLE
-                                    onAlarmBoxClick(alarm.id)
-                                }, contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = if (isDarkMode) R.drawable.dots else R.drawable.dotsblack),
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(start = 15.dp, end = 15.dp, bottom = 8.dp, top = 4.dp)
+            ) {
+                Text(
+                    text = if (alarm.listOfDays.isNotEmpty()) {
+                        getRepeatText(alarm.listOfDays)
+                    } else if (alarm.isOneTime) {
+                        "one-time"
+                    } else {
+                        "one-time"
+                    },
+                    color = Color.Gray,
+                    fontSize = 14.sp, fontWeight = FontWeight.Medium
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant)
+                    .padding(start = 15.dp, end = 25.dp, bottom = 8.dp, top = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Mission ",
+                    color = MaterialTheme.colorScheme.tertiary,
+                    fontSize = 15.sp
+                )
+                alarm.listOfMissions.forEach {
+                    Spacer(modifier = Modifier.width(5.dp))
+                    when (it.missionName) {
+                        "Memory" -> {
+                            Icon(
+                                imageVector = Icons.Filled.AutoAwesomeMosaic,
                                 contentDescription = "",
-                                modifier = Modifier
-                                    .size(25.dp)
-                                    .rotate(90f)
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        "Shake" -> {
+                            Icon(
+                                imageVector = Icons.Filled.ScreenRotation,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        "Math" -> {
+                            Icon(
+                                imageVector = Icons.Filled.Calculate,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        "Photo" -> {
+                            Icon(
+                                imageVector = Icons.Filled.CameraEnhance,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        "QR/Barcode" -> {
+                            Icon(
+                                imageVector = Icons.Filled.QrCode2,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        "Typing" -> {
+                            Icon(
+                                imageVector = Icons.Filled.Keyboard,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
-            }
 
+                if (alarm.listOfMissions.isEmpty()) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "",
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(), contentAlignment = Alignment.CenterEnd
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clickable {
+                                //ASSIGN CLICKED MEMEBR AT TOP THE PASSED VALUE IN THIS COMPOSABLE
+                                onAlarmBoxClick(alarm.id)
+                            }, contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = if (isDarkMode) R.drawable.dots else R.drawable.dotsblack),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(25.dp)
+                                .rotate(90f)
+                        )
+                    }
+                }
+            }
         }
+
+    }
 //    }
 }
+
 @Composable
 fun RepeatOnLifecycleEffect(
     state: Lifecycle.State = Lifecycle.State.RESUMED,
