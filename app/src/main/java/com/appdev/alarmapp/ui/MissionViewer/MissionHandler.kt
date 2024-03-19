@@ -12,6 +12,7 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -120,6 +122,7 @@ fun MissionHandlerScreen(
     val previewMode by remember {
         mutableStateOf(intent.getBooleanExtra("Preview", false))
     }
+    var isEnd by remember { mutableStateOf(false) }
 
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
@@ -516,6 +519,10 @@ fun MissionHandlerScreen(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
+                if(mainViewModel.dummyMissionList.isEmpty()){
+                    isEnd = true
+                    delay(2000)
+                }
                 missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     Log.d("CHKVM", "Value before ${mainViewModel.missionDetails.repeatProgress}")
@@ -640,113 +647,144 @@ fun MissionHandlerScreen(
             .background(if (countdown != 0) Color(0xff232E4C) else Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp), progress = animatedProgress
-                )
+        when(isEnd){
+            true->{
+                if((mainViewModel.isRealAlarm || previewMode) && mainViewModel.dummyMissionList.isEmpty() && missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size) && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes){
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.angel),
+                                contentDescription = "",
+                                modifier = Modifier.size(95.dp)
+                            )
+                            Text(
+                                text = "Have a nice day :)",
+                                color = Color.White,
+                                fontSize = 25.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W400,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
+                                lineHeight = 35.sp
+                            )
 
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    if (!mainViewModel.isRealAlarm) {
-                        controller.popBackStack()
-                    } else {
-                        if (!mainViewModel.isSnoozed) {
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        } else {
-                            timerEndsCallback.onTimeEnds()
                         }
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBackIos,
-                        contentDescription = "",
-                        tint = Color.White, modifier = Modifier.size(22.dp)
-                    )
                 }
-                Text(
-                    text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 17.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.W500,
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                )
             }
-
-            Text(
-                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
-                color = Color.White,
-                fontSize = 20.sp,
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.W500,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 15.dp)
-            )
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
+            else->{
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(colPadding)
+                        .fillMaxWidth()
                 ) {
-                    items(totalSize) { row ->
-                        LazyRow(
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        LinearProgressIndicator(
+                            trackColor = backColor,
+                            color = Color.White,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(rowHeight),
-                            horizontalArrangement = Arrangement.SpaceAround
+                                .padding(horizontal = 2.dp), progress = animatedProgress
+                        )
+
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp, horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            if (!mainViewModel.isRealAlarm) {
+                                controller.popBackStack()
+                            } else {
+                                if (!mainViewModel.isSnoozed) {
+                                    mainViewModel.dummyMissionList = emptyList()
+                                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                                    controller.navigate(Routes.PreviewAlarm.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                } else {
+                                    timerEndsCallback.onTimeEnds()
+                                }
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowBackIos,
+                                contentDescription = "",
+                                tint = Color.White, modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Text(
+                            text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.W500,
+                            modifier = Modifier.fillMaxWidth(0.8f)
+                        )
+                    }
+
+                    Text(
+                        text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.W500,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 15.dp)
+                    )
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(colPadding)
                         ) {
-                            items(totalSize) { column ->
-                                val blockIndex = row * totalSize + column
-                                val isBlockSelected = selectedBlocks.contains(blockIndex)
-                                RubikCubeBlock(
+                            items(totalSize) { row ->
+                                LazyRow(
                                     modifier = Modifier
-                                        .clipToBounds()
-                                        .background(
-                                            if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
-                                                showWrong = true
-                                                Color.Red
-                                            } else if (modifiedIndices.contains(
-                                                    blockIndex
+                                        .fillMaxWidth()
+                                        .height(rowHeight),
+                                    horizontalArrangement = Arrangement.SpaceAround
+                                ) {
+                                    items(totalSize) { column ->
+                                        val blockIndex = row * totalSize + column
+                                        val isBlockSelected = selectedBlocks.contains(blockIndex)
+                                        RubikCubeBlock(
+                                            modifier = Modifier
+                                                .clipToBounds()
+                                                .background(
+                                                    if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
+                                                        showWrong = true
+                                                        Color.Red
+                                                    } else if (modifiedIndices.contains(
+                                                            blockIndex
+                                                        )
+                                                    ) Color(
+                                                        0xFF9BA2B2
+                                                    ) else Color(0xff1C1F26)
                                                 )
-                                            ) Color(
-                                                0xFF9BA2B2
-                                            ) else Color(0xff1C1F26)
+                                                .clickable {
+                                                    if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+                                                        if (!selectedBlocks.contains(blockIndex)) {
+                                                            // Handle block click during countdown
+                                                            missionViewModel.missionEventHandler(
+                                                                MissionDemoHandler.checkMatch(blockIndex)
+                                                            )
+                                                            selectedBlocks += blockIndex
+                                                            progress = 1f
+                                                        }
+                                                    }
+                                                }, cubeHeightWidth
                                         )
-                                        .clickable {
-                                            if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
-                                                if (!selectedBlocks.contains(blockIndex)) {
-                                                    // Handle block click during countdown
-                                                    missionViewModel.missionEventHandler(
-                                                        MissionDemoHandler.checkMatch(blockIndex)
-                                                    )
-                                                    selectedBlocks += blockIndex
-                                                    progress = 1f
-                                                }
-                                            }
-                                        }, cubeHeightWidth
-                                )
+                                    }
+                                }
                             }
                         }
                     }

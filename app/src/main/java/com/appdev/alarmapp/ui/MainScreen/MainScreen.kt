@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,7 +79,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmCancelAccess
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
@@ -95,6 +98,7 @@ import com.appdev.alarmapp.utils.calculateTimeUntil
 import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.getRepeatText
 import com.appdev.alarmapp.utils.isOldOrNew
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import me.saket.swipe.SwipeAction
 import me.saket.swipe.SwipeableActionsBox
@@ -216,6 +220,26 @@ fun MainScreen(
                 calculateTimeUntil(it.nextTimeInMillis)
             }
         }
+        if (timeUntilNextAlarm < 0) {
+            upcomingAlarm = alarmList
+                .filter { it.isActive }
+                .minByOrNull {
+                    if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                        checkForNextOccur(it)
+                    } else {
+                        it.nextTimeInMillis
+                    }
+                }
+            timeUntilNextAlarm = upcomingAlarm?.let {
+                if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                    Log.d("CHJ", "${it.isOneTime}")
+                    calculateTimeUntil(checkForNextOccur(it))
+                } else {
+                    calculateTimeUntil(it.nextTimeInMillis)
+                }
+            }
+        }
+
         if (mainViewModel.basicSettings.value.showInNotification) {
             if (upcomingAlarm != null) {
                 if (upcomingAlarm!!.isActive) {
@@ -230,6 +254,16 @@ fun MainScreen(
             }
         }
     }
+    RepeatOnLifecycleEffect(action = {
+        timeUntilNextAlarm = upcomingAlarm?.let {
+            if (it.nextTimeInMillis < System.currentTimeMillis()) {
+                Log.d("CHJ", "${it.isOneTime}")
+                calculateTimeUntil(checkForNextOccur(it))
+            } else {
+                calculateTimeUntil(it.nextTimeInMillis)
+            }
+        }
+    })
 
 
     val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
@@ -1228,24 +1262,24 @@ fun AlarmBox(
 
     Spacer(modifier = Modifier.height(10.dp))
 
-    val deleteIt = SwipeAction(
-        onSwipe = {
-            delete(alarm.id)
-        },
-        icon = {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = "Delete alarm",
-                modifier = Modifier.padding(16.dp),
-                tint = Color.White
-            )
-        }, background = Color.Red.copy(alpha = 0.5f),
-        isUndo = true
-    )
-    SwipeableActionsBox(
-        swipeThreshold = 50.dp,
-        startActions = listOf(deleteIt)
-    ) {
+//    val deleteIt = SwipeAction(
+//        onSwipe = {
+//            delete(alarm.id)
+//        },
+//        icon = {
+//            Icon(
+//                Icons.Default.Delete,
+//                contentDescription = "Delete alarm",
+//                modifier = Modifier.padding(16.dp),
+//                tint = Color.White
+//            )
+//        }, background = Color.Red.copy(alpha = 0.5f),
+//        isUndo = true
+//    )
+//    SwipeableActionsBox(
+//        swipeThreshold = 50.dp,
+//        startActions = listOf(deleteIt)
+//    ) {
         Card(
             onClick = { onAlarmCLick() },
             modifier = Modifier
@@ -1430,6 +1464,17 @@ fun AlarmBox(
             }
 
         }
+//    }
+}
+@Composable
+fun RepeatOnLifecycleEffect(
+    state: Lifecycle.State = Lifecycle.State.RESUMED,
+    action: suspend CoroutineScope.() -> Unit
+) {
+    val lifecycle = LocalLifecycleOwner.current
+
+    LaunchedEffect(key1 = Unit) {
+        lifecycle.repeatOnLifecycle(state, block = action)
     }
 }
 

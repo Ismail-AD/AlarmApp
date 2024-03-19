@@ -14,6 +14,7 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,7 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -102,7 +105,7 @@ fun ShakeDetectionScreen(
     val previewMode by remember {
         mutableStateOf(intent.getBooleanExtra("Preview", false))
     }
-
+    var isEnd by remember { mutableStateOf(false) }
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
 
     var progress by remember { mutableFloatStateOf(1f) }
@@ -476,6 +479,10 @@ fun ShakeDetectionScreen(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
+                if(mainViewModel.dummyMissionList.isEmpty()){
+                    isEnd = true
+                    delay(2000)
+                }
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     val singleMission = mainViewModel.dummyMissionList.first()
 
@@ -582,72 +589,102 @@ fun ShakeDetectionScreen(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp), progress = animatedProgress
-                )
+        when(isEnd){
+            true->{
+                if(shakeToBeDone == 0 && mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.angel),
+                                contentDescription = "",
+                                modifier = Modifier.size(95.dp)
+                            )
+                            Text(
+                                text = "Have a nice day :)",
+                                color = Color.White,
+                                fontSize = 25.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W400,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
+                                lineHeight = 35.sp
+                            )
 
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    if(!mainViewModel.isRealAlarm){
-                        controller.popBackStack()
-                    } else{
-                        if(!mainViewModel.isSnoozed){
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        } else{
-                            timerEndsCallback.onTimeEnds()
                         }
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBackIos,
-                        contentDescription = "",
-                        tint = Color.White, modifier = Modifier.size(22.dp)
-                    )
                 }
-            }
+            } else->{
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.35f)
-                    .padding(bottom = 30.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
             ) {
-                Text(
-                    text = "Shake",
-                    color = Color.White, fontSize = 23.sp,
-                    fontWeight = FontWeight.W400,
-                )
-                Text(
-                    text = "$shakeToBeDone",
-                    color = Color.White,
-                    fontSize = 70.sp,
-                    fontWeight = FontWeight.W700,
-                    modifier = Modifier.padding(top = 20.dp),
-                    letterSpacing = 3.sp
-                )
-            }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    LinearProgressIndicator(
+                        trackColor = backColor,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp), progress = animatedProgress
+                    )
 
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        if(!mainViewModel.isRealAlarm){
+                            controller.popBackStack()
+                        } else{
+                            if(!mainViewModel.isSnoozed){
+                                mainViewModel.dummyMissionList = emptyList()
+                                mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                                controller.navigate(Routes.PreviewAlarm.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else{
+                                timerEndsCallback.onTimeEnds()
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBackIos,
+                            contentDescription = "",
+                            tint = Color.White, modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.35f)
+                        .padding(bottom = 30.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Text(
+                        text = "Shake",
+                        color = Color.White, fontSize = 23.sp,
+                        fontWeight = FontWeight.W400,
+                    )
+                    Text(
+                        text = "$shakeToBeDone",
+                        color = Color.White,
+                        fontSize = 70.sp,
+                        fontWeight = FontWeight.W700,
+                        modifier = Modifier.padding(top = 20.dp),
+                        letterSpacing = 3.sp
+                    )
+                }
+
+            }
+            }
         }
     }
 }

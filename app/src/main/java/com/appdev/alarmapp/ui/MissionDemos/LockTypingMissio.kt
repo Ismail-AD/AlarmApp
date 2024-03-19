@@ -189,16 +189,20 @@ fun TypingMissionScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     Card(
                         onClick = { /*TODO*/ },
                         enabled = false,
                         colors = CardDefaults.cardColors(disabledContainerColor = Color.Transparent),
                         border = BorderStroke(1.dp, Color.Gray),
-                        modifier = Modifier.padding(vertical = 20.dp, horizontal = 20.dp)
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 20.dp)
                     ) {
                         Text(
-                            text = randomSentence.phraseData,
+                            text = if (randomSentence.phraseData.length > 70) {
+                                randomSentence.phraseData.take(70) + "..."
+                            } else {
+                                randomSentence.phraseData
+                            },
                             color = Color(0xffD66616),
                             fontSize = 18.sp,
                             textAlign = TextAlign.Center,
@@ -213,7 +217,7 @@ fun TypingMissionScreen(
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.W400,
-                            modifier = Modifier.padding(top = 16.dp, bottom = 20.dp)
+                            modifier = Modifier.padding(top = 10.dp, bottom = 15.dp)
                         )
                     }
 
@@ -237,7 +241,7 @@ fun TypingMissionScreen(
                     Column(
                         modifier = Modifier
                             .padding(vertical = 18.dp)
-                            .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(30.dp)
+                            .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         Text(
                             text = "Times count",
@@ -249,7 +253,7 @@ fun TypingMissionScreen(
                         )
                         Box(modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 10.dp, bottom = 20.dp), contentAlignment = Alignment.Center){
+                            .padding(end = 10.dp, bottom = 10.dp), contentAlignment = Alignment.Center){
                             HorizontalWheelPicker(
                                 state = state,
                                 count = 5,
@@ -330,7 +334,7 @@ fun TypingMissionScreen(
                         color = MaterialTheme.colorScheme.surfaceTint,
                         textAlign = TextAlign.Start,
                         fontSize = 15.sp,
-                        modifier = Modifier.padding(vertical = 24.dp, horizontal = 16.dp)
+                        modifier = Modifier.padding(vertical = 18.dp, horizontal = 16.dp)
                     )
 
                     Box(
@@ -354,7 +358,7 @@ fun TypingMissionScreen(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                     Row(
                         horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 20.dp)
                     ) {
                         CustomButton(
                             onClick = {

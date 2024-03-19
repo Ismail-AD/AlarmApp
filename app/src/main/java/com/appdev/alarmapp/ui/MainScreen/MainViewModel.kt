@@ -111,7 +111,7 @@ class MainViewModel @Inject constructor(
     var isRealAlarm by mutableStateOf(false)
     var whichMission by mutableStateOf(MissionState())
     var selectedImage by mutableStateOf(ImageData())
-    var selectedCode by mutableStateOf(QrCodeData(qrCodeString = ""))
+    var selectedCode by mutableStateOf(QrCodeData(qrCodeString = "", qrCodeName = ""))
     var flashLight by mutableStateOf(false)
     var previewMode by mutableStateOf(false)
     var hasSnoozed by mutableStateOf(false)

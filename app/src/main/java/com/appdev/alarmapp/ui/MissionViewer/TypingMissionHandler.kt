@@ -12,7 +12,9 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -466,6 +469,7 @@ fun TypingMissionHandler(
     var oldMissionId by remember {
         mutableStateOf(mainViewModel.missionDetails.missionID)
     }
+    var isEnd by remember { mutableStateOf(false) }
 
 
     LaunchedEffect(
@@ -478,6 +482,10 @@ fun TypingMissionHandler(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
+                if(mainViewModel.dummyMissionList.isEmpty()){
+                    isEnd = true
+                    delay(2000)
+                }
                 userInput = ""
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     val singleMission = mainViewModel.dummyMissionList.first()
@@ -603,120 +611,150 @@ fun TypingMissionHandler(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp), progress = animatedProgress
-                )
+        when(isEnd){
+            true->{
+                if(checkIt && userInput == randomText.phraseData && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes && mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.angel),
+                                contentDescription = "",
+                                modifier = Modifier.size(95.dp)
+                            )
+                            Text(
+                                text = "Have a nice day :)",
+                                color = Color.White,
+                                fontSize = 25.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W400,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
+                                lineHeight = 35.sp
+                            )
 
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    if (!mainViewModel.isRealAlarm) {
-                        controller.popBackStack()
-                    } else {
-                        if (!mainViewModel.isSnoozed) {
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        } else {
-                            timerEndsCallback.onTimeEnds()
                         }
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBackIos,
-                        contentDescription = "",
-                        tint = Color.White, modifier = Modifier.size(22.dp)
-                    )
                 }
-                Text(
-                    text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 17.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.W500,
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                )
-            }
+            }else->{
             Column(
-                modifier = Modifier.padding(
-                    start = 15.dp, top = 15.dp, bottom = 15.dp, end = 2.dp
-                )
+                modifier = Modifier
+                    .fillMaxWidth()
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = randomText.phraseData,
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 27.sp,
-                        fontWeight = FontWeight.W500, lineHeight = 35.sp,
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    LinearProgressIndicator(
+                        trackColor = backColor,
+                        color = Color.White,
                         modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .padding(start = 10.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp), progress = animatedProgress
                     )
-                    BasicTextField(
-                        value = userInput,
-                        onValueChange = {
-                            if (it.length <= randomText.phraseData.length + 1) {
-                                userInput = it
-                            }
-                        },
-                        textStyle = TextStyle(
-                            fontSize = 27.sp,
-                            fontWeight = FontWeight.W500,
-                            color = when {
-                                userInput == randomText.phraseData -> Color.Green.copy(alpha = 0.6f)  // Exact match
-                                userInput.length <= randomText.phraseData.length &&
-                                        userInput.indices.all { i -> userInput[i] == randomText.phraseData[i] } -> Color.White  // Index-by-index match
-                                else -> Color.Blue.copy(alpha = 0.7f)  // No match
-                            }, lineHeight = 35.sp, letterSpacing = (0.5).sp
-                        ), cursorBrush = SolidColor(Color.White),
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .height(250.dp)
-                            .focusRequester(focusRequester),
-                        maxLines = 8, decorationBox = { innerTextField ->
-                            Box(
-                                modifier = Modifier.padding(
-                                    start = 10.dp,
-                                    end = 2.dp,
-                                    bottom = 20.dp
-                                )
-                            ) {
-                                innerTextField()
+
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        if (!mainViewModel.isRealAlarm) {
+                            controller.popBackStack()
+                        } else {
+                            if (!mainViewModel.isSnoozed) {
+                                mainViewModel.dummyMissionList = emptyList()
+                                mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                                controller.navigate(Routes.PreviewAlarm.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                timerEndsCallback.onTimeEnds()
                             }
                         }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBackIos,
+                            contentDescription = "",
+                            tint = Color.White, modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Text(
+                        text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 17.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.W500,
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
                 }
+                Column(
+                    modifier = Modifier.padding(
+                        start = 15.dp, top = 15.dp, bottom = 15.dp, end = 2.dp
+                    )
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            text = randomText.phraseData,
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 27.sp,
+                            fontWeight = FontWeight.W500, lineHeight = 35.sp,
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .padding(start = 10.dp)
+                        )
+                        BasicTextField(
+                            value = userInput,
+                            onValueChange = {
+                                if (it.length <= randomText.phraseData.length + 1) {
+                                    userInput = it
+                                }
+                            },
+                            textStyle = TextStyle(
+                                fontSize = 27.sp,
+                                fontWeight = FontWeight.W500,
+                                color = when {
+                                    userInput == randomText.phraseData -> Color.Green.copy(alpha = 0.6f)  // Exact match
+                                    userInput.length <= randomText.phraseData.length &&
+                                            userInput.indices.all { i -> userInput[i] == randomText.phraseData[i] } -> Color.White  // Index-by-index match
+                                    else -> Color.Blue.copy(alpha = 0.7f)  // No match
+                                }, lineHeight = 35.sp, letterSpacing = (0.5).sp
+                            ), cursorBrush = SolidColor(Color.White),
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .height(250.dp)
+                                .focusRequester(focusRequester),
+                            maxLines = 8, decorationBox = { innerTextField ->
+                                Box(
+                                    modifier = Modifier.padding(
+                                        start = 10.dp,
+                                        end = 2.dp,
+                                        bottom = 20.dp
+                                    )
+                                ) {
+                                    innerTextField()
+                                }
+                            }
+                        )
+                    }
+                }
             }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 20.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            CustomButton(
-                onClick = { checkIt = userInput == randomText.phraseData },
-                text = "Complete",
-                backgroundColor = signatureBlue,
-                isEnabled = userInput == randomText.phraseData
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 20.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                CustomButton(
+                    onClick = { checkIt = userInput == randomText.phraseData },
+                    text = "Complete",
+                    backgroundColor = signatureBlue,
+                    isEnabled = userInput == randomText.phraseData
+                )
+            }
+            }
         }
     }
 }

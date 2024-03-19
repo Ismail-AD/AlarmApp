@@ -20,6 +20,7 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -128,8 +130,8 @@ fun StepMission(
     val previewMode by remember {
         mutableStateOf(intent.getBooleanExtra("Preview", false))
     }
-
-    var countdown by remember { mutableStateOf(5) }
+    var isEnd by remember { mutableStateOf(false) }
+    var countdown by remember { mutableStateOf(10) }
 
     val locPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
     var showRationale by remember(locPermissionState) {
@@ -171,6 +173,9 @@ fun StepMission(
             Helper.stopStream()
             vibrator.cancel()
             textToSpeech.stop()
+        }
+        if(!locationEnabled(context = context)){
+            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
         }
     }
     BackHandler {
@@ -491,8 +496,7 @@ fun StepMission(
             }
         }
     }
-    LaunchedEffect(key1 = isLocationEnabled, key2 = countdown) {
-        if (isLocationEnabled) {
+    LaunchedEffect(key1 = countdown) {
             if (countdown > 0) {
                 scope.launch {
                     delay(1000)
@@ -502,7 +506,6 @@ fun StepMission(
                 startUpdating = true
                 progress = 1f
             }
-        }
     }
 
     DisposableEffect(key1 = Unit,key2 = startUpdating) {
@@ -552,6 +555,10 @@ fun StepMission(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
+                if(mainViewModel.dummyMissionList.isEmpty()){
+                    isEnd = true
+                    delay(2000)
+                }
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     val singleMission = mainViewModel.dummyMissionList.first()
 
@@ -669,93 +676,124 @@ fun StepMission(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp), progress = animatedProgress
-                )
+        when(isEnd){
+            true->{
+                if(stepsToBeDone <= 0 && mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.angel),
+                                contentDescription = "",
+                                modifier = Modifier.size(95.dp)
+                            )
+                            Text(
+                                text = "Have a nice day :)",
+                                color = Color.White,
+                                fontSize = 25.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W400,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
+                                lineHeight = 35.sp
+                            )
 
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    if(!mainViewModel.isRealAlarm){
-                        controller.popBackStack()
-                    } else{
-                        if(!mainViewModel.isSnoozed){
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        } else{
-                            timerEndsCallback.onTimeEnds()
                         }
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBackIos,
-                        contentDescription = "",
-                        tint = Color.White, modifier = Modifier.size(22.dp)
-                    )
                 }
-            }
+            }else->{
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.35f)
-                    .padding(bottom = 30.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
             ) {
-                if (!isLocationEnabled) {
-                    Text(
-                        text = "Turn the location on in order to start the mission !",
-                        color = Color.White,
-                        fontSize = 23.sp,
-                        lineHeight = 32.sp,
-                        fontWeight = FontWeight.W400,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 15.dp)
-                    )
-                    Spacer(modifier = Modifier.height(40.dp))
-                    CustomButton(onClick = {
-                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                        isLocationEnabled = locationEnabled(context)
-                    }, text = "Continue Step mission")
-                } else {
-                    Text(
-                        text = if (countdown != 0) "Stand up and take your position ! Starting in $countdown" else "Take Steps Softly",
-                        color = Color.White,
-                        fontSize = 23.sp,
-                        lineHeight = 32.sp,
-                        fontWeight = FontWeight.W400,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 15.dp)
-                    )
-                    Text(
-                        text = if (countdown != 0) "" else "$stepsToBeDone",
-                        color = Color.White,
-                        fontSize = 70.sp,
-                        fontWeight = FontWeight.W700,
-                        modifier = Modifier.padding(top = 20.dp),
-                        letterSpacing = 3.sp
-                    )
-                }
-            }
 
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    LinearProgressIndicator(
+                        trackColor = backColor,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp), progress = animatedProgress
+                    )
+
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        if(!mainViewModel.isRealAlarm){
+                            controller.popBackStack()
+                        } else{
+                            if(!mainViewModel.isSnoozed){
+                                mainViewModel.dummyMissionList = emptyList()
+                                mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                                controller.navigate(Routes.PreviewAlarm.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            } else{
+                                timerEndsCallback.onTimeEnds()
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBackIos,
+                            contentDescription = "",
+                            tint = Color.White, modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.35f)
+                        .padding(bottom = 30.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+//                    if (!isLocationEnabled) {
+//                        Text(
+//                            text = "Turn the location on in order to start the mission !",
+//                            color = Color.White,
+//                            fontSize = 23.sp,
+//                            lineHeight = 32.sp,
+//                            fontWeight = FontWeight.W400,
+//                            textAlign = TextAlign.Center,
+//                            modifier = Modifier.padding(horizontal = 15.dp)
+//                        )
+//                        Spacer(modifier = Modifier.height(40.dp))
+//                        CustomButton(onClick = {
+//                            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+//                            isLocationEnabled = locationEnabled(context)
+//                        }, text = "Continue Step mission")
+//                    } else {
+                        Text(
+                            text = if (countdown != 0) "1. Turn the location On If it is Off \n2. Stand up and take your position ! \n\nStarting in $countdown" else "Take Steps Softly",
+                            color = Color.White,
+                            fontSize = 23.sp,
+                            lineHeight = 32.sp,
+                            fontWeight = FontWeight.W400,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 15.dp)
+                        )
+                        Text(
+                            text = if (countdown != 0) "" else "$stepsToBeDone",
+                            color = Color.White,
+                            fontSize = 70.sp,
+                            fontWeight = FontWeight.W700,
+                            modifier = Modifier.padding(top = 20.dp),
+                            letterSpacing = 3.sp
+                        )
+//                    }
+                }
+
+            }
+            }
         }
         if (showRationale) {
             AlertDialog(

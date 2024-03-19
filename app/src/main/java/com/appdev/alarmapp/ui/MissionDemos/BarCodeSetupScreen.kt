@@ -136,12 +136,16 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
     var filename by remember {
         mutableStateOf(mainViewModel.detectedQrCodeState.qrCode)
     }
+    var codeName by remember {
+        mutableStateOf(mainViewModel.detectedQrCodeState.qrCode)
+    }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(mainViewModel.detectedQrCodeState) {
         if (mainViewModel.detectedQrCodeState.qrCode.trim().isNotEmpty()) {
             bottomSheetState = true
             filename = mainViewModel.detectedQrCodeState.qrCode
+            codeName = mainViewModel.detectedQrCodeState.qrCode
         }
     }
     LaunchedEffect(key1 = bottomSheetState) {
@@ -473,6 +477,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     changeSheetState = {
                                         clickedElement = qrCodeData.codeId
                                         filename = qrCodeData.qrCodeString
+                                        codeName = qrCodeData.qrCodeName
                                         configBottomBar = true
                                     }
                                 ) {
@@ -488,20 +493,20 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         onDismissRequest = {
                             Log.d("BARCHK","$filename is code string and other us ${mainViewModel.detectedQrCodeState.qrCode.trim()}")
                             if (!updateAttempt) {
-                                if (filename.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
+                                if (codeName.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
                                         .isNotEmpty()
                                 ) {
                                     mainViewModel.insertCode(
                                         QrCodeData(
                                             codeId = System.currentTimeMillis(),
-                                            qrCodeString = mainViewModel.detectedQrCodeState.qrCode
+                                            qrCodeString = mainViewModel.detectedQrCodeState.qrCode, qrCodeName = codeName
                                         )
                                     )
                                 } else {
                                     mainViewModel.insertCode(
                                         QrCodeData(
                                             codeId = System.currentTimeMillis(),
-                                            qrCodeString = filename
+                                            qrCodeString = filename, qrCodeName = codeName
                                         )
                                     )
                                 }
@@ -534,20 +539,20 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 ) {
                                     IconButton(onClick = {
                                         if (!updateAttempt) {
-                                            if (filename.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
+                                            if (codeName.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
                                                     .isNotEmpty()
                                             ) {
                                                 mainViewModel.insertCode(
                                                     QrCodeData(
                                                         codeId = System.currentTimeMillis(),
-                                                        qrCodeString = mainViewModel.detectedQrCodeState.qrCode
+                                                        qrCodeString = mainViewModel.detectedQrCodeState.qrCode, qrCodeName = mainViewModel.detectedQrCodeState.qrCode
                                                     )
                                                 )
                                             } else {
                                                 mainViewModel.insertCode(
                                                     QrCodeData(
                                                         codeId = System.currentTimeMillis(),
-                                                        qrCodeString = filename
+                                                        qrCodeString = filename, qrCodeName = codeName
                                                     )
                                                 )
                                             }
@@ -565,9 +570,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
 
                             Column(modifier = Modifier.padding(top = 20.dp, bottom = 40.dp)) {
                                 BasicTextField(
-                                    value = filename,
+                                    value = codeName,
                                     onValueChange = {
-                                        filename = it
+                                        codeName = it
                                     },
                                     cursorBrush = SolidColor(MaterialTheme.colorScheme.surfaceTint),
                                     singleLine = true,
@@ -606,19 +611,20 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                             mainViewModel.updateQrCode(
                                                 QrCodeData(
                                                     codeId = clickedElement,
-                                                    qrCodeString = filename
+                                                    qrCodeString = filename, qrCodeName = codeName
                                                 )
                                             )
                                         } else {
                                             mainViewModel.insertCode(
                                                 QrCodeData(
                                                     codeId = System.currentTimeMillis(),
-                                                    qrCodeString = filename
+                                                    qrCodeString = filename, qrCodeName = codeName
                                                 )
                                             )
                                         }
                                         clickedElement = -1
                                         filename = ""
+                                        codeName = ""
                                         bottomSheetState = false
                                     },
                                     text = "Save",
@@ -753,7 +759,7 @@ fun singleEntry(
             ) {
 
                 Text(
-                    text = if (qrCodeData.qrCodeString.length > 20) "${qrCodeData.qrCodeString.take(19)}..." else qrCodeData.qrCodeString,
+                    text = if (qrCodeData.qrCodeName.length > 20) "${qrCodeData.qrCodeName.take(19)}..." else qrCodeData.qrCodeName,
 
                     overflow = TextOverflow.Ellipsis,
                     color =MaterialTheme.colorScheme.surfaceTint,

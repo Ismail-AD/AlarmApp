@@ -435,7 +435,7 @@ fun BarCodeMissionScreen(
 
     LaunchedEffect(key1 = mainViewModel.selectedCode){
         if(mainViewModel.missionDetails.codeId > 1){
-            missionData = mainViewModel.selectedCode.qrCodeString
+            missionData = mainViewModel.selectedCode.qrCodeName
             dataToBeMatched = mainViewModel.selectedCode.qrCodeString
         }
     }
@@ -477,7 +477,9 @@ fun BarCodeMissionScreen(
         }
         if (isMatched == true) {
             openCamera = false
-            delay(2000)
+            if(mainViewModel.dummyMissionList.isEmpty()){
+                delay(2000)
+            }
             mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = "",startProcess = false))
             if (mainViewModel.isRealAlarm || previewMode) {
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
@@ -625,27 +627,29 @@ fun BarCodeMissionScreen(
             }
 
             true -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.angel),
-                            contentDescription = "",
-                            modifier = Modifier.size(95.dp)
-                        )
-                        Text(
-                            text = "Have a nice day :)",
-                            color = Color.White,
-                            fontSize = 25.sp,
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.W400,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                            lineHeight = 35.sp
-                        )
+                if(mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.angel),
+                                contentDescription = "",
+                                modifier = Modifier.size(95.dp)
+                            )
+                            Text(
+                                text = "Have a nice day :)",
+                                color = Color.White,
+                                fontSize = 25.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W400,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
+                                lineHeight = 35.sp
+                            )
 
+                        }
                     }
                 }
             }

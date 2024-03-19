@@ -30,12 +30,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -75,7 +77,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(InternalCoroutinesApi::class)
+@OptIn(InternalCoroutinesApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SoundPowerUp(
     textToSpeech: TextToSpeech,
@@ -97,6 +99,10 @@ fun SoundPowerUp(
     var showWakeSheet by remember { mutableStateOf(false) }
     var selectedOptionLimit by remember { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.wakeUpTime.toString() else mainViewModel.newAlarm.wakeUpTime.toString()) }
     val context = LocalContext.current
+    val sheetStatePower = rememberModalBottomSheetState()
+    var showSecondsSheet by remember {
+        mutableStateOf(false)
+    }
     LaunchedEffect(key1 = billingState.value) {
         currentState = billingState.value
         loading = false
@@ -193,7 +199,7 @@ fun SoundPowerUp(
                         data = if (selectedOptionLimit.toInt() > 10) "$selectedOptionLimit seconds" else "$selectedOptionLimit minutes",
                         isDarkMode
                     ) {
-                        showWakeSheet = true
+                        showSecondsSheet = true
                     }
                 }
             }
@@ -290,14 +296,10 @@ fun SoundPowerUp(
             }
 
         }
-        if (showWakeSheet) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                Dialog(onDismissRequest = {
-                    showWakeSheet = false
-                }) {
+        if (showSecondsSheet) {
+                ModalBottomSheet(onDismissRequest = {
+                    showSecondsSheet = false
+                 }, sheetState = sheetStatePower){
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -349,7 +351,6 @@ fun SoundPowerUp(
                         Spacer(modifier = Modifier.height(28.dp))
                     }
                 }
-            }
         }
     }
 }

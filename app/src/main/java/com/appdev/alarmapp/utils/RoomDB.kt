@@ -20,7 +20,7 @@ import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
 
 @Database(
     entities = [RingtoneEntity::class, AlarmEntity::class, SystemRingtone::class, CustomPhrase::class, ImageData::class, QrCodeData::class, DefaultSettings::class, AlarmSetting::class, DismissSettings::class, missionsEntity::class],
-    version = 35,
+    version = 36,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

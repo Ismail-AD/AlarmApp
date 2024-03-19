@@ -13,6 +13,7 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -122,6 +124,7 @@ fun MathMissionHandler(
     }
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+    var isEnd by remember { mutableStateOf(false) }
 
 
     var progress by remember { mutableFloatStateOf(1f) }
@@ -461,6 +464,11 @@ fun MathMissionHandler(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
+
+                if(mainViewModel.dummyMissionList.isEmpty()){
+                    isEnd = true
+                    delay(2000)
+                }
                 missionViewModel.missionMathEventHandler(MissionMathDemoHandler.ResetData)
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     val singleMission = mainViewModel.dummyMissionList.first()
@@ -611,229 +619,262 @@ fun MathMissionHandler(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp), progress = animatedProgress
-                )
-
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    if(!mainViewModel.isRealAlarm){
-                        controller.popBackStack()
-                    } else{
-                        if(!mainViewModel.isSnoozed){
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        } else{
-                            timerEndsCallback.onTimeEnds()
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBackIos,
-                        contentDescription = "",
-                        tint = Color.White, modifier = Modifier.size(22.dp)
-                    )
-                }
-                Text(
-                    text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 17.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.W500,
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 15.dp, end = 15.dp, bottom = 10.dp, top = 50.dp)
-            ) {
-                Text(
-                    text = qusetionString,
-                    color = Color.White,
-                    fontSize = 30.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.W600,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 20.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Card(
-                        onClick = { },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .height(82.dp)
-                            .width(200.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (missionViewModel.missionMathHandler.notMatched) {
-                                showWrong = true
-                                Color.Red
-                            } else if (missionViewModel.missionMathHandler.answerCorrect) {
-                                rightAnswer = true
-                                Color(0xff58B25A)
-                            } else Color.Transparent,
-                            disabledContainerColor = if (missionViewModel.missionMathHandler.notMatched) {
-                                showWrong = true
-                                Color.Red
-                            } else if (missionViewModel.missionMathHandler.answerCorrect) {
-                                rightAnswer = true
-                                Color(0xff58B25A)
-                            } else Color.Transparent
-                        ), enabled = false,
-                        border = BorderStroke(
-                            width = (1.5).dp,
-                            color = if (missionViewModel.missionMathHandler.notMatched) {
-                                showWrong = true
-                                Color.Red
-                            } else if (missionViewModel.missionMathHandler.answerCorrect) {
-                                rightAnswer = true
-                                Color(0xff58B25A)
-                            } else Color.White
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(start = 12.dp, top = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Start
+        when(isEnd){
+            true->{
+                if ((mainViewModel.isRealAlarm || previewMode) && mainViewModel.dummyMissionList.isEmpty() && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes && missionViewModel.missionMathHandler.answerCorrect) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = if (answer.length > 6) {
-                                    answer =
-                                        StringBuilder(answer).delete(6, answer.length).toString()
-                                    answer
-                                } else answer,
-                                color = Color.White,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.W600,
-                                maxLines = 1,
+                            Image(
+                                painter = painterResource(id = R.drawable.angel),
+                                contentDescription = "",
+                                modifier = Modifier.size(95.dp)
                             )
-                            if (missionViewModel.missionMathHandler.notMatched) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(end = 25.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Close,
-                                        contentDescription = "",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(35.dp)
-                                    )
-                                }
-                            }
-                            if (missionViewModel.missionMathHandler.answerCorrect) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(end = 25.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Check,
-                                        contentDescription = "",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(35.dp)
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "Have a nice day :)",
+                                color = Color.White,
+                                fontSize = 25.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.W400,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
+                                lineHeight = 35.sp
+                            )
+
                         }
                     }
                 }
             }
-
-            Box(
-                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter
-            ) {
-                LazyColumn(
+            else->{
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.85f)
-                        .background(Color.Transparent)
                 ) {
-                    items(keypadValues) { rowValues ->
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        LinearProgressIndicator(
+                            trackColor = backColor,
+                            color = Color.White,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp), progress = animatedProgress
+                        )
+
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp, horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            if(!mainViewModel.isRealAlarm){
+                                controller.popBackStack()
+                            } else{
+                                if(!mainViewModel.isSnoozed){
+                                    mainViewModel.dummyMissionList = emptyList()
+                                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                                    controller.navigate(Routes.PreviewAlarm.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                } else{
+                                    timerEndsCallback.onTimeEnds()
+                                }
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowBackIos,
+                                contentDescription = "",
+                                tint = Color.White, modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Text(
+                            text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.W500,
+                            modifier = Modifier.fillMaxWidth(0.8f)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 15.dp, end = 15.dp, bottom = 10.dp, top = 50.dp)
+                    ) {
+                        Text(
+                            text = qusetionString,
+                            color = Color.White,
+                            fontSize = 30.sp,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.W600,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(90.dp)
+                                .padding(vertical = 20.dp),
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            rowValues.forEach { value ->
-                                Button(
-                                    onClick = {
-                                        when (value) {
-                                            "✗" -> {
-                                                if (answer.isNotEmpty()) {
-                                                    // Remove the last digit
-                                                    answer = answer.dropLast(1)
-                                                }
-                                            }
-
-                                            "✓" -> {
-                                                // Handle the submit action
-                                                // For now, just print the answer
-                                                if (answer.trim().isNotEmpty()) {
-                                                    missionViewModel.missionMathEventHandler(
-                                                        MissionMathDemoHandler.CheckMatch(
-                                                            answer.trim().toInt()
-                                                        )
-                                                    )
-                                                }
-                                            }
-
-                                            else -> {
-                                                // Append the digit to the answer
-                                                answer += value
-                                            }
-                                        }
-                                        progress = 1f
-                                    },
+                            Card(
+                                onClick = { },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .height(82.dp)
+                                    .width(200.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (missionViewModel.missionMathHandler.notMatched) {
+                                        showWrong = true
+                                        Color.Red
+                                    } else if (missionViewModel.missionMathHandler.answerCorrect) {
+                                        rightAnswer = true
+                                        Color(0xff58B25A)
+                                    } else Color.Transparent,
+                                    disabledContainerColor = if (missionViewModel.missionMathHandler.notMatched) {
+                                        showWrong = true
+                                        Color.Red
+                                    } else if (missionViewModel.missionMathHandler.answerCorrect) {
+                                        rightAnswer = true
+                                        Color(0xff58B25A)
+                                    } else Color.Transparent
+                                ), enabled = false,
+                                border = BorderStroke(
+                                    width = (1.5).dp,
+                                    color = if (missionViewModel.missionMathHandler.notMatched) {
+                                        showWrong = true
+                                        Color.Red
+                                    } else if (missionViewModel.missionMathHandler.answerCorrect) {
+                                        rightAnswer = true
+                                        Color(0xff58B25A)
+                                    } else Color.White
+                                )
+                            ) {
+                                Row(
                                     modifier = Modifier
-                                        .padding(5.dp)
-                                        .fillMaxHeight()
-                                        .weight(1f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (value == "✗") Color(0xff3F434F) else if (value == "✓") Color(
-                                            0xffEB2641
-                                        ) else Color(0xff24272E)
-                                    )
+                                        .fillMaxSize()
+                                        .padding(start = 12.dp, top = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start
                                 ) {
                                     Text(
-                                        text = value,
-                                        color = Color.White, fontSize = 24.sp,
-                                        fontWeight = FontWeight.W500,
+                                        text = if (answer.length > 6) {
+                                            answer =
+                                                StringBuilder(answer).delete(6, answer.length).toString()
+                                            answer
+                                        } else answer,
+                                        color = Color.White,
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.W600,
+                                        maxLines = 1,
                                     )
+                                    if (missionViewModel.missionMathHandler.notMatched) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(end = 25.dp),
+                                            contentAlignment = Alignment.CenterEnd
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Close,
+                                                contentDescription = "",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(35.dp)
+                                            )
+                                        }
+                                    }
+                                    if (missionViewModel.missionMathHandler.answerCorrect) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(end = 25.dp),
+                                            contentAlignment = Alignment.CenterEnd
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Check,
+                                                contentDescription = "",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(35.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.85f)
+                                .background(Color.Transparent)
+                        ) {
+                            items(keypadValues) { rowValues ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(90.dp)
+                                ) {
+                                    rowValues.forEach { value ->
+                                        Button(
+                                            onClick = {
+                                                when (value) {
+                                                    "✗" -> {
+                                                        if (answer.isNotEmpty()) {
+                                                            // Remove the last digit
+                                                            answer = answer.dropLast(1)
+                                                        }
+                                                    }
+
+                                                    "✓" -> {
+                                                        // Handle the submit action
+                                                        // For now, just print the answer
+                                                        if (answer.trim().isNotEmpty()) {
+                                                            missionViewModel.missionMathEventHandler(
+                                                                MissionMathDemoHandler.CheckMatch(
+                                                                    answer.trim().toInt()
+                                                                )
+                                                            )
+                                                        }
+                                                    }
+
+                                                    else -> {
+                                                        // Append the digit to the answer
+                                                        answer += value
+                                                    }
+                                                }
+                                                progress = 1f
+                                            },
+                                            modifier = Modifier
+                                                .padding(5.dp)
+                                                .fillMaxHeight()
+                                                .weight(1f),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (value == "✗") Color(0xff3F434F) else if (value == "✓") Color(
+                                                    0xffEB2641
+                                                ) else Color(0xff24272E)
+                                            )
+                                        ) {
+                                            Text(
+                                                text = value,
+                                                color = Color.White, fontSize = 24.sp,
+                                                fontWeight = FontWeight.W500,
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
             }
         }
     }

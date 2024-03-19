@@ -8,7 +8,8 @@ import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.ringtoneList
 
 @Entity(tableName = "default_Setting_table")
-data class DefaultSettings(
+data class
+DefaultSettings(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val snoozeTime: Int = 5,

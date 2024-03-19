@@ -58,6 +58,7 @@ class QrCodeAnalyzer(
                                     if (targetRect.toRectF().contains(scaledBound)) {
                                         barcode.rawValue?.let {
                                             Log.d("CURC","PREP OF BAR CODE RESULT WHICH IS : $it")
+                                            Log.d("CURC","RECEIVED IS : ${barcode.displayValue}")
                                             mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = it))
                                             onQrCodeDetected(it)
                                         }

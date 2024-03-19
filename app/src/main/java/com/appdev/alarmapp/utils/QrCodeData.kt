@@ -8,4 +8,5 @@ data class QrCodeData(
     @PrimaryKey(autoGenerate = true)
     val codeId: Long = 0,
     val qrCodeString: String,
+    val qrCodeName:String
 )
