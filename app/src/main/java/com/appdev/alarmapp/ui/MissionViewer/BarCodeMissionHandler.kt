@@ -669,26 +669,26 @@ fun BarCodeMissionScreen(
                         )
 
                     }
-
                     if (!openCamera) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(start = 10.dp, top = 10.dp, end = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             IconButton(onClick = {
-                                if(!mainViewModel.isRealAlarm){
+                                if (!mainViewModel.isRealAlarm) {
                                     controller.popBackStack()
-                                } else{
-                                    if(!mainViewModel.isSnoozed){
+                                } else {
+                                    if (!mainViewModel.isSnoozed) {
                                         mainViewModel.dummyMissionList = emptyList()
-                                        mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                                        mainViewModel.dummyMissionList =
+                                            mainViewModel.missionDetailsList
                                         controller.navigate(Routes.PreviewAlarm.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
                                         }
-                                    } else{
+                                    } else {
                                         timerEndsCallback.onTimeEnds()
                                     }
                                 }
@@ -697,6 +697,22 @@ fun BarCodeMissionScreen(
                                     imageVector = Icons.Filled.ArrowBackIos,
                                     contentDescription = "",
                                     tint = Color.White, modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            if(mainViewModel.isRealAlarm || previewMode){
+                                CustomButton(
+                                    onClick = {
+                                        controller.navigate(Routes.AlternativeMissionScreen.route) {
+                                            popUpTo(controller.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    },
+                                    text = "Emergency",
+                                    width = 0.36f, height = 39.dp,
+                                    backgroundColor = Color.Transparent,
+                                    isBorderPreview = true,
+                                    borderColor = Color.Red,
+                                    textColor = Color.Red, fontSize = 16.sp
                                 )
                             }
                         }

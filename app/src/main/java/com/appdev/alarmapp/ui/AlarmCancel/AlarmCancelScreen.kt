@@ -713,10 +713,7 @@ fun AlarmCancelScreen(
                                     textToSpeech.stop()
                                     vibrator.cancel()
                                     if (previewMode) {
-                                        controller.navigate(Routes.MainScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
-                                            launchSingleTop = true
-                                        }
+                                        onDismissCallback.onDismissClicked()
                                     } else {
                                         controller.popBackStack()
                                     }

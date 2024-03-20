@@ -44,4 +44,5 @@ sealed class Routes(val route: String) {
     object ThemeChangeScreen : Routes("Set_Theme_Screen")
     object SoundPowerUpScreen : Routes("SoundPower_Up_Screen")
     object LabelScreen : Routes("Label_Screen")
+    object AlternativeMissionScreen : Routes("AlternativeMission_Screen")
 }

@@ -52,6 +52,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -737,8 +738,8 @@ fun PhotoMissionScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 10.dp, horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(start = 10.dp, top = 10.dp, bottom = 10.dp, end = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         IconButton(onClick = {
                             if (!mainViewModel.isRealAlarm) {
@@ -761,6 +762,22 @@ fun PhotoMissionScreen(
                                 imageVector = Icons.Filled.ArrowBackIos,
                                 contentDescription = "",
                                 tint = Color.White, modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        if(mainViewModel.isRealAlarm || previewMode){
+                            CustomButton(
+                                onClick = {
+                                    controller.navigate(Routes.AlternativeMissionScreen.route) {
+                                        popUpTo(controller.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                },
+                                text = "Emergency",
+                                width = 0.36f, height = 39.dp,
+                                backgroundColor = Color.Transparent,
+                                isBorderPreview = true,
+                                borderColor = Color.Red,
+                                textColor = Color.Red, fontSize = 16.sp
                             )
                         }
                     }

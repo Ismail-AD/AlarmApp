@@ -100,8 +100,6 @@ import com.appdev.alarmapp.utils.getRepeatText
 import com.appdev.alarmapp.utils.isOldOrNew
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import me.saket.swipe.SwipeAction
-import me.saket.swipe.SwipeableActionsBox
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalTime
@@ -115,6 +113,7 @@ import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    endMain: () -> Unit,
     alarmSchedule: AlarmScheduler,
     controller: NavHostController,
     mainViewModel: MainViewModel
@@ -836,6 +835,7 @@ fun MainScreen(
                     newIntent.putExtra("Alarm", alarmToPreview)
                     newIntent.putExtra("Preview", true)
                     context.startActivity(newIntent)
+                    endMain()
                 }
                 singleSheetItem(
                     name = if (alarmToPreview.skipTheAlarm) "Unskip next alarm" else "Skip next alarm",

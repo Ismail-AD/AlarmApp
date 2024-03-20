@@ -25,6 +25,7 @@ import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.MissionViewer.AlterMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
@@ -397,6 +398,16 @@ fun snoozeAlarmNavGraph(
                 timerEndsCallback
             )
         }
+        composable(route = Routes.AlternativeMissionScreen.route) {
+            AlterMissionScreen(
+                intent, textToSpeech,
+                dismissCallback =  onDismissCallback,
+                timerEndsCallback = timerEndsCallback,
+                controller = controller,
+                mainViewModel = mainViewModel,
+            )
+        }
+
 
         composable(route = Routes.MissionShakeScreen.route) {
             ShakeDetectionScreen(

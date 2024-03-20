@@ -44,6 +44,7 @@ fun CustomButton(
     textColor: Color = Color.White,
     width: Float = 0.8f,
     backgroundColor: Color = Color(0xff7B70FF),
+    borderColor:Color=Color(0xff7B70FF),
     height: Dp = 50.dp,
     fontSize: TextUnit = 18.sp,
     isBorderPreview: Boolean = false,
@@ -57,7 +58,7 @@ fun CustomButton(
             .height(height)
             .clip(RoundedCornerShape(8.dp)),
         enabled = isEnabled,
-        border = if (isBorderPreview) BorderStroke(2.dp, Color(0xff7B70FF)) else BorderStroke(
+        border = if (isBorderPreview) BorderStroke(2.dp, borderColor) else BorderStroke(
             0.dp,
             Color.Transparent
         ),

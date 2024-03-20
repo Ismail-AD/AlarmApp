@@ -35,6 +35,7 @@ import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.MissionViewer.AlterMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
@@ -375,6 +376,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             )
             finish()
         } else if (previewMode) {
+            startActivity(Intent(this@AlarmCancelAccess,MainActivity::class.java))
             finish()
         }
     }
@@ -472,6 +474,20 @@ fun AlarmNavGraph(
                 onSnoozeCallback,
                 controller,
                 mainViewModel,
+            )
+        }
+        composable(route = Routes.AlternativeMissionScreen.route) {
+            AlterMissionScreen(
+                intent, textToSpeech,
+                dismissCallback =  onDismissCallback,
+                timerEndsCallback =  object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                controller = controller,
+                mainViewModel = mainViewModel,
             )
         }
 
