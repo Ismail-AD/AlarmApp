@@ -758,13 +758,21 @@ fun singleEntry(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Text(
-                    text = if (qrCodeData.qrCodeName.length > 20) "${qrCodeData.qrCodeName.take(19)}..." else qrCodeData.qrCodeName,
+                Column {
+                    Text(
+                        text = "Name: " + if (qrCodeData.qrCodeName.length > 20) "${qrCodeData.qrCodeName.take(19)}..." else qrCodeData.qrCodeName,
 
-                    overflow = TextOverflow.Ellipsis,
-                    color =MaterialTheme.colorScheme.surfaceTint,
-                    fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
-                )
+                        overflow = TextOverflow.Ellipsis,
+                        color =MaterialTheme.colorScheme.surfaceTint,
+                        fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
+                    )
+                    Text(
+                        text = "Value: "+if (qrCodeData.qrCodeString.length > 20) "${qrCodeData.qrCodeString.take(19)}..." else qrCodeData.qrCodeString,
+                        overflow = TextOverflow.Ellipsis,
+                        color =MaterialTheme.colorScheme.surfaceTint,
+                        fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp, top = 5.dp)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

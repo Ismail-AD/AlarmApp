@@ -677,13 +677,12 @@ fun BarCodeMissionScreen(
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             IconButton(onClick = {
+                                mainViewModel.dummyMissionList = emptyList()
+                                mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
                                 if (!mainViewModel.isRealAlarm) {
                                     controller.popBackStack()
                                 } else {
                                     if (!mainViewModel.isSnoozed) {
-                                        mainViewModel.dummyMissionList = emptyList()
-                                        mainViewModel.dummyMissionList =
-                                            mainViewModel.missionDetailsList
                                         controller.navigate(Routes.PreviewAlarm.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
@@ -745,7 +744,7 @@ fun BarCodeMissionScreen(
                                 mainViewModel.getCodeById(mainViewModel.missionDetails.codeId)
                                 missionData?.let {
                                     Text(
-                                        text = it,
+                                        text =  "Name: "+ it,
                                         color = Color.White,
                                         fontSize = 18.sp, textAlign = TextAlign.Center,
                                         fontWeight = FontWeight.W400,
@@ -753,10 +752,28 @@ fun BarCodeMissionScreen(
                                             .fillMaxWidth()
                                             .padding(horizontal = 20.dp)
                                     )
+                                    Text(
+                                        text = "Value: "+ dataToBeMatched,
+                                        color = Color.White,
+                                        fontSize = 18.sp, textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.W400,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 20.dp, end = 20.dp, top = 6.dp)
+                                    )
                                 }
                             } else {
                                 Text(
-                                    text = mainViewModel.selectedCode.qrCodeString,
+                                    text =  "Name: "+mainViewModel.selectedCode.qrCodeName,
+                                    color = Color.White,
+                                    fontSize = 18.sp, textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.W400,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 20.dp, end = 20.dp, top = 6.dp)
+                                )
+                                Text(
+                                    text =  "Value: "+mainViewModel.selectedCode.qrCodeString,
                                     color = Color.White,
                                     fontSize = 18.sp, textAlign = TextAlign.Center,
                                     fontWeight = FontWeight.W400,

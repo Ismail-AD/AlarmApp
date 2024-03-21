@@ -726,12 +726,12 @@ fun StepMission(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = {
+                        mainViewModel.dummyMissionList = emptyList()
+                        mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
                         if(!mainViewModel.isRealAlarm){
                             controller.popBackStack()
                         } else{
                             if(!mainViewModel.isSnoozed){
-                                mainViewModel.dummyMissionList = emptyList()
-                                mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
                                 controller.navigate(Routes.PreviewAlarm.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
