@@ -170,6 +170,8 @@ fun PhotoMissionScreen(
     DisposableEffect(key1 = Unit) {
         if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
+
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -211,7 +213,6 @@ fun PhotoMissionScreen(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -509,7 +510,6 @@ fun PhotoMissionScreen(
         if (isMatched == true) {
             loading = false
             openCamera = false
-            delay(2000)
             if (mainViewModel.isRealAlarm || previewMode ) {
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
@@ -592,10 +592,6 @@ fun PhotoMissionScreen(
                         }
 
                         else -> {
-                            if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                Utils(context).removeVolume()
-                            }
                             Helper.stopStream()
                             textToSpeech.stop()
                             vibrator.cancel()
@@ -603,10 +599,6 @@ fun PhotoMissionScreen(
                         }
                     }
                 } else {
-                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                        Utils(context).removeVolume()
-                    }
                     Helper.stopStream()
                     textToSpeech.stop()
                     vibrator.cancel()
@@ -688,34 +680,6 @@ fun PhotoMissionScreen(
                             lineHeight = 35.sp
                         )
 
-                    }
-                }
-            }
-
-            true -> {
-                if(mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.angel),
-                                contentDescription = "",
-                                modifier = Modifier.size(95.dp)
-                            )
-                            Text(
-                                text = "Have a nice day :)",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.W400,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                                lineHeight = 35.sp
-                            )
-
-                        }
                     }
                 }
             }

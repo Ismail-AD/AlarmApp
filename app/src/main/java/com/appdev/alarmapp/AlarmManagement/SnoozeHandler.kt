@@ -88,37 +88,26 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
         setContent {
             AlarmAppTheme {
                 Log.d("CHECKR", "In theme Composable of Snooze Handler")
-
-                mainViewModel.alarmIsSnoozed(true)
-
-                notify = intent.getBooleanExtra("notify", false)
-//                remainTime = intent.getLongExtra("restTime", 0L)
-                if (intent?.hasExtra("Alarm") == true) {
-
-                    receivedAlarm = intent.getParcelableExtra("Alarm")
-                    Log.d("CHECKR", "Alarm at Snooze Handler ${receivedAlarm}")
-                    dismissSettings = intent.getParcelableExtra("dismissSet")
-                    receivedAlarm?.let { gotAlarm ->
-                        alarm = gotAlarm
-                        Log.d("CHKMUS", "ALARM RECEIVED ${gotAlarm}")
-                        mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
-                        Log.d(
-                            "CHECKR",
-                            "Missions List after addition ${mainViewModel.missionDetailsList}"
-                        )
-                        Log.d(
-                            "CHECKR",
-                            "Dummy List after addition ${mainViewModel.dummyMissionList}"
-                        )
-                        snoozeAlarmNavGraph(
-                            onDismissCallback = this@SnoozeHandler,
-                            timerEndsCallback = this@SnoozeHandler,
-                            textToSpeech,
-                            intent,
-                            mainViewModel = mainViewModel,
-                        )
-                    }
-                }
+                   mainViewModel.alarmIsSnoozed(true)
+                   notify = intent.getBooleanExtra("notify", false)
+                   if (intent?.hasExtra("Alarm") == true) {
+                       receivedAlarm = intent.getParcelableExtra("Alarm")
+                       dismissSettings = intent.getParcelableExtra("dismissSet")
+                       receivedAlarm?.let { gotAlarm ->
+                           alarm = gotAlarm
+                           Log.d(
+                               "CHECKR",
+                               "Dummy List after addition ${mainViewModel.dummyMissionList.size}"
+                           )
+                           snoozeAlarmNavGraph(
+                               onDismissCallback = this@SnoozeHandler,
+                               timerEndsCallback = this@SnoozeHandler,
+                               textToSpeech,
+                               intent,
+                               mainViewModel = mainViewModel,
+                           )
+                       }
+               }
             }
         }
     }
@@ -173,9 +162,6 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
         super.onStop()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-    }
 
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
@@ -196,6 +182,7 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
     override fun onDismissClicked() {
         alarmScheduler.cancel(alarm)
         mainViewModel.snoozeUpdate(false)
+
         if (mainViewModel.dummyMissionList.isEmpty()) {
             if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
                 mainViewModel.updateHandler(
@@ -327,45 +314,14 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
             }
             mainViewModel.updateIsReal(false)
             if (alarm.isGentleWakeUp) {
-                Helper.updateLow(false)
                 Helper.stopIncreasingVolume()
+                Helper.updateLow(false)
             }
-            Helper.updateCustomValue(100f)
-//            Log.d("CHKSM", "alarm with id is STOPPED/REMOVED VIA DISMISS ${alarm.id}")
-//
-//
-//            val closestSnoozeTimer = Utils(this).findClosestSnoozeTimer()
-//            Log.d("CHKN","Is Utils empty: ${!Utils(this).areSnoozeTimersEmpty()}")
-//            if (!Utils(this).areSnoozeTimersEmpty()) {
-//                Log.d("CHKSM", "LIST OF ALARM is not empty at main")
-//                if(closestSnoozeTimer!=null){
-//                    mainViewModel.getAlarmById(closestSnoozeTimer.alarmId)
-//                }
-//                Log.d("CHKN","$closestSnoozeTimer at main")
-//                lifecycleScope.launch {
-//                    mainViewModel.snoozedAlarm.collect { alarmEnt ->
-//                        Log.d("CHKSM", "Alarm snoozed id at main ${alarmEnt.id}")
-//
-//                        if (alarmEnt.id != 0L && Utils(this@SnoozeHandler).getSnoozeTimerById(
-//                                alarmEnt.id
-//                            ) != null
-//                        ) {
-//                            val newIntent = Intent(this@SnoozeHandler, SnoozeHandler::class.java)
-//                            newIntent.putExtra("Alarm", alarmEnt)
-//                            newIntent.putExtra(
-//                                "notify",
-//                                mainViewModel.basicSettings.value.showInNotification
-//                            )
-//                            newIntent.putExtra("dismissSet", mainViewModel.dismissSettings.value)
-//                            startActivity(newIntent)
-//                            finish()
-//                        }
-//                    }
-//                }
-//            } else{
-            startActivity(Intent(this, MainActivity::class.java))
+            Helper.stopStream()
+            vibrator.cancel()
+            textToSpeech.stop()
+            startActivity(Intent(this, EndingHandler::class.java))
             finish()
-//            }
         }
 
 

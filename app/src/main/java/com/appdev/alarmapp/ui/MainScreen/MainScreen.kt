@@ -113,7 +113,6 @@ import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    endMain: () -> Unit,
     alarmSchedule: AlarmScheduler,
     controller: NavHostController,
     mainViewModel: MainViewModel
@@ -835,7 +834,6 @@ fun MainScreen(
                     newIntent.putExtra("Alarm", alarmToPreview)
                     newIntent.putExtra("Preview", true)
                     context.startActivity(newIntent)
-                    endMain()
                 }
                 singleSheetItem(
                     name = if (alarmToPreview.skipTheAlarm) "Unskip next alarm" else "Skip next alarm",

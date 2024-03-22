@@ -75,6 +75,7 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.convertStringToSet
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
@@ -149,6 +150,7 @@ fun BarCodeMissionScreen(
     DisposableEffect(key1 = Unit) {
         if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -169,7 +171,7 @@ fun BarCodeMissionScreen(
 
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Speech Begins and values are $timeIsDone  and $speechIsDone")
-        if (!dismissSettings.muteTone && !Helper.isPlaying()){
+        if (!dismissSettings.muteTone && !Helper.isPlaying()) {
 
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
@@ -190,7 +192,6 @@ fun BarCodeMissionScreen(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -230,7 +231,7 @@ fun BarCodeMissionScreen(
 
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Going to check to play tone and values are $timeIsDone  and $speechIsDone")
-        if(!dismissSettings.muteTone && !Helper.isPlaying()){
+        if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             if (!mainViewModel.isRealAlarm && !previewMode) {
                 Log.d("CHKMUS", "Mission Viewer Music Started")
                 Helper.playStream(context, R.raw.alarmsound)
@@ -240,7 +241,10 @@ fun BarCodeMissionScreen(
             if ((mainViewModel.isRealAlarm || previewMode) && !timeIsDone && !speechIsDone) {
                 alarmEntity?.let { alarm ->
                     if (alarm.ringtone.rawResourceId != -1) {
-                        Log.d("CHKMUS", "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
+                        Log.d(
+                            "CHKMUS",
+                            "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}"
+                        )
                         ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
                         if (alarm.isGentleWakeUp) {
                             Helper.updateLow(true)
@@ -433,8 +437,8 @@ fun BarCodeMissionScreen(
         }
     }
 
-    LaunchedEffect(key1 = mainViewModel.selectedCode){
-        if(mainViewModel.missionDetails.codeId > 1){
+    LaunchedEffect(key1 = mainViewModel.selectedCode) {
+        if (mainViewModel.missionDetails.codeId > 1) {
             missionData = mainViewModel.selectedCode.qrCodeName
             dataToBeMatched = mainViewModel.selectedCode.qrCodeString
         }
@@ -452,12 +456,13 @@ fun BarCodeMissionScreen(
     }
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
-            if(!mainViewModel.isRealAlarm){
+            if (!mainViewModel.isRealAlarm) {
                 controller.popBackStack()
-            } else{
-                if(!mainViewModel.isSnoozed){
-                    mainViewModel.dummyMissionList = emptyList()
-                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+            } else {
+                if (!mainViewModel.isSnoozed) {
+//                    mainViewModel.dummyMissionList = emptyList()
+//                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+
                     controller.navigate(Routes.PreviewAlarm.route) {
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true
@@ -477,10 +482,12 @@ fun BarCodeMissionScreen(
         }
         if (isMatched == true) {
             openCamera = false
-            if(mainViewModel.dummyMissionList.isEmpty()){
-                delay(2000)
-            }
-            mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = "",startProcess = false))
+            mainViewModel.updateDetectedString(
+                MainViewModel.ProcessingState(
+                    qrCode = "",
+                    startProcess = false
+                )
+            )
             if (mainViewModel.isRealAlarm || previewMode) {
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
@@ -537,6 +544,7 @@ fun BarCodeMissionScreen(
                                 launchSingleTop = true
                             }
                         }
+
                         "QR/Barcode" -> {
                             controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
                                 popUpTo(Routes.PreviewAlarm.route) {
@@ -545,12 +553,14 @@ fun BarCodeMissionScreen(
                                 launchSingleTop = true
                             }
                         }
+
                         "Step" -> {
                             controller.navigate(Routes.StepDetectorScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "Squat" -> {
                             controller.navigate(Routes.SquatMissionScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -559,10 +569,6 @@ fun BarCodeMissionScreen(
                         }
 
                         else -> {
-                            if(Utils(context).areSnoozeTimersEmpty()&& !previewMode && !Utils(context).isVolumeEmpty()){
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                Utils(context).removeVolume()
-                            }
                             Helper.stopStream()
                             textToSpeech.stop()
                             vibrator.cancel()
@@ -570,10 +576,6 @@ fun BarCodeMissionScreen(
                         }
                     }
                 } else {
-                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                        Utils(context).removeVolume()
-                    }
                     Helper.stopStream()
                     textToSpeech.stop()
                     vibrator.cancel()
@@ -597,7 +599,7 @@ fun BarCodeMissionScreen(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        Log.d("BARCHK","$dataToBeMatched is data to be matched")
+        Log.d("BARCHK", "$dataToBeMatched is data to be matched")
 
         when (isMatched) {
             false -> {
@@ -626,33 +628,6 @@ fun BarCodeMissionScreen(
                 }
             }
 
-            true -> {
-                if(mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.angel),
-                                contentDescription = "",
-                                modifier = Modifier.size(95.dp)
-                            )
-                            Text(
-                                text = "Have a nice day :)",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.W400,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                                lineHeight = 35.sp
-                            )
-
-                        }
-                    }
-                }
-            }
 
             else -> {
                 Column(
@@ -674,7 +649,8 @@ fun BarCodeMissionScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 10.dp, top = 10.dp, end = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             IconButton(onClick = {
                                 mainViewModel.dummyMissionList = emptyList()
@@ -698,7 +674,7 @@ fun BarCodeMissionScreen(
                                     tint = Color.White, modifier = Modifier.size(22.dp)
                                 )
                             }
-                            if(mainViewModel.isRealAlarm || previewMode){
+                            if (mainViewModel.isRealAlarm || previewMode) {
                                 CustomButton(
                                     onClick = {
                                         controller.navigate(Routes.AlternativeMissionScreen.route) {
@@ -744,7 +720,7 @@ fun BarCodeMissionScreen(
                                 mainViewModel.getCodeById(mainViewModel.missionDetails.codeId)
                                 missionData?.let {
                                     Text(
-                                        text =  "Name: "+ it,
+                                        text = "Name: " + it,
                                         color = Color.White,
                                         fontSize = 18.sp, textAlign = TextAlign.Center,
                                         fontWeight = FontWeight.W400,
@@ -753,7 +729,7 @@ fun BarCodeMissionScreen(
                                             .padding(horizontal = 20.dp)
                                     )
                                     Text(
-                                        text = "Value: "+ dataToBeMatched,
+                                        text = "Value: " + dataToBeMatched,
                                         color = Color.White,
                                         fontSize = 18.sp, textAlign = TextAlign.Center,
                                         fontWeight = FontWeight.W400,
@@ -764,7 +740,7 @@ fun BarCodeMissionScreen(
                                 }
                             } else {
                                 Text(
-                                    text =  "Name: "+mainViewModel.selectedCode.qrCodeName,
+                                    text = "Name: " + mainViewModel.selectedCode.qrCodeName,
                                     color = Color.White,
                                     fontSize = 18.sp, textAlign = TextAlign.Center,
                                     fontWeight = FontWeight.W400,
@@ -773,7 +749,7 @@ fun BarCodeMissionScreen(
                                         .padding(start = 20.dp, end = 20.dp, top = 6.dp)
                                 )
                                 Text(
-                                    text =  "Value: "+mainViewModel.selectedCode.qrCodeString,
+                                    text = "Value: " + mainViewModel.selectedCode.qrCodeString,
                                     color = Color.White,
                                     fontSize = 18.sp, textAlign = TextAlign.Center,
                                     fontWeight = FontWeight.W400,
@@ -788,8 +764,16 @@ fun BarCodeMissionScreen(
                                 onClick = {
                                     progress = 1f
                                     openCamera = true
-                                    mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = "",startProcess = true))
-                                    Log.d("BARCHK","onClick of i am ready: ${mainViewModel.detectedQrCodeState.qrCode} ")
+                                    mainViewModel.updateDetectedString(
+                                        MainViewModel.ProcessingState(
+                                            qrCode = "",
+                                            startProcess = true
+                                        )
+                                    )
+                                    Log.d(
+                                        "BARCHK",
+                                        "onClick of i am ready: ${mainViewModel.detectedQrCodeState.qrCode} "
+                                    )
 
                                 },
                                 text = "I'm ready",
@@ -805,18 +789,31 @@ fun BarCodeMissionScreen(
                                 .fillMaxSize()
                                 .background(backColor)
                         ) {
-                            Log.d("BARCHK","onMatch : ${mainViewModel.detectedQrCodeState.qrCode} and data to be matched :${dataToBeMatched} ")
+                            Log.d(
+                                "BARCHK",
+                                "onMatch : ${mainViewModel.detectedQrCodeState.qrCode} and data to be matched :${dataToBeMatched} "
+                            )
                             if (!isFlashOn) {
                                 BarCodeCameraPreview(viewModel = mainViewModel) {
                                     isMatched =
                                         mainViewModel.detectedQrCodeState.qrCode == dataToBeMatched
-                                    mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = "",startProcess = false))
+                                    mainViewModel.updateDetectedString(
+                                        MainViewModel.ProcessingState(
+                                            qrCode = "",
+                                            startProcess = false
+                                        )
+                                    )
                                 }
                             } else {
                                 BarCodeCameraPreview(viewModel = mainViewModel) {
                                     isMatched =
                                         mainViewModel.detectedQrCodeState.qrCode == dataToBeMatched
-                                    mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = "",startProcess = false))
+                                    mainViewModel.updateDetectedString(
+                                        MainViewModel.ProcessingState(
+                                            qrCode = "",
+                                            startProcess = false
+                                        )
+                                    )
                                 }
                             }
                             Row(
@@ -830,12 +827,12 @@ fun BarCodeMissionScreen(
                                     if (!mainViewModel.isRealAlarm) {
                                         Helper.playStream(context, R.raw.alarmsound)
                                     }
-                                    if(!mainViewModel.isSnoozed){
+                                    if (!mainViewModel.isSnoozed) {
                                         controller.navigate(Routes.PreviewAlarm.route) {
                                             popUpTo(controller.graph.startDestinationId)
                                             launchSingleTop = true
                                         }
-                                    } else{
+                                    } else {
                                         timerEndsCallback.onTimeEnds()
                                     }
                                 }) {

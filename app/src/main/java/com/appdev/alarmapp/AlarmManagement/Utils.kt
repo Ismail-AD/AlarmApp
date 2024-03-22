@@ -13,26 +13,7 @@ class Utils(private val context: Context) {
 
     private val PREFS_NAME = "snooze_timers"
     private val SNOOZE_TIMERS_KEY = "snooze_timers_set"
-    private val SHARED_PREFS_NAME = "MySharedPrefs"
-    private val VOLUME_KEY = "volume"
 
-    private val sharedPreferences: SharedPreferences by lazy {
-        context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
-    }
-
-    fun saveVolume(volume: Int) {
-        sharedPreferences.edit().putInt(VOLUME_KEY, volume).apply()
-    }
-
-    fun getCurrentVolume(): Int {
-        return sharedPreferences.getInt(VOLUME_KEY,100)
-    }
-    fun removeVolume() {
-        sharedPreferences.edit().remove(VOLUME_KEY).apply()
-    }
-    fun isVolumeEmpty(): Boolean {
-        return !sharedPreferences.contains(VOLUME_KEY)
-    }
 
     fun startOrUpdateSnoozeTimer(snoozeTimer: SnoozeTimer) {
         val timers = mutableSetOf<SnoozeTimer>()

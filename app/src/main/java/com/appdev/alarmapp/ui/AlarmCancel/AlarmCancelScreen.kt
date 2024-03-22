@@ -97,7 +97,6 @@ fun AlarmCancelScreen(
     var speechIsDone by remember { mutableStateOf(alarmEntity?.isLabel ?: false) }
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) }
     val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val vibratorManager =
             context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -146,6 +145,7 @@ fun AlarmCancelScreen(
     DisposableEffect(key1 = Unit) {
         if(!Helper.isPlaying()){
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -210,7 +210,6 @@ fun AlarmCancelScreen(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -660,10 +659,6 @@ fun AlarmCancelScreen(
                             }
 
                             else -> {
-                                if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                    Utils(context).removeVolume()
-                                }
                                 Helper.stopStream()
                                 textToSpeech.stop()
                                 vibrator.cancel()
@@ -671,9 +666,6 @@ fun AlarmCancelScreen(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
                                 )
-//                                if(!mainViewModel.isRealAlarm && !previewMode){
-//
-//                                }
                                 onDismissCallback.onDismissClicked()
                             }
                         }

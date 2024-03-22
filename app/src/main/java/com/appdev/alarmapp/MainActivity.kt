@@ -177,9 +177,7 @@ class MainActivity : ComponentActivity() {
                                     controller,
                                     tokenManagement,
                                     applicationContext
-                                ){
-                                    finish()
-                                }
+                                )
                             } else {
                                 val intent = Intent().apply {
                                     action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
@@ -192,9 +190,7 @@ class MainActivity : ComponentActivity() {
                                 controller,
                                 tokenManagement,
                                 applicationContext
-                            ) {
-                                finish()
-                            }
+                            )
                         }
                     }
                 }

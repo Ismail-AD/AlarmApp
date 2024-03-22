@@ -146,6 +146,7 @@ fun AlterMissionScreen(
     DisposableEffect(key1 = Unit) {
         if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -183,7 +184,6 @@ fun AlterMissionScreen(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -337,16 +337,11 @@ fun AlterMissionScreen(
     }
 
     LaunchedEffect(key1 = remainingTimes) {
-        if ((mainViewModel.isRealAlarm || previewMode) && remainingTimes <=0 ) {
+        if ((mainViewModel.isRealAlarm || previewMode) && remainingTimes <= 0) {
             val mutableList = mainViewModel.dummyMissionList.toMutableList()
             mutableList.removeFirst()
             mainViewModel.dummyMissionList = mutableList
-            if(mainViewModel.dummyMissionList.isEmpty()){
-                isEnd = true
-                delay(2000)
-            }
             if (mainViewModel.dummyMissionList.isNotEmpty()) {
-                Log.d("CHKVM", "Value before ${mainViewModel.missionDetails.repeatProgress}")
                 val singleMission = mainViewModel.dummyMissionList.first()
 
                 mainViewModel.missionData(
@@ -422,10 +417,6 @@ fun AlterMissionScreen(
                     }
 
                     else -> {
-                        if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                            Utils(context).removeVolume()
-                        }
                         Helper.stopStream()
                         textToSpeech.stop()
                         vibrator.cancel()
@@ -433,10 +424,6 @@ fun AlterMissionScreen(
                     }
                 }
             } else {
-                if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                    Utils(context).removeVolume()
-                }
                 Helper.stopStream()
                 textToSpeech.stop()
                 vibrator.cancel()
@@ -451,151 +438,120 @@ fun AlterMissionScreen(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        when (isEnd) {
-            true -> {
-                if ((mainViewModel.isRealAlarm || previewMode) && mainViewModel.dummyMissionList.isEmpty() && missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size) && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.angel),
-                                contentDescription = "",
-                                modifier = Modifier.size(95.dp)
-                            )
-                            Text(
-                                text = "Have a nice day :)",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.W400,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                                lineHeight = 35.sp
-                            )
-
-                        }
-                    }
-                }
-            }
-
-            else -> {
-                Column(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(
+                    trackColor = backColor,
+                    color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        LinearProgressIndicator(
-                            trackColor = backColor,
-                            color = Color.White,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 2.dp), progress = animatedProgress
-                        )
+                        .padding(horizontal = 2.dp), progress = animatedProgress
+                )
 
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp, horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            if (!mainViewModel.isRealAlarm) {
-                                controller.popBackStack()
-                            } else {
-                                if (!mainViewModel.isSnoozed) {
-                                    controller.navigate(Routes.PreviewAlarm.route) {
-                                        popUpTo(controller.graph.startDestinationId)
-                                        launchSingleTop = true
-                                    }
-                                } else {
-                                    timerEndsCallback.onTimeEnds()
-                                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp, horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    mainViewModel.dummyMissionList = emptyList()
+                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                    if (!mainViewModel.isRealAlarm) {
+                        controller.popBackStack()
+                    } else {
+                        if (!mainViewModel.isSnoozed) {
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
                             }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "",
-                                tint = Color.White, modifier = Modifier.size(22.dp)
-                            )
+                        } else {
+                            timerEndsCallback.onTimeEnds()
                         }
                     }
-                    Column(modifier = Modifier.padding(vertical = 40.dp)) {
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "",
+                        tint = Color.White, modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Column(modifier = Modifier.padding(vertical = 40.dp)) {
+                Text(
+                    text = "Emergency dismiss",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.W500,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 15.dp)
+                )
+                Text(
+                    "Tap on green button to decrease count leading towards dismiss of alarm",
+                    fontSize = 16.sp,
+                    letterSpacing = 0.sp,
+                    color = Color(0xffA6ACB5),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 7.dp, start = 10.dp, end = 10.dp)
+                )
+            }
+            Text(
+                "$remainingTimes times",
+                fontSize = 40.sp,
+                letterSpacing = 0.sp,
+                color = Color(0xffb5c7ca),
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+            )
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(15.dp)
+                ) {
+                    items(colors.size) { index ->
+                        RubikCube(
+                            color = colors[index],
+                            onClick = {
+                                if (remainingTimes > 0) {
+                                    if (colors[index] == Color.Green) {
+                                        remainingTimes--
+                                        showWrong = false
+                                    } else {
+                                        showWrong = true
+                                    }
+                                    progress = 1f
+                                    colors = generateNewColors()
+                                }
+                            }
+                        )
+                    }
+                    item {
                         Text(
-                            text = "Emergency dismiss",
+                            text = if (showWrong) "Tap on green Button !" else "",
                             color = Color.White,
-                            fontSize = 24.sp,
+                            fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.W500,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 15.dp)
                         )
-                        Text(
-                            "Tap on green button to decrease count leading towards dismiss of alarm",
-                            fontSize = 16.sp,
-                            letterSpacing = 0.sp,
-                            color = Color(0xffA6ACB5),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 7.dp, start = 10.dp, end = 10.dp)
-                        )
-                    }
-                    Text(
-                        "$remainingTimes times",
-                        fontSize = 40.sp,
-                        letterSpacing = 0.sp,
-                        color = Color(0xffb5c7ca),
-                        textAlign = TextAlign.Center,modifier = Modifier.fillMaxWidth()
-                    )
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(15.dp)
-                        ) {
-                            items(colors.size) { index ->
-                                RubikCube(
-                                    color = colors[index],
-                                    onClick = {
-                                        if(remainingTimes>0){
-                                            if (colors[index] == Color.Green) {
-                                                remainingTimes--
-                                                showWrong = false
-                                            } else{
-                                                showWrong = true
-                                            }
-                                            progress = 1f
-                                            colors = generateNewColors()
-                                        }
-                                    }
-                                )
-                            }
-                            item{
-                                Text(
-                                    text = if(showWrong) "Tap on green Button !" else "",
-                                    color = Color.White,
-                                    fontSize = 20.sp,
-                                    textAlign = TextAlign.Center,
-                                    fontWeight = FontWeight.W500,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 15.dp)
-                                )
-                            }
-                        }
                     }
                 }
             }
         }
     }
+
 }
 
 fun generateNewColors(): List<Color> {

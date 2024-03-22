@@ -37,7 +37,6 @@ fun navGraph(
     controller: NavHostController,
     isToken: TokenManagement,
     applicationContext: Context,
-    endMain: () -> Unit
 ) {
 
     val mainViewModel: MainViewModel = hiltViewModel()
@@ -93,7 +92,7 @@ fun navGraph(
             NotificationScreen(controller)
         }
         composable(route = Routes.MainUIScreen.route) {
-            MainUiScreen(endMain,alarmScheduler,textToSpeech,isToken, mainViewModel = mainViewModel)
+            MainUiScreen(alarmScheduler,textToSpeech,isToken, mainViewModel = mainViewModel)
         }
     }
 }

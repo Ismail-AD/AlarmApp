@@ -139,6 +139,8 @@ fun ShakeDetectionScreen(
     DisposableEffect(key1 = Unit) {
         if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
+
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -159,7 +161,7 @@ fun ShakeDetectionScreen(
 
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Speech Begins and values are $timeIsDone  and $speechIsDone")
-        if (!dismissSettings.muteTone && !Helper.isPlaying()){
+        if (!dismissSettings.muteTone && !Helper.isPlaying()) {
 
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
@@ -180,7 +182,6 @@ fun ShakeDetectionScreen(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -220,7 +221,7 @@ fun ShakeDetectionScreen(
 
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Going to check to play tone and values are $timeIsDone  and $speechIsDone")
-        if(!dismissSettings.muteTone && !Helper.isPlaying()){
+        if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             if (!mainViewModel.isRealAlarm && !previewMode) {
                 Log.d("CHKMUS", "Mission Viewer Music Started")
                 Helper.playStream(context, R.raw.alarmsound)
@@ -230,7 +231,10 @@ fun ShakeDetectionScreen(
             if ((mainViewModel.isRealAlarm || previewMode) && !timeIsDone && !speechIsDone) {
                 alarmEntity?.let { alarm ->
                     if (alarm.ringtone.rawResourceId != -1) {
-                        Log.d("CHKMUS", "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
+                        Log.d(
+                            "CHKMUS",
+                            "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}"
+                        )
                         ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
                         if (alarm.isGentleWakeUp) {
                             Helper.updateLow(true)
@@ -436,17 +440,17 @@ fun ShakeDetectionScreen(
     }
     LaunchedEffect(key1 = progress) {
         if (progress < 0.00100f) {
-            if(!mainViewModel.isRealAlarm){
+            if (!mainViewModel.isRealAlarm) {
                 controller.popBackStack()
-            } else{
-                if(!mainViewModel.isSnoozed){
+            } else {
+                if (!mainViewModel.isSnoozed) {
                     mainViewModel.dummyMissionList = emptyList()
                     mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
                     controller.navigate(Routes.PreviewAlarm.route) {
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true
                     }
-                } else{
+                } else {
                     timerEndsCallback.onTimeEnds()
                 }
             }
@@ -475,14 +479,10 @@ fun ShakeDetectionScreen(
     }
     LaunchedEffect(key1 = shakeToBeDone) {
         if (shakeToBeDone == 0) {
-            if (mainViewModel.isRealAlarm || previewMode ) {
+            if (mainViewModel.isRealAlarm || previewMode) {
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
-                if(mainViewModel.dummyMissionList.isEmpty()){
-                    isEnd = true
-                    delay(2000)
-                }
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     val singleMission = mainViewModel.dummyMissionList.first()
 
@@ -493,8 +493,10 @@ fun ShakeDetectionScreen(
                             repeatProgress = singleMission.repeatProgress,
                             missionLevel = singleMission.missionLevel,
                             missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected, setOfSentences = convertStringToSet(singleMission.selectedSentences), imageId = singleMission.imageId
-                        , codeId = singleMission.codeId
+                            isSelected = singleMission.isSelected,
+                            setOfSentences = convertStringToSet(singleMission.selectedSentences),
+                            imageId = singleMission.imageId,
+                            codeId = singleMission.codeId
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -518,18 +520,21 @@ fun ShakeDetectionScreen(
                                 launchSingleTop = true
                             }
                         }
+
                         "Typing" -> {
                             controller.navigate(Routes.TypingPreviewScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "Photo" -> {
                             controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "QR/Barcode" -> {
                             controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
                                 popUpTo(Routes.PreviewAlarm.route) {
@@ -538,12 +543,14 @@ fun ShakeDetectionScreen(
                                 launchSingleTop = true
                             }
                         }
+
                         "Step" -> {
                             controller.navigate(Routes.StepDetectorScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "Squat" -> {
                             controller.navigate(Routes.SquatMissionScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
@@ -552,10 +559,6 @@ fun ShakeDetectionScreen(
                         }
 
                         else -> {
-                            if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                Utils(context).removeVolume()
-                            }
                             Helper.stopStream()
                             textToSpeech.stop()
                             vibrator.cancel()
@@ -563,10 +566,6 @@ fun ShakeDetectionScreen(
                         }
                     }
                 } else {
-                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                        Utils(context).removeVolume()
-                    }
                     Helper.stopStream()
                     textToSpeech.stop()
                     vibrator.cancel()
@@ -589,101 +588,70 @@ fun ShakeDetectionScreen(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        when(isEnd){
-            true->{
-                if(shakeToBeDone == 0 && mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.angel),
-                                contentDescription = "",
-                                modifier = Modifier.size(95.dp)
-                            )
-                            Text(
-                                text = "Have a nice day :)",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.W400,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                                lineHeight = 35.sp
-                            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(
+                    trackColor = backColor,
+                    color = Color.White,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp), progress = animatedProgress
+                )
 
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp, horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    mainViewModel.dummyMissionList = emptyList()
+                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                    if (!mainViewModel.isRealAlarm) {
+                        controller.popBackStack()
+                    } else {
+                        if (!mainViewModel.isSnoozed) {
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        } else {
+                            timerEndsCallback.onTimeEnds()
                         }
                     }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBackIos,
+                        contentDescription = "",
+                        tint = Color.White, modifier = Modifier.size(22.dp)
+                    )
                 }
-            } else->{
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fillMaxHeight(0.35f)
+                    .padding(bottom = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    LinearProgressIndicator(
-                        trackColor = backColor,
-                        color = Color.White,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 2.dp), progress = animatedProgress
-                    )
-
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp, horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        mainViewModel.dummyMissionList = emptyList()
-                        mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                        if(!mainViewModel.isRealAlarm){
-                            controller.popBackStack()
-                        } else{
-                            if(!mainViewModel.isSnoozed){
-                                controller.navigate(Routes.PreviewAlarm.route) {
-                                    popUpTo(controller.graph.startDestinationId)
-                                    launchSingleTop = true
-                                }
-                            } else{
-                                timerEndsCallback.onTimeEnds()
-                            }
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBackIos,
-                            contentDescription = "",
-                            tint = Color.White, modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.35f)
-                        .padding(bottom = 30.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom
-                ) {
-                    Text(
-                        text = "Shake",
-                        color = Color.White, fontSize = 23.sp,
-                        fontWeight = FontWeight.W400,
-                    )
-                    Text(
-                        text = "$shakeToBeDone",
-                        color = Color.White,
-                        fontSize = 70.sp,
-                        fontWeight = FontWeight.W700,
-                        modifier = Modifier.padding(top = 20.dp),
-                        letterSpacing = 3.sp
-                    )
-                }
-
-            }
+                Text(
+                    text = "Shake",
+                    color = Color.White, fontSize = 23.sp,
+                    fontWeight = FontWeight.W400,
+                )
+                Text(
+                    text = "$shakeToBeDone",
+                    color = Color.White,
+                    fontSize = 70.sp,
+                    fontWeight = FontWeight.W700,
+                    modifier = Modifier.padding(top = 20.dp),
+                    letterSpacing = 3.sp
+                )
             }
         }
     }

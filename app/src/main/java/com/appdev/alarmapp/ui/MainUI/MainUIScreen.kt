@@ -92,7 +92,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalTime
 
 @Composable
-fun MainUiScreen(endMain:()->Unit,
+fun MainUiScreen(
     alarmScheduler: AlarmScheduler,
     textToSpeech: TextToSpeech,
     tokenManagement: TokenManagement,
@@ -271,7 +271,7 @@ fun MainUiScreen(endMain:()->Unit,
             }, modifier = Modifier.background(MaterialTheme.colorScheme.background)
         ) {
             composable(route = Routes.MainScreen.route) {
-                MainScreen(endMain,alarmScheduler, controller, mainViewModel)
+                MainScreen(alarmScheduler, controller, mainViewModel)
             }
 
             composable(route = Routes.SquatMissionScreen.route) {

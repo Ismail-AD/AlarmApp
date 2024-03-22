@@ -165,6 +165,7 @@ fun MissionHandlerScreen(
     DisposableEffect(key1 = Unit) {
         if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -185,7 +186,7 @@ fun MissionHandlerScreen(
 
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Speech Begins and values are $timeIsDone  and $speechIsDone")
-        if (!dismissSettings.muteTone && !Helper.isPlaying()){
+        if (!dismissSettings.muteTone && !Helper.isPlaying()) {
 
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
@@ -206,7 +207,6 @@ fun MissionHandlerScreen(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -246,7 +246,7 @@ fun MissionHandlerScreen(
 
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Going to check to play tone and values are $timeIsDone  and $speechIsDone")
-        if(!dismissSettings.muteTone && !Helper.isPlaying()){
+        if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             if (!mainViewModel.isRealAlarm && !previewMode) {
                 Log.d("CHKMUS", "Mission Viewer Music Started")
                 Helper.playStream(context, R.raw.alarmsound)
@@ -256,7 +256,10 @@ fun MissionHandlerScreen(
             if ((mainViewModel.isRealAlarm || previewMode) && !timeIsDone && !speechIsDone) {
                 alarmEntity?.let { alarm ->
                     if (alarm.ringtone.rawResourceId != -1) {
-                        Log.d("CHKMUS", "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}")
+                        Log.d(
+                            "CHKMUS",
+                            "ID CHECK for resource ${alarm.ringtone.rawResourceId != -1}"
+                        )
                         ringtone = ringtone.copy(rawResourceId = alarm.ringtone.rawResourceId)
                         if (alarm.isGentleWakeUp) {
                             Helper.updateLow(true)
@@ -519,13 +522,8 @@ fun MissionHandlerScreen(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
-                if(mainViewModel.dummyMissionList.isEmpty()){
-                    isEnd = true
-                    delay(2000)
-                }
                 missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
-                    Log.d("CHKVM", "Value before ${mainViewModel.missionDetails.repeatProgress}")
                     val singleMission = mainViewModel.dummyMissionList.first()
 
                     mainViewModel.missionData(
@@ -601,10 +599,6 @@ fun MissionHandlerScreen(
                         }
 
                         else -> {
-                            if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                Utils(context).removeVolume()
-                            }
                             Helper.stopStream()
                             textToSpeech.stop()
                             vibrator.cancel()
@@ -612,10 +606,6 @@ fun MissionHandlerScreen(
                         }
                     }
                 } else {
-                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                        Utils(context).removeVolume()
-                    }
                     Helper.stopStream()
                     textToSpeech.stop()
                     vibrator.cancel()
@@ -647,150 +637,120 @@ fun MissionHandlerScreen(
             .background(if (countdown != 0) Color(0xff232E4C) else Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        when(isEnd){
-            true->{
-                if((mainViewModel.isRealAlarm || previewMode) && mainViewModel.dummyMissionList.isEmpty() && missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size) && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes){
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.angel),
-                                contentDescription = "",
-                                modifier = Modifier.size(95.dp)
-                            )
-                            Text(
-                                text = "Have a nice day :)",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.W400,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                                lineHeight = 35.sp
-                            )
-
-                        }
-                    }
-                }
-            }
-            else->{
-                Column(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(
+                    trackColor = backColor,
+                    color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 2.dp), progress = animatedProgress
+                )
+
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp, horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    mainViewModel.dummyMissionList = emptyList()
+                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
+                    if (!mainViewModel.isRealAlarm) {
+                        controller.popBackStack()
+                    } else {
+                        if (!mainViewModel.isSnoozed) {
+                            controller.navigate(Routes.PreviewAlarm.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        } else {
+                            timerEndsCallback.onTimeEnds()
+                        }
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBackIos,
+                        contentDescription = "",
+                        tint = Color.White, modifier = Modifier.size(22.dp)
+                    )
+                }
+                Text(
+                    text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 17.sp,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.W500,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                )
+            }
+
+            Text(
+                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
+                color = Color.White,
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.W500,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 15.dp)
+            )
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(colPadding)
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        LinearProgressIndicator(
-                            trackColor = backColor,
-                            color = Color.White,
+                    items(totalSize) { row ->
+                        LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 2.dp), progress = animatedProgress
-                        )
-
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp, horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {
-                            mainViewModel.dummyMissionList = emptyList()
-                            mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
-                            if (!mainViewModel.isRealAlarm) {
-                                controller.popBackStack()
-                            } else {
-                                if (!mainViewModel.isSnoozed) {
-                                    controller.navigate(Routes.PreviewAlarm.route) {
-                                        popUpTo(controller.graph.startDestinationId)
-                                        launchSingleTop = true
-                                    }
-                                } else {
-                                    timerEndsCallback.onTimeEnds()
-                                }
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowBackIos,
-                                contentDescription = "",
-                                tint = Color.White, modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Text(
-                            text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 17.sp,
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.W500,
-                            modifier = Modifier.fillMaxWidth(0.8f)
-                        )
-                    }
-
-                    Text(
-                        text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.W500,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 15.dp)
-                    )
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(colPadding)
+                                .height(rowHeight),
+                            horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            items(totalSize) { row ->
-                                LazyRow(
+                            items(totalSize) { column ->
+                                val blockIndex = row * totalSize + column
+                                val isBlockSelected = selectedBlocks.contains(blockIndex)
+                                RubikCubeBlock(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(rowHeight),
-                                    horizontalArrangement = Arrangement.SpaceAround
-                                ) {
-                                    items(totalSize) { column ->
-                                        val blockIndex = row * totalSize + column
-                                        val isBlockSelected = selectedBlocks.contains(blockIndex)
-                                        RubikCubeBlock(
-                                            modifier = Modifier
-                                                .clipToBounds()
-                                                .background(
-                                                    if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
-                                                        showWrong = true
-                                                        Color.Red
-                                                    } else if (modifiedIndices.contains(
-                                                            blockIndex
-                                                        )
-                                                    ) Color(
-                                                        0xFF9BA2B2
-                                                    ) else Color(0xff1C1F26)
+                                        .clipToBounds()
+                                        .background(
+                                            if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
+                                                showWrong = true
+                                                Color.Red
+                                            } else if (modifiedIndices.contains(
+                                                    blockIndex
                                                 )
-                                                .clickable {
-                                                    if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
-                                                        if (!selectedBlocks.contains(blockIndex)) {
-                                                            // Handle block click during countdown
-                                                            missionViewModel.missionEventHandler(
-                                                                MissionDemoHandler.checkMatch(blockIndex)
-                                                            )
-                                                            selectedBlocks += blockIndex
-                                                            progress = 1f
-                                                        }
-                                                    }
-                                                }, cubeHeightWidth
+                                            ) Color(
+                                                0xFF9BA2B2
+                                            ) else Color(0xff1C1F26)
                                         )
-                                    }
-                                }
+                                        .clickable {
+                                            if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+                                                if (!selectedBlocks.contains(blockIndex)) {
+                                                    // Handle block click during countdown
+                                                    missionViewModel.missionEventHandler(
+                                                        MissionDemoHandler.checkMatch(blockIndex)
+                                                    )
+                                                    selectedBlocks += blockIndex
+                                                    progress = 1f
+                                                }
+                                            }
+                                        }, cubeHeightWidth
+                                )
                             }
                         }
                     }
                 }
             }
         }
+
     }
 }
 

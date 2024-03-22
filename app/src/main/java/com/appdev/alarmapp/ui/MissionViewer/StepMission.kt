@@ -184,6 +184,7 @@ fun StepMission(
     DisposableEffect(key1 = Unit) {
         if (!dismissSettings.muteTone && !Helper.isPlaying()) {
             alarmEntity?.let {
+                Helper.updateCustomValue(it.customVolume)
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 val newVolume = (it.customVolume / 100f * maxVolume).toInt()
 
@@ -225,7 +226,6 @@ fun StepMission(
                 }
             })
             alarmEntity?.let {
-                Helper.updateCustomValue(it.customVolume)
                 Log.d("CHKMUS", "${it.customVolume} is custom volume now")
                 if (it.willVibrate) {
                     vibrator.cancel()
@@ -555,10 +555,6 @@ fun StepMission(
                 val mutableList = mainViewModel.dummyMissionList.toMutableList()
                 mutableList.removeFirst()
                 mainViewModel.dummyMissionList = mutableList
-                if(mainViewModel.dummyMissionList.isEmpty()){
-                    isEnd = true
-                    delay(2000)
-                }
                 if (mainViewModel.dummyMissionList.isNotEmpty()) {
                     val singleMission = mainViewModel.dummyMissionList.first()
 
@@ -635,10 +631,6 @@ fun StepMission(
                         }
 
                         else -> {
-                            if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                Utils(context).removeVolume()
-                            }
                             Helper.stopStream()
                             textToSpeech.stop()
                             vibrator.cancel()
@@ -646,23 +638,15 @@ fun StepMission(
                         }
                     }
                 } else {
-                    if(Utils(context).areSnoozeTimersEmpty() && !previewMode && !Utils(context).isVolumeEmpty()){
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                        Utils(context).removeVolume()
-                    }
                     Helper.stopStream()
                     textToSpeech.stop()
                     vibrator.cancel()
                     dismissCallback.onDismissClicked()
                 }
             } else {
-                if(!mainViewModel.isSnoozed){
-                    controller.navigate(Routes.PreviewAlarm.route) {
-                        popUpTo(controller.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
-                } else{
-                    timerEndsCallback.onTimeEnds()
+                controller.navigate(Routes.CommonMissionScreen.route) {
+                    popUpTo(controller.graph.startDestinationId)
+                    launchSingleTop
                 }
             }
         } else {
@@ -676,34 +660,6 @@ fun StepMission(
             .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
-        when(isEnd){
-            true->{
-                if(stepsToBeDone <= 0 && mainViewModel.dummyMissionList.isEmpty() && (mainViewModel.isRealAlarm || previewMode)){
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.angel),
-                                contentDescription = "",
-                                modifier = Modifier.size(95.dp)
-                            )
-                            Text(
-                                text = "Have a nice day :)",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.W400,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 30.dp),
-                                lineHeight = 35.sp
-                            )
-
-                        }
-                    }
-                }
-            }else->{
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -791,9 +747,6 @@ fun StepMission(
                         )
 //                    }
                 }
-
-            }
-            }
         }
         if (showRationale) {
             AlertDialog(

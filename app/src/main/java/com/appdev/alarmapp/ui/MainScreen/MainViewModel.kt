@@ -109,6 +109,7 @@ class MainViewModel @Inject constructor(
     var dummyMissionList by mutableStateOf(listOf<Missions>())
     var missionDetails by mutableStateOf(Missions())
     var isRealAlarm by mutableStateOf(false)
+    var dummyListEmpty by mutableStateOf(false)
     var whichMission by mutableStateOf(MissionState())
     var selectedImage by mutableStateOf(ImageData())
     var selectedCode by mutableStateOf(QrCodeData(qrCodeString = "", qrCodeName = ""))
@@ -127,8 +128,8 @@ class MainViewModel @Inject constructor(
         _snoozeTime.value = newTime
     }
 
-    fun updateDummyListOldSize(newSize: Int) {
-        oldDummyListSize = newSize
+    fun updateDummyListEmptyness(yesOrNo:Boolean) {
+        dummyListEmpty = yesOrNo
     }
 
     var managingDefault by mutableStateOf(false)

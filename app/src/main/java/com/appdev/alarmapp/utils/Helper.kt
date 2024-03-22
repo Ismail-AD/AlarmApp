@@ -119,6 +119,7 @@ class Helper {
             mediaPlayer?.stop()
             mediaPlayer?.reset()
             currentPosition = 0
+            currentVolume = 20
         }
 
         fun releasePlayer() {

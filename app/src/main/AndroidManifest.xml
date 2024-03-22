@@ -55,6 +55,9 @@
             android:name=".AlarmManagement.AlarmCancelAccess"
             android:exported="false" />
         <activity
+            android:name=".AlarmManagement.EndingHandler"
+            android:exported="false" />
+        <activity
             android:name=".AlarmManagement.SnoozeHandler"
             android:exported="false" />
         <activity

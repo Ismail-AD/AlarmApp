@@ -91,7 +91,7 @@ fun SnoozeScreen(
 
 
     val systemUiController = rememberSystemUiController()
-    BackHandler(false) {
+    BackHandler {
 
     }
     SideEffect {
@@ -127,7 +127,6 @@ fun SnoozeScreen(
 
 
     DisposableEffect(Unit) {
-        Log.d("CHECKR","Alarm Object in Snooze Composable ${alarmEntity}")
         Helper.stopIncreasingVolume()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -182,6 +181,12 @@ fun SnoozeScreen(
 
     val remainingMinutes = remainingTime / (60 * 1000)
     val remainingSeconds = (remainingTime % (60 * 1000)) / 1000
+
+    LaunchedEffect(key1 = Unit){
+        alarmEntity?.let {
+            mainViewModel.missionData(MissionDataHandler.AddList(missionsList = it.listOfMissions))
+        }
+    }
 
     Log.d("CHKSN", "time we got: $remainingMinutes:${String.format("%02d", remainingSeconds)}")
 
@@ -340,10 +345,6 @@ fun SnoozeScreen(
                                     "CHKSM",
                                     "ALARM IS GOING TO END AS DISMISSED IS CLICKED............."
                                 )
-                                if(Utils(context).areSnoozeTimersEmpty() && !Utils(context).isVolumeEmpty()){
-                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Utils(context).getCurrentVolume(), 0)
-                                    Utils(context).removeVolume()
-                                }
                                 Helper.stopStream()
                                 vibrator.cancel()
                                 textToSpeech.stop()

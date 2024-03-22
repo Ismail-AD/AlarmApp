@@ -81,8 +81,6 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("CHKSM", "ON CREATE CALLED")
-        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
                 getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -93,9 +91,6 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         }
         isScreenOnBeforeAlarm = isScreenOn()
         alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
-        if (Utils(this).isVolumeEmpty() && mainViewModel.isRealAlarm) {
-            Utils(this).saveVolume(currentVolume)
-        }
 
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -118,6 +113,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
         setContent {
             AlarmAppTheme {
+                Log.d("CHECKR", "In theme Composable of Alarm Handler")
                 mainViewModel.previewModeUpdate(true)
                 mainViewModel.snoozeUpdate(false)
                 notify = intent.getBooleanExtra("notify", false)
@@ -174,7 +170,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             newIntent.putExtra("dismissSet", dismissSettings)
             startActivity(newIntent)
             finish()
-        } else if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.missionDetailsList.isEmpty())  && mainViewModel.isRealAlarm
+        } else if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.dummyMissionList.isEmpty())  && mainViewModel.isRealAlarm
         ){
             Helper.stopStream()
             vibrator.cancel()
@@ -362,21 +358,19 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             }
             mainViewModel.updateIsReal(false)
             if (alarm.isGentleWakeUp) {
-                Helper.updateLow(false)
                 Helper.stopIncreasingVolume()
+                Helper.updateLow(false)
             }
-            Helper.updateCustomValue(100f)
             Helper.stopStream()
             vibrator.cancel()
             textToSpeech.stop()
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, EndingHandler::class.java))
             Log.d(
                 "CHKSM",
                 "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}"
             )
             finish()
         } else if (previewMode) {
-            startActivity(Intent(this@AlarmCancelAccess,MainActivity::class.java))
             finish()
         }
     }
