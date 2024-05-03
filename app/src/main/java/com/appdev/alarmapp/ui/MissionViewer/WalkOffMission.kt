@@ -513,7 +513,7 @@ fun WalkOffMission(
 //                            val distance = calculateDistance(previousLocation!!, it)
                             val distance = previousLocation!!.distanceTo(it)
                             Log.d("CHKDIST","$distance")
-                            if (distance <=3.0 && startUpdating) {
+                            if (distance > 0.25 && distance <3.0 && startUpdating) {
                                 distanceToCover -= distance
                                 previousLocation = it
                             }
@@ -776,10 +776,10 @@ fun WalkOffMission(
                         text = if (countdown != 0) "" else "${"%.2f".format(distanceToCover)} meters",
                         color = Color.White,
                         fontSize = 50.sp,
-                        lineHeight = 40.sp,
+                        lineHeight = 58.sp,
                         fontWeight = FontWeight.W700,
                         modifier = Modifier.padding(top = 20.dp, start = 20.dp, end = 20.dp),
-                        letterSpacing = 3.sp
+                        letterSpacing = 3.sp, textAlign = TextAlign.Center
                     )
                 } else {
                     Text(
@@ -887,5 +887,5 @@ private fun locationEnabled(context: Context): Boolean {
 }
 
 private fun createLocationRequest(): LocationRequest {
-    return LocationRequest.Builder(100, 1500).build()
+    return LocationRequest.Builder(100, 2500).build()
 }

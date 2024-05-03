@@ -2288,7 +2288,7 @@ fun singleMission(
 
                     }
                     Text(
-                        text = "${missionData.repeatTimes} ${if (missionData.missionName == "WalkOff") "meters" else if (missionData.missionName !== "Step") "Steps" else "times"}",
+                        text = "${missionData.repeatTimes} ${if (missionData.missionName == "WalkOff") "meters" else if (missionData.missionName == "Step") "Steps" else "times"}",
                         fontSize = 12.sp, color = Color.DarkGray
                     )
                 }
