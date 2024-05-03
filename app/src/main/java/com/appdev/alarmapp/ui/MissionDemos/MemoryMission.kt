@@ -95,9 +95,9 @@ fun MemoryMissionScreen(
     }
     val context = LocalContext.current
     val state =
-        rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0)
+        rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if(mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1  else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) (mainViewModel.missionDetails.repeatTimes / 10) - 8  else 0)
 
-    var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else 0) }
+    var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) (mainViewModel.missionDetails.repeatTimes / 10) - 8  else 0) }
 
     val scope = rememberCoroutineScope()
     val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
@@ -109,10 +109,7 @@ fun MemoryMissionScreen(
         }
     }
     BackHandler {
-        controller.navigate(Routes.MissionMenuScreen.route) {
-            popUpTo(controller.graph.startDestinationId)
-            launchSingleTop = true
-        }
+        controller.popBackStack()
     }
     LaunchedEffect(key1 = billingState.value) {
         currentState = billingState.value
@@ -144,7 +141,7 @@ fun MemoryMissionScreen(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth(if (mainViewModel.whichMission.isMemory) 0.64f else 0.6f)
+                    .fillMaxWidth(if (mainViewModel.whichMission.isMemory || mainViewModel.whichMission.isWalk) 0.64f else 0.6f)
                     .padding(vertical = 10.dp, horizontal = 15.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -171,7 +168,7 @@ fun MemoryMissionScreen(
                 }
 
                 Text(
-                    text = if (mainViewModel.whichMission.isMemory) "Memory" else if (mainViewModel.whichMission.isMath) "Math" else if (mainViewModel.whichMission.isShake) "Shake" else if (mainViewModel.whichMission.isSteps) "Step" else if (mainViewModel.whichMission.isSquat) "Squat" else "",
+                    text = if (mainViewModel.whichMission.isMemory) "Memory" else if (mainViewModel.whichMission.isMath) "Math" else if (mainViewModel.whichMission.isShake) "Shake" else if (mainViewModel.whichMission.isSteps) "Step" else if (mainViewModel.whichMission.isSquat) "Squat" else if (mainViewModel.whichMission.isWalk) "Walk Off" else "",
                     color = MaterialTheme.colorScheme.surfaceTint,
                     fontSize = 17.sp,
                     textAlign = TextAlign.Center, fontWeight = FontWeight.W500
@@ -242,7 +239,7 @@ fun MemoryMissionScreen(
                                 }
                             }
                         }
-                    } else if (mainViewModel.whichMission.isSquat || mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSteps) {
+                    } else if (mainViewModel.whichMission.isSquat || mainViewModel.whichMission.isShake || mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isWalk) {
                         Image(
                             painter = painterResource(id = R.drawable.shakeimg),
                             contentDescription = "",
@@ -251,7 +248,7 @@ fun MemoryMissionScreen(
                                 .height(180.dp)
                         )
                     }
-                    if (!mainViewModel.whichMission.isShake && !mainViewModel.whichMission.isSteps && !mainViewModel.whichMission.isSquat) {
+                    if (!mainViewModel.whichMission.isShake && !mainViewModel.whichMission.isSteps && !mainViewModel.whichMission.isSquat && !mainViewModel.whichMission.isWalk) {
                         Text(
                             text = "Example",
                             color = Color(0xffD66616),
@@ -262,7 +259,6 @@ fun MemoryMissionScreen(
                         )
                     }
                     if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) {
-
                         Column(
                             modifier = Modifier
                                 .padding(vertical = 20.dp, horizontal = 10.dp)
@@ -312,7 +308,6 @@ fun MemoryMissionScreen(
                                 }
                             }
                         }
-
                     }
                 }
                 //COUNTER
@@ -337,7 +332,7 @@ fun MemoryMissionScreen(
                             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(30.dp)
                     ) {
                         Text(
-                            text = "Times count",
+                            text = if(mainViewModel.whichMission.isWalk) "Distance in meters" else "Times count",
                             color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center,
@@ -352,7 +347,7 @@ fun MemoryMissionScreen(
                         ) {
                             HorizontalWheelPicker(
                                 state = state,
-                                count = 5,
+                                count = if(mainViewModel.whichMission.isWalk) 1000 else 5,
                                 itemWidth = 70.dp,
                                 visibleItemCount = 3,
                                 onScrollFinish = { currentIndex = it }
@@ -388,7 +383,14 @@ fun MemoryMissionScreen(
                                                 repeat = (currentIndex + 1) * 10
                                             )
                                         )
-                                    } else {
+                                    } else if (mainViewModel.whichMission.isWalk) {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                repeat = (currentIndex + 8) * 10
+                                            )
+                                        )
+                                    }
+                                    else {
                                         mainViewModel.missionData(
                                             MissionDataHandler.RepeatTimes(
                                                 repeat = currentIndex + 1
@@ -418,7 +420,7 @@ fun MemoryMissionScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else "${(index + 1) * 5}",
+                                                text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else if (mainViewModel.whichMission.isWalk) "${(index + 8) * 10}" else "${(index + 1) * 5}",
                                                 color = if (isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.W600

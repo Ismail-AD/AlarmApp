@@ -108,10 +108,7 @@ fun TypingMissionScreen(
         }
     }
     BackHandler {
-        controller.navigate(Routes.MissionMenuScreen.route) {
-            popUpTo(controller.graph.startDestinationId)
-            launchSingleTop = true
-        }
+        controller.popBackStack()
     }
 
     Box(

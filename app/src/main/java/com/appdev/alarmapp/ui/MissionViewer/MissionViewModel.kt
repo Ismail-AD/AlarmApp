@@ -42,6 +42,10 @@ class MissionViewModel @Inject constructor() : ViewModel() {
                 missionHandler.copy(
                     preservedIndexes = emptyList(),
                     correctChoiceList = emptyList(),
+                    getRangeRandomNumbers = emptyList(),
+                    preservedAlphabets = emptyList(),
+                    correctAlphabetsList = emptyList(),
+                    getRangeRandomAlphabets = emptyList(),
                     notMatched = false,
                     clicked = -1,
                 )
@@ -54,6 +58,66 @@ class MissionViewModel @Inject constructor() : ViewModel() {
                                 missionDemoHandler.size
                             )
                         )
+                }
+            }
+
+            is MissionDemoHandler.GenerateRangedAndStore -> {
+                if (missionHandler.preservedIndexes.isEmpty()) {
+                    missionHandler =
+                        missionHandler.copy(
+                            preservedIndexes = getRandomRangedNumbers(
+                                missionDemoHandler.howMany
+                            )
+                        )
+                }
+            }
+
+            is MissionDemoHandler.GenerateTotalRangedAndReStore -> {
+                if (missionHandler.getRangeRandomNumbers.isEmpty()) {
+                    missionHandler =
+                        missionHandler.copy(
+                            getRangeRandomNumbers = getPuzzleRangedNumbers(
+                                missionDemoHandler.newNumbersToPick,
+                                missionDemoHandler.selectedNumbers
+                            )
+                        )
+                }
+            }
+
+            is MissionDemoHandler.GenerateRangedAndStoreAlphabet -> {
+                if (missionHandler.preservedAlphabets.isEmpty()) {
+                    missionHandler =
+                        missionHandler.copy(
+                            preservedAlphabets = getRandomRangedAlphabets(
+                                missionDemoHandler.howMany
+                            )
+                        )
+                }
+            }
+
+            is MissionDemoHandler.GenerateTotalRangedAndReStoreAlphabets -> {
+                if (missionHandler.getRangeRandomAlphabets.isEmpty()) {
+                    missionHandler =
+                        missionHandler.copy(
+                            getRangeRandomAlphabets = getPuzzleRangedAlphabets(
+                                missionDemoHandler.newAlphabetsToPick,
+                                missionDemoHandler.selectedAlphabets
+                            )
+                        )
+                }
+            }
+
+            is MissionDemoHandler.CheckCharacterMatches -> {
+                if (missionHandler.preservedAlphabets.contains(missionDemoHandler.clickedCharacter)) {
+                    missionHandler.correctAlphabetsList =
+                        missionHandler.correctAlphabetsList + missionDemoHandler.clickedCharacter
+                    missionHandler =
+                        missionHandler.copy(correctAlphabetsList = missionHandler.correctAlphabetsList)
+                } else {
+                    missionHandler = missionHandler.copy(
+                        notMatched = true,
+                        clickedChar = missionDemoHandler.clickedCharacter
+                    )
                 }
             }
         }
@@ -97,13 +161,40 @@ class MissionViewModel @Inject constructor() : ViewModel() {
         return indices
     }
 
+    fun getRandomRangedNumbers(count: Int): List<Int> {
+        val shuffledRange = (1..99).shuffled()
+        return shuffledRange.take(count)
+    }
+
+    fun getPuzzleRangedNumbers(count: Int, listOfOld: List<Int>): List<Int> {
+        val availableNumbers = (1..99).filter { it !in listOfOld }
+        val randomNumbers = availableNumbers.shuffled().take(count)
+        return (listOfOld + randomNumbers).shuffled()
+    }
+
+    fun getRandomRangedAlphabets(count: Int): List<Char> {
+        val shuffledRange = ('A'..'Z').shuffled()
+        return shuffledRange.take(count)
+    }
+
+    fun getPuzzleRangedAlphabets(count: Int, listOfOld: List<Char>): List<Char> {
+        val availableAlphabets = ('A'..'Z').filter { it !in listOfOld }
+        val randomAlphabets = availableAlphabets.shuffled().take(count)
+        return (listOfOld + randomAlphabets).shuffled()
+    }
+
 
     data class MissionHandlerData(
         val randomIndexList: List<Int> = emptyList(),
         val preservedIndexes: List<Int> = emptyList(),
+        val getRangeRandomNumbers: List<Int> = emptyList(),
         var correctChoiceList: List<Int> = emptyList(),
+        val preservedAlphabets: List<Char> = emptyList(),
+        val getRangeRandomAlphabets: List<Char> = emptyList(),
+        var correctAlphabetsList: List<Char> = emptyList(),
         val notMatched: Boolean = false,
-        val clicked: Int = -1
+        val clicked: Int = -1,
+        val clickedChar: Char = ' ',
     )
 
     data class MissionMathHandlerData(

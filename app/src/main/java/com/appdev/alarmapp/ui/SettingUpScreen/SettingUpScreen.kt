@@ -114,11 +114,14 @@ fun SettingUpScreen(controller: NavHostController) {
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
+                    progress = {
+                        animatedProgress
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp), progress = animatedProgress
+                        .padding(horizontal = 8.dp),
+                    color = Color.White,
+                    trackColor = backColor,
                 )
                 Column(modifier = Modifier.padding(start = 20.dp, top = 25.dp)) {
                     Text(
@@ -128,8 +131,8 @@ fun SettingUpScreen(controller: NavHostController) {
                         textAlign = TextAlign.Start, fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-
-                    // Call the belowAllSet functions based on the current step
+//
+//                    // Call the belowAllSet functions based on the current step
                     if (currentStep >= 0) {
                         belowAllSet(text = "Setting up alarm time")
                     }

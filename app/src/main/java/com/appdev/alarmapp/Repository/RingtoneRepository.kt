@@ -14,6 +14,8 @@ import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
 import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
 import com.appdev.alarmapp.utils.QrCodeData
 import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
+import com.appdev.alarmapp.utils.DaoClasses.locationNameDao
+import com.appdev.alarmapp.utils.LocationByName
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.RingtoneEntity
 import com.appdev.alarmapp.utils.SystemRingtone
@@ -21,10 +23,12 @@ import com.appdev.alarmapp.utils.toRingtone
 import com.appdev.alarmapp.utils.toRingtoneFromSystem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -36,8 +40,9 @@ class RingtoneRepository @Inject constructor(
     private val qrCodeDao: QrCodeDao,
     private val defaultSettingsDao: DefaultSettingsDao,
     private val alarmBasicSettingDao: AlarmBasicSettingDao,
-    private val dismissDao: DismissDao,
+    private val dismissDao: DismissDao, private val locationNameDao: locationNameDao
 ) {
+
     val roomRecordings: Flow<List<Ringtone>> = recordingsDao.getAllRecordings()
         .map { list ->
             list.map {
@@ -55,9 +60,11 @@ class RingtoneRepository @Inject constructor(
     val listOfCustomPhrases: Flow<List<CustomPhrase>> = phraseDao.getAllPhrases()
     val listOfClickedImages: Flow<List<ImageData>> = imageStoreDao.getAllImages()
     val listOfQrCodes: Flow<List<QrCodeData>> = qrCodeDao.getAllQrCodes()
+    val listOfLocationNames: Flow<List<LocationByName>> = locationNameDao.getAllLocationByName()
     val getDefaultSettings: Flow<DefaultSettings> = defaultSettingsDao.getDefaultSettings()
     val getBasicSettings: Flow<AlarmSetting> = alarmBasicSettingDao.getAlarmSettings()
     val getDismissSettings: Flow<DismissSettings> = dismissDao.getDismissSettings()
+
 
     fun sendFeedbackInfo(
         username: String, onComplete: (Boolean, String) -> Unit,
@@ -94,6 +101,22 @@ class RingtoneRepository @Inject constructor(
         defaultSettingsDao.insertDefaultSettings(defaultSettings)
     }
 
+    suspend fun updateLocationByName(locationByName: LocationByName) {
+        locationNameDao.updateLocationByName(locationByName)
+    }
+
+    suspend fun insertLocationByName(locationByName: LocationByName) {
+        locationNameDao.insertLocationByName(locationByName)
+    }
+
+    suspend fun deleteLocationByName(codeId: Long) {
+        locationNameDao.deleteLocationById(codeId)
+    }
+
+    suspend fun getLocationByName(locId: Long): LocationByName? {
+        return locationNameDao.getLocationById(locId)
+    }
+
     suspend fun updateQrCode(qrCodeData: QrCodeData) {
         qrCodeDao.updateQrCode(qrCodeData)
     }
@@ -113,8 +136,6 @@ class RingtoneRepository @Inject constructor(
     suspend fun getQrCode(qrCodeId: Long): QrCodeData? {
         return qrCodeDao.getCodeById(qrCodeId)
     }
-
-
 
 
     suspend fun insertImage(listOfImages: List<ImageData>) {

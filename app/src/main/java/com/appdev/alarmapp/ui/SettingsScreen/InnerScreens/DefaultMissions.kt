@@ -65,6 +65,7 @@ import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.ringtoneList
 import com.appdev.alarmapp.utils.whichMissionHandler
+import com.appdev.alarmapp.utils.whichRangeMissionHandle
 import com.google.gson.Gson
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,6 +208,255 @@ fun DefaultAlarmMissions(
 
                             }, moveToDetails = { misData ->
                                 when (misData.missionName) {
+                                    "RangeNumbers" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.DifficultyLevel(
+                                                misData.difficultyLevel
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichRangeMissionHandler(
+                                            whichRangeMissionHandle.thisMission(
+                                                missionNumber = true,
+                                                missionAlphabet = false,
+                                                missionOrderAlphabet = false,
+                                                missionOrderNumbers = false,
+                                                missionOrderShapes = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+
+                                    }
+
+                                    "RangeAlphabet" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.DifficultyLevel(
+                                                misData.difficultyLevel
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichRangeMissionHandler(
+                                            whichRangeMissionHandle.thisMission(
+                                                missionNumber = false,
+                                                missionAlphabet = true,
+                                                missionOrderAlphabet = false,
+                                                missionOrderNumbers = false,
+                                                missionOrderShapes = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+
+                                    }
+
+                                    "ArrangeNumbers" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichRangeMissionHandler(
+                                            whichRangeMissionHandle.thisMission(
+                                                missionNumber = false,
+                                                missionAlphabet = false,
+                                                missionOrderAlphabet = false,
+                                                missionOrderNumbers = true,
+                                                missionOrderShapes = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+                                    }
+
+                                    "ArrangeAlphabet" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichRangeMissionHandler(
+                                            whichRangeMissionHandle.thisMission(
+                                                missionNumber = false,
+                                                missionAlphabet = false,
+                                                missionOrderAlphabet = true,
+                                                missionOrderNumbers = false,
+                                                missionOrderShapes = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+                                    }
+
+                                    "ArrangeShapes" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.RepeatTimes(
+                                                misData.repeatTimes
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichRangeMissionHandler(
+                                            whichRangeMissionHandle.thisMission(
+                                                missionNumber = false,
+                                                missionAlphabet = false,
+                                                missionOrderAlphabet = true,
+                                                missionOrderNumbers = false,
+                                                missionOrderShapes = false
+                                            )
+                                        )
+                                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+                                    }
+
+                                    "ReachDestination" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.SelectedLocationID(
+                                                misData.locId
+                                            )
+                                        )
+                                        controller.navigate(Routes.ReachLocationMissionScreen.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+
+                                    }
+
+                                    "WalkOff" -> {
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionId(misData.missionID)
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.MissionName(
+                                                misData.missionName
+                                            )
+                                        )
+                                        mainViewModel.missionData(
+                                            MissionDataHandler.IsSelectedMission(
+                                                misData.isSelected
+                                            )
+                                        )
+                                        mainViewModel.whichMissionHandle(
+                                            whichMissionHandler.thisMission(
+                                                missionMemory = false,
+                                                missionMath = false,
+                                                missionShake = false,
+                                                isSteps = false, isSquat = false, isWalk = true
+                                            )
+                                        )
+                                        controller.navigate(Routes.CommonMissionScreen.route) {
+                                            popUpTo(Routes.Preview.route) {
+                                                inclusive = false
+                                            }
+                                            launchSingleTop = true
+                                        }
+                                    }
                                     "Memory" -> {
                                         mainViewModel.missionData(
                                             MissionDataHandler.MissionId(misData.missionID)
@@ -236,7 +486,7 @@ fun DefaultAlarmMissions(
                                                 missionMemory = true,
                                                 missionMath = false,
                                                 missionShake = false,
-                                                isSteps = false, isSquat = false
+                                                isSteps = false, isSquat = false, isWalk = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -279,7 +529,7 @@ fun DefaultAlarmMissions(
                                                 missionMemory = false,
                                                 missionMath = false,
                                                 missionShake = true,
-                                                isSteps = false, isSquat = false
+                                                isSteps = false, isSquat = false, isWalk = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -319,7 +569,7 @@ fun DefaultAlarmMissions(
                                                 missionMemory = false,
                                                 missionMath = true,
                                                 missionShake = false,
-                                                isSteps = false, isSquat = false
+                                                isSteps = false, isSquat = false, isWalk = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -360,7 +610,7 @@ fun DefaultAlarmMissions(
                                                 missionMemory = false,
                                                 missionMath = false,
                                                 missionShake = false,
-                                                isSteps = true, isSquat = false
+                                                isSteps = true, isSquat = false, isWalk = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -402,7 +652,7 @@ fun DefaultAlarmMissions(
                                                 missionMemory = false,
                                                 missionMath = false,
                                                 missionShake = false,
-                                                isSteps = false, isSquat = true
+                                                isSteps = false, isSquat = true, isWalk = false
                                             )
                                         )
                                         controller.navigate(Routes.CommonMissionScreen.route) {

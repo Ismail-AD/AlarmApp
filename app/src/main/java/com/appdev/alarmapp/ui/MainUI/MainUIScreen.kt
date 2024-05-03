@@ -48,6 +48,7 @@ import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
 import com.appdev.alarmapp.ui.Analysis.LabelScreen
@@ -55,19 +56,29 @@ import com.appdev.alarmapp.ui.MainScreen.MainScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MissionDemos.BarCodeMissionDemo
 import com.appdev.alarmapp.ui.MissionDemos.CameraMissionDemo
+import com.appdev.alarmapp.ui.MissionDemos.LocationMissionSetup
 import com.appdev.alarmapp.ui.MissionDemos.MemoryMissionScreen
 import com.appdev.alarmapp.ui.MissionDemos.PhotoClickScreen
+import com.appdev.alarmapp.ui.MissionDemos.RangeMemoryMissionSetting
 import com.appdev.alarmapp.ui.MissionDemos.ScanBarCodeScreen
 import com.appdev.alarmapp.ui.MissionDemos.SentenceSelection
 import com.appdev.alarmapp.ui.MissionDemos.TypingMissionScreen
+import com.appdev.alarmapp.ui.MissionDemos.showMap
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeAlphabetsMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeNumbersMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeShapesMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.AtLocationMission
 import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
+import com.appdev.alarmapp.ui.MissionViewer.RangedAlphabetsMissionHandlerScreen
+import com.appdev.alarmapp.ui.MissionViewer.RangedNumbersMissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
 import com.appdev.alarmapp.ui.MissionViewer.SquatMission
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
+import com.appdev.alarmapp.ui.MissionViewer.WalkOffMission
 import com.appdev.alarmapp.ui.PreivewScreen.MissionMenu
 import com.appdev.alarmapp.ui.PreivewScreen.PreviewScreen
 import com.appdev.alarmapp.ui.PreivewScreen.RingtoneSelection
@@ -93,7 +104,7 @@ import java.time.LocalTime
 
 @Composable
 fun MainUiScreen(
-    alarmScheduler: AlarmScheduler,
+    ringtoneRepository:RingtoneRepository,
     textToSpeech: TextToSpeech,
     tokenManagement: TokenManagement,
     controller: NavHostController = rememberNavController(),
@@ -158,6 +169,16 @@ fun MainUiScreen(
         Routes.LabelScreen.route,
         Routes.SquatMissionScreen.route,
         Routes.SnoozeScreen.route,
+        Routes.RangeMemoryMissionSetting.route,
+        Routes.RangeMemoryMissionPreview.route,
+        Routes.RangeAlphabetMissionPreview.route,
+        Routes.ReachLocationMissionScreen.route,
+        Routes.MapScreen.route,
+        Routes.WalkOffScreen.route,
+        Routes.AtLocationMissionScreen.route,
+        Routes.ArrangeNumbersScreen.route,
+        Routes.ArrangeAlphabetsScreen.route,
+        Routes.ArrangeShapesScreen.route,
     )
 
     androidx.compose.material.Scaffold(
@@ -271,7 +292,7 @@ fun MainUiScreen(
             }, modifier = Modifier.background(MaterialTheme.colorScheme.background)
         ) {
             composable(route = Routes.MainScreen.route) {
-                MainScreen(alarmScheduler, controller, mainViewModel)
+                MainScreen(ringtoneRepository, controller, mainViewModel)
             }
 
             composable(route = Routes.SquatMissionScreen.route) {
@@ -289,7 +310,7 @@ fun MainUiScreen(
             }
 
             composable(route = Routes.TypingPreviewScreen.route) {
-                TypingMissionHandler(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                TypingMissionHandler(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
                     object : TimerEndsCallback {
@@ -337,6 +358,7 @@ fun MainUiScreen(
             }
             composable(route = Routes.Preview.route) {
                 PreviewScreen(
+                    ringtoneRepository,
                     textToSpeech,
                     controller,
                     mainViewModel
@@ -349,36 +371,43 @@ fun MainUiScreen(
                 )
             }
             composable(route = Routes.PreviewAlarm.route) {
-                AlarmCancelScreen(textToSpeech = textToSpeech,onDismissCallback = object : DismissCallback {
-                    override fun onDismissClicked() {
-                        // Provide implementation here if needed
-                    }
-                }, snoozeCallback = object : SnoozeCallback {
-                    override fun onSnoozeClicked() {
-                        TODO("Not yet implemented")
-                    }
+                AlarmCancelScreen(
+                    textToSpeech = textToSpeech,
+                    onDismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    },
+                    snoozeCallback = object : SnoozeCallback {
+                        override fun onSnoozeClicked() {
+                            TODO("Not yet implemented")
+                        }
 
-                }, controller = controller, mainViewModel = mainViewModel)
+                    },
+                    controller = controller,
+                    mainViewModel = mainViewModel,
+                    ringtoneRepository = ringtoneRepository
+                )
             }
             composable(route = Routes.MissionShakeScreen.route) {
-                ShakeDetectionScreen(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                ShakeDetectionScreen(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller, timerEndsCallback =
-                object : TimerEndsCallback {
-                    override fun onTimeEnds() {
-                        TODO("Not yet implemented")
-                    }
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
 
-                }, dismissCallback = object : DismissCallback {
-                    override fun onDismissClicked() {
-                        // Provide implementation here if needed
-                    }
-                })
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    })
             }
             composable(route = Routes.CameraRoutineScreen.route) {
                 CameraMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.PhotoMissionPreviewScreen.route) {
-                PhotoMissionScreen(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                PhotoMissionScreen(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
                     object : TimerEndsCallback {
@@ -414,7 +443,7 @@ fun MainUiScreen(
                 ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodePreviewAlarmScreen.route) {
-                BarCodeMissionScreen(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                BarCodeMissionScreen(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
                     object : TimerEndsCallback {
@@ -430,24 +459,27 @@ fun MainUiScreen(
                     })
             }
             composable(route = Routes.StepDetectorScreen.route) {
-                StepMission(textToSpeech =  textToSpeech,mainViewModel = mainViewModel,
+                StepMission(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller, timerEndsCallback =
-                object : TimerEndsCallback {
-                    override fun onTimeEnds() {
-                        TODO("Not yet implemented")
-                    }
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
 
-                }, dismissCallback = object : DismissCallback {
-                    override fun onDismissClicked() {
-                        // Provide implementation here if needed
-                    }
-                })
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    })
             }
             composable(route = Routes.SnoozeScreen.route) {
                 SnoozeScreen(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.CommonMissionScreen.route) {
                 MemoryMissionScreen(mainViewModel = mainViewModel, controller = controller)
+            }
+            composable(route = Routes.RangeMemoryMissionSetting.route) {
+                RangeMemoryMissionSetting(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.TypeMissionScreen.route) {
                 TypingMissionScreen(mainViewModel = mainViewModel, controller = controller)
@@ -458,8 +490,12 @@ fun MainUiScreen(
             composable(route = Routes.MissionMenuScreen.route) {
                 MissionMenu(controller = controller, mainViewModel)
             }
+            composable(route = Routes.MapScreen.route) {
+                showMap(mainViewModel = mainViewModel,controller)
+            }
+
             composable(route = Routes.MissionMathScreen.route) {
-                MathMissionHandler(textToSpeech =  textToSpeech,
+                MathMissionHandler(textToSpeech = textToSpeech,
                     mainViewModel = mainViewModel,
                     missionLevel = mainViewModel.missionDetails.missionLevel,
                     controller = controller, timerEndsCallback =
@@ -475,6 +511,190 @@ fun MainUiScreen(
                     }
                 )
             }
+            composable(route = Routes.ReachLocationMissionScreen.route) {
+                LocationMissionSetup(controller = controller, mainViewModel)
+            }
+
+            composable(route = Routes.AtLocationMissionScreen.route) {
+                AtLocationMission(
+                    textToSpeech = textToSpeech, mainViewModel = mainViewModel,
+                    controller = controller,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    },
+                    dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+            composable(route = Routes.WalkOffScreen.route) {
+                WalkOffMission(
+                    textToSpeech = textToSpeech,
+                    mainViewModel = mainViewModel,
+                    controller = controller,
+                    timerEndsCallback = object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    },
+                    dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+            composable(Routes.RangeAlphabetMissionPreview.route) {
+                val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
+                    "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
+                    else -> 0
+                }
+
+                val cubeHeightWidth =
+                    when (mainViewModel.missionDetails.difficultyLevel) {
+                        "Normal Mode" -> 60.dp
+                        "Hard Mode" -> 50.dp
+                        else -> 60.dp
+                    }
+                val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 4.dp
+                    "Hard Mode" -> 3.dp
+                    else -> 1.dp
+                }
+                val lazyRowHeight = when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 65.dp
+                    "Hard Mode" -> 55.dp
+                    else -> 65.dp
+                }
+                RangedAlphabetsMissionHandlerScreen(
+                    textToSpeech = textToSpeech,
+                    cubeHeightWidth = cubeHeightWidth,
+                    colPadding = columnPadding,
+                    rowHeight = lazyRowHeight,
+                    controller = controller,
+                    totalSize = diffLevel,
+                    mainViewModel = mainViewModel,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+            composable(Routes.ArrangeShapesScreen.route) {
+                ArrangeShapesMHScreen(
+                    textToSpeech = textToSpeech,
+                    controller = controller,
+                    mainViewModel = mainViewModel,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+            composable(Routes.ArrangeAlphabetsScreen.route) {
+                ArrangeAlphabetsMHScreen(
+                    textToSpeech = textToSpeech,
+                    controller = controller,
+                    mainViewModel = mainViewModel,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+            composable(Routes.ArrangeNumbersScreen.route) {
+                ArrangeNumbersMHScreen(
+                    textToSpeech = textToSpeech,
+                    controller = controller,
+                    mainViewModel = mainViewModel,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+            composable(Routes.RangeMemoryMissionPreview.route) {
+                val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
+                    "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
+                    else -> 0
+                }
+
+                val cubeHeightWidth =
+                    when (mainViewModel.missionDetails.difficultyLevel) {
+                        "Normal Mode" -> 60.dp
+                        "Hard Mode" -> 50.dp
+                        else -> 60.dp
+                    }
+                val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 4.dp
+                    "Hard Mode" -> 3.dp
+                    else -> 1.dp
+                }
+                val lazyRowHeight = when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 65.dp
+                    "Hard Mode" -> 55.dp
+                    else -> 65.dp
+                }
+                RangedNumbersMissionHandlerScreen(
+                    textToSpeech = textToSpeech,
+                    cubeHeightWidth = cubeHeightWidth,
+                    colPadding = columnPadding,
+                    rowHeight = lazyRowHeight,
+                    controller = controller,
+                    totalSize = diffLevel,
+                    mainViewModel = mainViewModel,
+                    timerEndsCallback =
+                    object : TimerEndsCallback {
+                        override fun onTimeEnds() {
+                            TODO("Not yet implemented")
+                        }
+
+                    }, dismissCallback = object : DismissCallback {
+                        override fun onDismissClicked() {
+                            // Provide implementation here if needed
+                        }
+                    }
+                )
+            }
+
+
             composable(route = Routes.MissionScreen.route) {
                 val sizeOfBlocks = when (mainViewModel.missionDetails.missionLevel) {
                     "Very Easy" -> 3
@@ -506,7 +726,7 @@ fun MainUiScreen(
                     else -> 100.dp
                 }
                 MissionHandlerScreen(
-                    textToSpeech =  textToSpeech,
+                    textToSpeech = textToSpeech,
                     cubeHeightWidth = cubeHeightWidth, colPadding = columnPadding,
                     rowHeight = lazyRowHeight,
                     controller = controller, totalSize = sizeOfBlocks,

@@ -10,6 +10,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertMillisToHoursAndMinutes
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertStringToSet
 import com.appdev.alarmapp.utils.getFormattedToday
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -104,6 +106,7 @@ fun SnoozeScreen(
     val alarmEntity: AlarmEntity? by remember {
         mutableStateOf(intent.getParcelableExtra("Alarm"))
     }
+
 //    val dismissSettingsReceived: DismissSettings? by remember {
 //        mutableStateOf(intent.getParcelableExtra("dismissSet"))
 //    }
@@ -127,6 +130,7 @@ fun SnoozeScreen(
 
 
     DisposableEffect(Unit) {
+
         Helper.stopIncreasingVolume()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -135,9 +139,9 @@ fun SnoozeScreen(
                     if (idOfAlarmEntity == it.id) {
                         val remainingMillis = intent.getLongExtra("remainingMillis", 0L)
                         remainingTimeFlow.value = remainingMillis
+                        Log.d("HETAL", "${remainingTimeFlow.value}")
                     }
                 }
-
             }
         }
         LocalBroadcastManager.getInstance(context).registerReceiver(
@@ -146,7 +150,6 @@ fun SnoozeScreen(
         )
 
         onDispose {
-            Log.d("CHECKR","ON DISPOSE Alarm Object in Snooze Composable  ${alarmEntity}")
             if (remainingTimeFlow.value <= 0L && mainViewModel.isRealAlarm) {
                 LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
                 timerEndsCallback.onTimeEnds()
@@ -163,7 +166,7 @@ fun SnoozeScreen(
             Log.d("CHKSM", "---------SERVICE STARTED FOR NEW ALARM")
             alarmEntity?.let {
                 val serviceIntent = Intent(context, SnoozeService::class.java).apply {
-                    Log.d("CHKSN", "collected snooze time: ${it.snoozeTime}}")
+                    Log.d("HETAL", "collected snooze time: ${it.snoozeTime}}")
                     putExtra("minutes", it.snoozeTime)
                     putExtra("id", it.id)
                 }
@@ -182,15 +185,11 @@ fun SnoozeScreen(
     val remainingMinutes = remainingTime / (60 * 1000)
     val remainingSeconds = (remainingTime % (60 * 1000)) / 1000
 
-    LaunchedEffect(key1 = Unit){
+    LaunchedEffect(key1 = Unit) {
         alarmEntity?.let {
             mainViewModel.missionData(MissionDataHandler.AddList(missionsList = it.listOfMissions))
         }
     }
-
-    Log.d("CHKSN", "time we got: $remainingMinutes:${String.format("%02d", remainingSeconds)}")
-
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -262,7 +261,9 @@ fun SnoozeScreen(
                                         setOfSentences = convertStringToSet(singleMission.selectedSentences),
                                         imageId =
                                         singleMission.imageId,
-                                        codeId = singleMission.codeId
+                                        codeId = singleMission.codeId,
+                                        locId = singleMission.locId,
+                                        valuesToPick = singleMission.valuesToPick
                                     )
                                 )
                             }
@@ -333,6 +334,69 @@ fun SnoozeScreen(
 
                             "QR/Barcode" -> {
                                 controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "RangeNumbers" -> {
+                                controller.navigate(Routes.RangeMemoryMissionPreview.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "RangeAlphabet" -> {
+                                controller.navigate(Routes.RangeAlphabetMissionPreview.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "WalkOff" -> {
+                                controller.navigate(Routes.WalkOffScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "ReachDestination" -> {
+                                controller.navigate(Routes.AtLocationMissionScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "ArrangeNumbers" -> {
+                                controller.navigate(Routes.ArrangeNumbersScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "ArrangeAlphabet" -> {
+                                controller.navigate(Routes.ArrangeAlphabetsScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "ArrangeShapes" -> {
+                                controller.navigate(Routes.ArrangeShapesScreen.route) {
                                     popUpTo(Routes.PreviewAlarm.route) {
                                         inclusive = true
                                     }

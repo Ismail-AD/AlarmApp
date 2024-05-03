@@ -17,15 +17,17 @@ import com.appdev.alarmapp.utils.DaoClasses.MissionsDao
 import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
 import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
 import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
+import com.appdev.alarmapp.utils.DaoClasses.locationNameDao
 
 @Database(
-    entities = [RingtoneEntity::class, AlarmEntity::class, SystemRingtone::class, CustomPhrase::class, ImageData::class, QrCodeData::class, DefaultSettings::class, AlarmSetting::class, DismissSettings::class, missionsEntity::class],
-    version = 36,
+    entities = [RingtoneEntity::class, AlarmEntity::class, SystemRingtone::class, CustomPhrase::class, ImageData::class, QrCodeData::class, DefaultSettings::class, AlarmSetting::class, DismissSettings::class, missionsEntity::class,LocationByName::class],
+    version = 37,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class RoomDB : RoomDatabase() {
     abstract fun phraseDao(): PhraseDao
+    abstract fun locationByNameDao(): locationNameDao
     abstract fun recordingDao(): RecordingsDao
     abstract fun alarmDao(): AlarmDao
     abstract fun imageDao(): ImageStoreDao

@@ -21,14 +21,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CameraEnhance
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.LooksOne
+import androidx.compose.material.icons.filled.Pentagon
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -65,6 +73,7 @@ import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.whichMissionHandler
+import com.appdev.alarmapp.utils.whichRangeMissionHandle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -138,7 +147,7 @@ fun MissionMenu(
             Row(
                 modifier = Modifier
                     .fillMaxWidth(0.63f)
-                    .padding(vertical = 10.dp, horizontal = 15.dp),
+                    .padding(top = 10.dp,start = 15.dp,end=15.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -183,7 +192,7 @@ fun MissionMenu(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .padding(top = 10.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -212,7 +221,7 @@ fun MissionMenu(
                                 missionMemory = true,
                                 missionMath = false,
                                 missionShake = false,
-                                isSteps = false, isSquat = false
+                                isSteps = false, isSquat = false, isWalk = false
                             )
                         )
                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -246,7 +255,7 @@ fun MissionMenu(
                                 missionMemory = false,
                                 missionMath = true,
                                 missionShake = false,
-                                isSteps = false, isSquat = false
+                                isSteps = false, isSquat = false, isWalk = false
                             )
                         )
                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -258,6 +267,144 @@ fun MissionMenu(
                     }
 
                 }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp)
+                ) {
+                    singleCard(
+                        isDarkMode,
+                        iconID = Icons.Filled.RepeatOne,
+                        title = "Arrange Numbers"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "ArrangeNumbers"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = false, missionAlphabet = false,missionOrderAlphabet = false,missionOrderNumbers = true,missionOrderShapes = false
+                            )
+                        )
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.AutoMirrored.Filled.CompareArrows,
+                        title = "Arrange Alphabets"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "ArrangeAlphabet"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = false,
+                                missionAlphabet = false,
+                                missionOrderAlphabet = true,
+                                missionOrderNumbers = false,
+                                missionOrderShapes = false
+                            )
+                        )
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.Pentagon,
+                        title = "Arrange Shapes"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "ArrangeShapes"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = false,
+                                missionAlphabet = false,
+                                missionOrderAlphabet = false,
+                                missionOrderNumbers = false,
+                                missionOrderShapes = true
+                            )
+                        )
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp)
+                ) {
+                    singleCard(
+                        isDarkMode,
+                        iconID = Icons.Filled.LooksOne,
+                        title = "Numbers"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "RangeNumbers"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = true, missionAlphabet = false,missionOrderAlphabet = false,missionOrderNumbers = false,missionOrderShapes = false
+                            )
+                        )
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.SortByAlpha,
+                        title = "Alphabets"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "RangeAlphabet"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = false,
+                                missionAlphabet = true,
+                                missionOrderAlphabet = false,
+                                missionOrderNumbers = false,
+                                missionOrderShapes = false
+                            )
+                        )
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+//                    singleCard(
+//                        isDarkMode = isDarkMode,
+//                        iconID = Icons.Filled.Calculate,
+//                        title = "Math"
+//                    ) {
+//                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Math"))
+//                        mainViewModel.whichMissionHandle(
+//                            whichMissionHandler.thisMission(
+//                                missionMemory = false,
+//                                missionMath = true,
+//                                missionShake = false,
+//                                isSteps = false, isSquat = false, isWalk = false
+//                            )
+//                        )
+//                        controller.navigate(Routes.CommonMissionScreen.route) {
+//                            popUpTo(Routes.MissionMenuScreen.route) {
+//                                inclusive = false
+//                            }
+//                            launchSingleTop = true
+//                        }
+//                    }
+                }
+
             }
 
 
@@ -299,7 +446,7 @@ fun MissionMenu(
                                         missionMemory = false,
                                         missionMath = false,
                                         missionShake = false,
-                                        isSteps = true, isSquat = false
+                                        isSteps = true, isSquat = false, isWalk = false
                                     )
                                 )
                                 controller.navigate(Routes.CommonMissionScreen.route) {
@@ -340,7 +487,7 @@ fun MissionMenu(
                                 missionMemory = false,
                                 missionMath = false,
                                 missionShake = true,
-                                isSteps = false, isSquat = false
+                                isSteps = false, isSquat = false, isWalk = false
                             )
                         )
                         controller.navigate(Routes.CommonMissionScreen.route) {
@@ -370,27 +517,42 @@ fun MissionMenu(
                             launchSingleTop = true
                         }
                     }
-//                    singleCard(
-//                        isDarkMode = isDarkMode,
-//                        imageId = R.drawable.strength,
-//                        iconID = Icons.Filled.DirectionsWalk,
-//                        title = "Squat"
-//                    ) {
-//                        showToast = false
-//                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Squat"))
-//                        mainViewModel.whichMissionHandle(
-//                            whichMissionHandler.thisMission(
-//                                missionMemory = false,
-//                                missionMath = false,
-//                                missionShake = false,
-//                                isSteps = false, isSquat = true
-//                            )
-//                        )
-//                        controller.navigate(Routes.CommonMissionScreen.route) {
-//                            popUpTo(controller.graph.startDestinationId)
-//                            launchSingleTop = true
-//                        }
-//                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.AddLocationAlt,
+                        title = "Destination"
+                    ) {
+                        showToast = false
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "ReachDestination"))
+                        controller.navigate(Routes.ReachLocationMissionScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.AutoMirrored.Filled.DirectionsWalk,
+                        title = "Walk Off"
+                    ) {
+                        showToast = false
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "WalkOff"))
+                        mainViewModel.whichMissionHandle(
+                            whichMissionHandler.thisMission(
+                                missionMemory = false,
+                                missionMath = false,
+                                missionShake = false,
+                                isSteps = false, isSquat = false, isWalk = true
+                            )
+                        )
+                        controller.navigate(Routes.CommonMissionScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
                 }
                 if (showRationale) {
                     AlertDialog(

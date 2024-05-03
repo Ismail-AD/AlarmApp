@@ -60,6 +60,12 @@ class Utils(private val context: Context) {
             emptySet()
         }
     }
+    fun clearSnoozeTimers() {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        editor.remove(SNOOZE_TIMERS_KEY)
+        editor.apply()
+    }
 
     fun findClosestSnoozeTimer(): SnoozeTimer? {
         val timers = getSnoozeTimers()

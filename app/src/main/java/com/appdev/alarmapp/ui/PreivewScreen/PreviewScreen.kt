@@ -12,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +31,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
@@ -39,10 +43,14 @@ import androidx.compose.material.icons.filled.CameraEnhance
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Pentagon
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.VolumeMute
 import androidx.compose.material.icons.outlined.VolumeUp
@@ -62,6 +70,7 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -108,6 +117,7 @@ import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.Analysis.playText
@@ -125,6 +135,7 @@ import com.appdev.alarmapp.utils.getRepeatText
 import com.appdev.alarmapp.utils.listOfIntervals
 import com.appdev.alarmapp.utils.newAlarmHandler
 import com.appdev.alarmapp.utils.whichMissionHandler
+import com.appdev.alarmapp.utils.whichRangeMissionHandle
 import com.commandiron.wheel_picker_compose.WheelTimePicker
 import com.commandiron.wheel_picker_compose.core.TimeFormat
 import com.commandiron.wheel_picker_compose.core.WheelPickerDefaults
@@ -145,6 +156,7 @@ import kotlin.math.roundToInt
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PreviewScreen(
+    ringtoneRepository: RingtoneRepository,
     textToSpeech: TextToSpeech,
     controller: NavHostController,
     mainViewModel: MainViewModel,
@@ -192,7 +204,7 @@ fun PreviewScreen(
     }
     var switchStateSnooze by remember { mutableStateOf(if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime != -1) true else if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime == -1) false else if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) true else !mainViewModel.whichAlarm.isOld && mainViewModel.newAlarm.snoozeTime != -1) }
     var selectedOptionSnooze by remember { mutableStateOf(if (mainViewModel.managingDefault && mainViewModel.defaultSettings.value.snoozeTime != -1) mainViewModel.defaultSettings.value.snoozeTime.toString() else if (mainViewModel.whichAlarm.isOld && mainViewModel.selectedDataAlarm.snoozeTime != -1) mainViewModel.selectedDataAlarm.snoozeTime.toString() else mainViewModel.newAlarm.snoozeTime.toString()) }
-
+    val interactionSource = remember { MutableInteractionSource() }
 
     val sheetState = rememberModalBottomSheetState()
     val sheetStateSnooze = rememberModalBottomSheetState()
@@ -209,7 +221,7 @@ fun PreviewScreen(
         )
     }
     val alarmScheduler by remember {
-        mutableStateOf(AlarmScheduler(context, mainViewModel))
+        mutableStateOf(AlarmScheduler(context, ringtoneRepository))
     }
     val selectedOptions =
         rememberSaveable { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.listOfDays else mainViewModel.newAlarm.listOfDays) }
@@ -533,6 +545,286 @@ fun PreviewScreen(
 
                         }, moveToDetails = { misData ->
                             when (misData.missionName) {
+                                "RangeNumbers" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.DifficultyLevel(
+                                            misData.difficultyLevel
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.RepeatTimes(
+                                            misData.repeatTimes
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.NumbersCount(
+                                            misData.valuesToPick
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.whichRangeMissionHandler(
+                                        whichRangeMissionHandle.thisMission(
+                                            missionNumber = true,
+                                            missionAlphabet = false,
+                                            missionOrderAlphabet = false,
+                                            missionOrderNumbers = false,
+                                            missionOrderShapes = false
+                                        )
+                                    )
+                                    controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+
+                                }
+
+                                "RangeAlphabet" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.DifficultyLevel(
+                                            misData.difficultyLevel
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.NumbersCount(
+                                            misData.valuesToPick
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.RepeatTimes(
+                                            misData.repeatTimes
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.whichRangeMissionHandler(
+                                        whichRangeMissionHandle.thisMission(
+                                            missionNumber = false,
+                                            missionAlphabet = true,
+                                            missionOrderAlphabet = false,
+                                            missionOrderNumbers = false,
+                                            missionOrderShapes = false
+                                        )
+                                    )
+                                    controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+
+                                }
+
+                                "ArrangeNumbers" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.NumbersCount(
+                                            misData.valuesToPick
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.RepeatTimes(
+                                            misData.repeatTimes
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.whichRangeMissionHandler(
+                                        whichRangeMissionHandle.thisMission(
+                                            missionNumber = false,
+                                            missionAlphabet = false,
+                                            missionOrderAlphabet = false,
+                                            missionOrderNumbers = true,
+                                            missionOrderShapes = false
+                                        )
+                                    )
+                                    controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                }
+
+                                "ArrangeAlphabet" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.NumbersCount(
+                                            misData.valuesToPick
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.RepeatTimes(
+                                            misData.repeatTimes
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.whichRangeMissionHandler(
+                                        whichRangeMissionHandle.thisMission(
+                                            missionNumber = false,
+                                            missionAlphabet = false,
+                                            missionOrderAlphabet = true,
+                                            missionOrderNumbers = false,
+                                            missionOrderShapes = false
+                                        )
+                                    )
+                                    controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                }
+
+                                "ArrangeShapes" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.RepeatTimes(
+                                            misData.repeatTimes
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.NumbersCount(
+                                            misData.valuesToPick
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.whichRangeMissionHandler(
+                                        whichRangeMissionHandle.thisMission(
+                                            missionNumber = false,
+                                            missionAlphabet = false,
+                                            missionOrderAlphabet = true,
+                                            missionOrderNumbers = false,
+                                            missionOrderShapes = false
+                                        )
+                                    )
+                                    controller.navigate(Routes.RangeMemoryMissionSetting.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                }
+
+                                "ReachDestination" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.SelectedLocationID(
+                                            misData.locId
+                                        )
+                                    )
+                                    controller.navigate(Routes.ReachLocationMissionScreen.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+
+                                }
+
+                                "WalkOff" -> {
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionId(misData.missionID)
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.MissionName(
+                                            misData.missionName
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.RepeatTimes(
+                                            misData.repeatTimes
+                                        )
+                                    )
+                                    mainViewModel.missionData(
+                                        MissionDataHandler.IsSelectedMission(
+                                            misData.isSelected
+                                        )
+                                    )
+                                    mainViewModel.whichMissionHandle(
+                                        whichMissionHandler.thisMission(
+                                            missionMemory = false,
+                                            missionMath = false,
+                                            missionShake = false,
+                                            isSteps = false, isSquat = false, isWalk = true
+                                        )
+                                    )
+                                    controller.navigate(Routes.CommonMissionScreen.route) {
+                                        popUpTo(Routes.Preview.route) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                }
+
                                 "Memory" -> {
                                     mainViewModel.missionData(
                                         MissionDataHandler.MissionId(misData.missionID)
@@ -562,11 +854,11 @@ fun PreviewScreen(
                                             missionMemory = true,
                                             missionMath = false,
                                             missionShake = false,
-                                            isSteps = false, isSquat = false
+                                            isSteps = false, isSquat = false, isWalk = false
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                        popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -604,11 +896,11 @@ fun PreviewScreen(
                                             missionMemory = false,
                                             missionMath = false,
                                             missionShake = false,
-                                            isSteps = true, isSquat = false
+                                            isSteps = true, isSquat = false, isWalk = false
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -646,11 +938,11 @@ fun PreviewScreen(
                                             missionMemory = false,
                                             missionMath = false,
                                             missionShake = false,
-                                            isSteps = false, isSquat = true
+                                            isSteps = false, isSquat = true, isWalk = false
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -689,11 +981,11 @@ fun PreviewScreen(
                                             missionMemory = false,
                                             missionMath = false,
                                             missionShake = true,
-                                            isSteps = false, isSquat = false
+                                            isSteps = false, isSquat = false, isWalk = false
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -729,11 +1021,11 @@ fun PreviewScreen(
                                             missionMemory = false,
                                             missionMath = true,
                                             missionShake = false,
-                                            isSteps = false, isSquat = false
+                                            isSteps = false, isSquat = false, isWalk = false
                                         )
                                     )
                                     controller.navigate(Routes.CommonMissionScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -771,7 +1063,7 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.TypeMissionScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -799,7 +1091,7 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.CameraRoutineScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -827,7 +1119,7 @@ fun PreviewScreen(
                                         )
                                     )
                                     controller.navigate(Routes.BarCodeDemoScreen.route) {
-                                         popUpTo(Routes.Preview.route){
+                                        popUpTo(Routes.Preview.route) {
                                             inclusive = false
                                         }
                                         launchSingleTop = true
@@ -847,17 +1139,17 @@ fun PreviewScreen(
 
                     // Display empty static slots
 //                    if (currentState is BillingResultState.Success) {
-                        repeat(emptyStaticSlots) {
-                            singleMission(isLock = false,
-                                Missions(),
-                                remove = {},
-                                moveToDetails = {}) {
-                                controller.navigate(Routes.MissionMenuScreen.route) {
-                                    popUpTo(controller.graph.startDestinationId)
-                                    launchSingleTop = true
-                                }
+                    repeat(emptyStaticSlots) {
+                        singleMission(isLock = false,
+                            Missions(),
+                            remove = {},
+                            moveToDetails = {}) {
+                            controller.navigate(Routes.MissionMenuScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
                             }
                         }
+                    }
 //                    } else {
 //                        if (mainViewModel.missionDetailsList.isEmpty()) {
 //                            singleMission(isLock = false,
@@ -909,8 +1201,6 @@ fun PreviewScreen(
                     Slider(
                         value = soundVolume,
                         onValueChange = {
-                            Log.d("CHKR", "${mainViewModel.newAlarm.ringtone}")
-                            Log.d("CHKR", "${mainViewModel.selectedDataAlarm.ringtone}")
                             soundVolume =
                                 if (mainViewModel.selectedDataAlarm.ringtone.name == "Silent" || mainViewModel.newAlarm.ringtone.name == "Silent") {
                                     0f
@@ -937,10 +1227,30 @@ fun PreviewScreen(
                         onValueChangeFinished = {},
                         steps = 0,
                         colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
+                            thumbColor = Color.Gray.copy(alpha = 0.4f),
                             activeTrackColor = Color(0xff7358F5),
                             inactiveTrackColor = Color(0xff3C3F48)
-                        ), modifier = Modifier.fillMaxWidth(0.8f)
+                        ), modifier = Modifier.fillMaxWidth(0.8f), thumb = {
+                            SliderDefaults.Thumb(
+                                interactionSource = interactionSource,
+                                modifier = Modifier.height(17.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.Gray.copy(alpha = 0.4f),
+                                    activeTrackColor = Color(0xff7358F5),
+                                    inactiveTrackColor = Color(0xff3C3F48)
+                                )
+                            )
+                        }, track = {
+                            SliderDefaults.Track(
+                                sliderState = it,
+                                modifier = Modifier.height(10.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.Gray.copy(alpha = 0.4f),
+                                    activeTrackColor = Color(0xff7358F5),
+                                    inactiveTrackColor = Color(0xff3C3F48)
+                                )
+                            )
+                        }
                     )
                     Spacer(modifier = Modifier.width(20.dp))
                     Icon(
@@ -948,7 +1258,6 @@ fun PreviewScreen(
                         contentDescription = "",
                         tint = MaterialTheme.colorScheme.surfaceTint
                     )
-
                 }
                 Row(
                     modifier = Modifier
@@ -1374,29 +1683,29 @@ fun PreviewScreen(
         if (showLabel) {
             ModalBottomSheet(onDismissRequest = {
 //                if (currentState is BillingResultState.Success) {
-                    if (mainViewModel.whichAlarm.isOld) {
-                        mainViewModel.updateHandler(
-                            EventHandlerAlarm.IsLabel(
-                                isLabelOrNot = switchStateLabel
-                            )
+                if (mainViewModel.whichAlarm.isOld) {
+                    mainViewModel.updateHandler(
+                        EventHandlerAlarm.IsLabel(
+                            isLabelOrNot = switchStateLabel
                         )
-                        mainViewModel.updateHandler(
-                            EventHandlerAlarm.LabelText(
-                                getLabelText = textFieldValueState.text
-                            )
+                    )
+                    mainViewModel.updateHandler(
+                        EventHandlerAlarm.LabelText(
+                            getLabelText = textFieldValueState.text
                         )
-                    } else {
-                        mainViewModel.newAlarmHandler(
-                            newAlarmHandler.IsLabel(
-                                isLabelOrNot = switchStateLabel
-                            )
+                    )
+                } else {
+                    mainViewModel.newAlarmHandler(
+                        newAlarmHandler.IsLabel(
+                            isLabelOrNot = switchStateLabel
                         )
-                        mainViewModel.newAlarmHandler(
-                            newAlarmHandler.LabelText(
-                                getLabelText = textFieldValueState.text
-                            )
+                    )
+                    mainViewModel.newAlarmHandler(
+                        newAlarmHandler.LabelText(
+                            getLabelText = textFieldValueState.text
                         )
-                    }
+                    )
+                }
 //                } else {
 //                    filename = ""
 //                    textFieldValueState = TextFieldValue(
@@ -1575,7 +1884,7 @@ fun PreviewScreen(
 //                                                launchSingleTop = true
 //                                            }
 //                                        } else {
-                                            switchStateLabel = newSwitchState
+                                        switchStateLabel = newSwitchState
 //                                        }
                                     }
                                 },
@@ -1951,6 +2260,13 @@ fun singleMission(
                         "Typing" -> Icons.Filled.Keyboard
                         "Photo" -> Icons.Filled.CameraEnhance
                         "QR/Barcode" -> Icons.Filled.QrCode2
+                        "ArrangeNumbers" -> Icons.Filled.RepeatOne
+                        "ArrangeAlphabet" -> Icons.AutoMirrored.Filled.CompareArrows
+                        "ArrangeShapes" -> Icons.Filled.Pentagon
+                        "RangeNumbers" -> Icons.Filled.LooksOne
+                        "RangeAlphabet" -> Icons.Filled.SortByAlpha
+                        "ReachDestination" -> Icons.Filled.AddLocationAlt
+                        "WalkOff" -> Icons.AutoMirrored.Filled.DirectionsWalk
                         else -> {
                             null
                         }
@@ -1972,10 +2288,9 @@ fun singleMission(
 
                     }
                     Text(
-                        text = "${missionData.repeatTimes} times",
+                        text = "${missionData.repeatTimes} ${if (missionData.missionName == "WalkOff") "meters" else if (missionData.missionName !== "Step") "Steps" else "times"}",
                         fontSize = 12.sp, color = Color.DarkGray
                     )
-
                 }
             } else {
                 Icon(

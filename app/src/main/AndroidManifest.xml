@@ -50,6 +50,11 @@
             android:enabled="true"
             android:foregroundServiceType="systemExempted"
             android:exported="false" />
+        <service
+            android:name=".AlarmManagement.rescheduleService"
+            android:enabled="true"
+            android:foregroundServiceType="systemExempted"
+            android:exported="false" />
 
         <activity
             android:name=".AlarmManagement.AlarmCancelAccess"
@@ -103,6 +108,9 @@
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyA6t_B0hwn3PwrL_mBCtS1_OswP3b-a-i8" />
     </application>
 
 </manifest>

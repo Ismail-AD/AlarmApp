@@ -5,13 +5,20 @@ import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
 import com.appdev.alarmapp.utils.DaoClasses.MissionsDao
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class AlarmRepository @Inject constructor(
     val alarmDao: AlarmDao, val missionsDao: MissionsDao
 ) {
     val roomDataFlow: Flow<List<AlarmEntity>> = alarmDao.getAllAlarms()
+    suspend fun getAllAlarmsAsync(): List<AlarmEntity> {
+        return withContext(Dispatchers.IO) {
+            alarmDao.getAllAlarmsInList()
+        }
+    }
     var alarmId: Long = 0L
 
 

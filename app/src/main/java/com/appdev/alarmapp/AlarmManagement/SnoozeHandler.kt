@@ -23,17 +23,25 @@ import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.MainActivity
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MissionViewer.AlterMissionScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeAlphabetsMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeNumbersMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeShapesMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.AtLocationMission
 import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
+import com.appdev.alarmapp.ui.MissionViewer.RangedAlphabetsMissionHandlerScreen
+import com.appdev.alarmapp.ui.MissionViewer.RangedNumbersMissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
 import com.appdev.alarmapp.ui.MissionViewer.SquatMission
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
+import com.appdev.alarmapp.ui.MissionViewer.WalkOffMission
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
@@ -49,6 +57,8 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
+    @Inject
+    lateinit var ringtoneRepository: RingtoneRepository
     private var receivedAlarm: AlarmEntity? = null
     private var previewMode: Boolean = false
     private var notify: Boolean = false
@@ -64,7 +74,7 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
         super.onCreate(savedInstanceState)
         Log.d("CHKSM", "ON CREATE CALLED FOR SNOOZER")
 
-        alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
+        alarmScheduler = AlarmScheduler(applicationContext, ringtoneRepository)
 
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -344,6 +354,7 @@ fun snoozeAlarmNavGraph(
     ) {
 
 
+
         composable(route = Routes.SnoozeScr.route) {
             SnoozeScreen(
                 textToSpeech,
@@ -361,6 +372,115 @@ fun snoozeAlarmNavGraph(
                 timerEndsCallback = timerEndsCallback,
                 controller = controller,
                 mainViewModel = mainViewModel,
+            )
+        }
+        composable(route = Routes.AtLocationMissionScreen.route) {
+            AtLocationMission(
+                textToSpeech = textToSpeech, mainViewModel = mainViewModel,
+                controller = controller,
+                timerEndsCallback = timerEndsCallback,
+                dismissCallback = onDismissCallback
+            )
+        }
+        composable(route = Routes.WalkOffScreen.route) {
+            WalkOffMission(
+                textToSpeech = textToSpeech,
+                mainViewModel = mainViewModel,
+                controller = controller,
+                timerEndsCallback = timerEndsCallback,
+                dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.RangeAlphabetMissionPreview.route) {
+            val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
+                "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
+                else -> 0
+            }
+
+            val cubeHeightWidth =
+                when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 60.dp
+                    "Hard Mode" -> 50.dp
+                    else -> 60.dp
+                }
+            val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 4.dp
+                "Hard Mode" -> 3.dp
+                else -> 1.dp
+            }
+            val lazyRowHeight = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 65.dp
+                "Hard Mode" -> 55.dp
+                else -> 65.dp
+            }
+            RangedAlphabetsMissionHandlerScreen(
+                textToSpeech = textToSpeech,
+                cubeHeightWidth = cubeHeightWidth,
+                colPadding = columnPadding,
+                rowHeight = lazyRowHeight,
+                controller = controller,
+                totalSize = diffLevel,
+                mainViewModel = mainViewModel,
+                timerEndsCallback = timerEndsCallback, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.ArrangeShapesScreen.route) {
+            ArrangeShapesMHScreen(
+                textToSpeech = textToSpeech,
+                controller = controller,
+                mainViewModel = mainViewModel,
+                timerEndsCallback = timerEndsCallback, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.ArrangeAlphabetsScreen.route) {
+            ArrangeAlphabetsMHScreen(
+                textToSpeech = textToSpeech,
+                controller = controller,
+                mainViewModel = mainViewModel,
+                timerEndsCallback = timerEndsCallback, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.ArrangeNumbersScreen.route) {
+            ArrangeNumbersMHScreen(
+                textToSpeech = textToSpeech,
+                controller = controller,
+                mainViewModel = mainViewModel,
+                timerEndsCallback = timerEndsCallback, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.RangeMemoryMissionPreview.route) {
+            val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
+                "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
+                else -> 0
+            }
+
+            val cubeHeightWidth =
+                when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 60.dp
+                    "Hard Mode" -> 50.dp
+                    else -> 60.dp
+                }
+            val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 4.dp
+                "Hard Mode" -> 3.dp
+                else -> 1.dp
+            }
+            val lazyRowHeight = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 65.dp
+                "Hard Mode" -> 55.dp
+                else -> 65.dp
+            }
+            RangedNumbersMissionHandlerScreen(
+                textToSpeech = textToSpeech,
+                cubeHeightWidth = cubeHeightWidth,
+                colPadding = columnPadding,
+                rowHeight = lazyRowHeight,
+                controller = controller,
+                totalSize = diffLevel,
+                mainViewModel = mainViewModel,
+                timerEndsCallback = timerEndsCallback, dismissCallback = onDismissCallback
             )
         }
 

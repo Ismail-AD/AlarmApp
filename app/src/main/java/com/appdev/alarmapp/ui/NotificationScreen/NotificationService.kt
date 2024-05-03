@@ -32,7 +32,6 @@ class NotificationService(private val context: Context) {
             .setContentTitle("Alarmy")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentText(text)
-            .setContentIntent(createPendingIntent()) // Add click action
             .build()
         notificationManager.notify(2, notificationBuilder)
     }
@@ -43,6 +42,7 @@ class NotificationService(private val context: Context) {
 
 
     private fun createPendingIntent(): PendingIntent {
+        // utils code to clear snooze data
         val intent = Intent(context, MainActivity::class.java) // Replace with your activity
         val requestID = System.currentTimeMillis().toInt()
         return PendingIntent.getActivity(context, requestID, intent,

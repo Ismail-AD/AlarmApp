@@ -3,7 +3,6 @@ package com.appdev.alarmapp.AlarmManagement
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -18,10 +17,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
@@ -32,18 +27,26 @@ import com.appdev.alarmapp.MainActivity
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MissionViewer.AlterMissionScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeAlphabetsMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeNumbersMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.ArrangeShapesMHScreen
+import com.appdev.alarmapp.ui.MissionViewer.AtLocationMission
 import com.appdev.alarmapp.ui.MissionViewer.BarCodeMissionScreen
 import com.appdev.alarmapp.ui.MissionViewer.MathMissionHandler
 import com.appdev.alarmapp.ui.MissionViewer.MissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.PhotoMissionScreen
+import com.appdev.alarmapp.ui.MissionViewer.RangedAlphabetsMissionHandlerScreen
+import com.appdev.alarmapp.ui.MissionViewer.RangedNumbersMissionHandlerScreen
 import com.appdev.alarmapp.ui.MissionViewer.ShakeDetectionScreen
 import com.appdev.alarmapp.ui.MissionViewer.SquatMission
 import com.appdev.alarmapp.ui.MissionViewer.StepMission
 import com.appdev.alarmapp.ui.MissionViewer.TypingMissionHandler
+import com.appdev.alarmapp.ui.MissionViewer.WalkOffMission
 import com.appdev.alarmapp.ui.PreivewScreen.localTimeToMillis
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.EventHandlerAlarm
@@ -68,6 +71,8 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
+    @Inject
+    lateinit var ringtoneRepository: RingtoneRepository
     private var receivedAlarm: AlarmEntity? = null
     private var previewMode: Boolean = false
     private var notify: Boolean = false
@@ -90,7 +95,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
         isScreenOnBeforeAlarm = isScreenOn()
-        alarmScheduler = AlarmScheduler(applicationContext, mainViewModel)
+        alarmScheduler = AlarmScheduler(applicationContext, ringtoneRepository)
 
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -124,11 +129,12 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
                         alarm = gotAlarm
                         mainViewModel.missionData(MissionDataHandler.AddList(missionsList = alarm.listOfMissions))
                         AlarmNavGraph(
+                            ringtoneRepository,
                             onDismissCallback = this@AlarmCancelAccess,
                             onSnoozeCallback = this@AlarmCancelAccess,
                             textToSpeech,
                             intent,
-                            mainViewModel = mainViewModel,
+                            mainViewModel = mainViewModel
                         )
                     }
                 }
@@ -223,10 +229,8 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     }
 
     override fun onDismissClicked() {
-        Log.d("CHKSM", "ON ALARM WORK FINISH IS CALLED.............")
         alarmScheduler.cancel(alarm)
         mainViewModel.snoozeUpdate(false)
-
         if (mainViewModel.dummyMissionList.isEmpty() && mainViewModel.isRealAlarm) {
             if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
                 mainViewModel.updateHandler(
@@ -450,6 +454,7 @@ fun getDayOfWeek(day: String): Int {
 
 @Composable
 fun AlarmNavGraph(
+    ringtoneRepository: RingtoneRepository,
     onDismissCallback: DismissCallback,
     onSnoozeCallback: SnoozeCallback,
     textToSpeech: TextToSpeech,
@@ -467,7 +472,7 @@ fun AlarmNavGraph(
                 onDismissCallback,
                 onSnoozeCallback,
                 controller,
-                mainViewModel,
+                mainViewModel,ringtoneRepository
             )
         }
         composable(route = Routes.AlternativeMissionScreen.route) {
@@ -484,6 +489,161 @@ fun AlarmNavGraph(
                 mainViewModel = mainViewModel,
             )
         }
+
+
+        composable(route = Routes.AtLocationMissionScreen.route) {
+            AtLocationMission(
+                textToSpeech = textToSpeech, mainViewModel = mainViewModel,
+                controller = controller,
+                timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                dismissCallback = onDismissCallback
+            )
+        }
+        composable(route = Routes.WalkOffScreen.route) {
+            WalkOffMission(
+                textToSpeech = textToSpeech,
+                mainViewModel = mainViewModel,
+                controller = controller,
+                timerEndsCallback = object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                },
+                dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.RangeAlphabetMissionPreview.route) {
+            val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
+                "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
+                else -> 0
+            }
+
+            val cubeHeightWidth =
+                when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 60.dp
+                    "Hard Mode" -> 50.dp
+                    else -> 60.dp
+                }
+            val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 4.dp
+                "Hard Mode" -> 3.dp
+                else -> 1.dp
+            }
+            val lazyRowHeight = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 65.dp
+                "Hard Mode" -> 55.dp
+                else -> 65.dp
+            }
+            RangedAlphabetsMissionHandlerScreen(
+                textToSpeech = textToSpeech,
+                cubeHeightWidth = cubeHeightWidth,
+                colPadding = columnPadding,
+                rowHeight = lazyRowHeight,
+                controller = controller,
+                totalSize = diffLevel,
+                mainViewModel = mainViewModel,
+                timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.ArrangeShapesScreen.route) {
+            ArrangeShapesMHScreen(
+                textToSpeech = textToSpeech,
+                controller = controller,
+                mainViewModel = mainViewModel,
+                timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.ArrangeAlphabetsScreen.route) {
+            ArrangeAlphabetsMHScreen(
+                textToSpeech = textToSpeech,
+                controller = controller,
+                mainViewModel = mainViewModel,
+                timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.ArrangeNumbersScreen.route) {
+            ArrangeNumbersMHScreen(
+                textToSpeech = textToSpeech,
+                controller = controller,
+                mainViewModel = mainViewModel,
+                timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
+            )
+        }
+        composable(Routes.RangeMemoryMissionPreview.route) {
+            val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
+                "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
+                else -> 0
+            }
+
+            val cubeHeightWidth =
+                when (mainViewModel.missionDetails.difficultyLevel) {
+                    "Normal Mode" -> 60.dp
+                    "Hard Mode" -> 50.dp
+                    else -> 60.dp
+                }
+            val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 4.dp
+                "Hard Mode" -> 3.dp
+                else -> 1.dp
+            }
+            val lazyRowHeight = when (mainViewModel.missionDetails.difficultyLevel) {
+                "Normal Mode" -> 65.dp
+                "Hard Mode" -> 55.dp
+                else -> 65.dp
+            }
+            RangedNumbersMissionHandlerScreen(
+                textToSpeech = textToSpeech,
+                cubeHeightWidth = cubeHeightWidth,
+                colPadding = columnPadding,
+                rowHeight = lazyRowHeight,
+                controller = controller,
+                totalSize = diffLevel,
+                mainViewModel = mainViewModel,
+                timerEndsCallback =
+                object : TimerEndsCallback {
+                    override fun onTimeEnds() {
+                        TODO("Not yet implemented")
+                    }
+
+                }, dismissCallback = onDismissCallback
+            )
+        }
+
+
+
 
         composable(route = Routes.MissionShakeScreen.route) {
             ShakeDetectionScreen(

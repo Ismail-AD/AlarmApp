@@ -527,7 +527,7 @@ fun PhotoMissionScreen(
                             isSelected = singleMission.isSelected,
                             setOfSentences = convertStringToSet(singleMission.selectedSentences),
                             imageId = singleMission.imageId,
-                            codeId = singleMission.codeId
+                            codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -587,6 +587,48 @@ fun PhotoMissionScreen(
                                 popUpTo(Routes.PreviewAlarm.route) {
                                     inclusive = true
                                 }
+                                launchSingleTop = true
+                            }
+                        }
+                        "RangeNumbers" -> {
+                            controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "RangeAlphabet" -> {
+                            controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "WalkOff" -> {
+                            controller.navigate(Routes.WalkOffScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ReachDestination" -> {
+                            controller.navigate(Routes.AtLocationMissionScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ArrangeNumbers" -> {
+                            controller.navigate(Routes.ArrangeNumbersScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ArrangeAlphabet" -> {
+                            controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ArrangeShapes" -> {
+                            controller.navigate(Routes.ArrangeShapesScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }

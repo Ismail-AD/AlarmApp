@@ -12,13 +12,13 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,12 +27,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,9 +52,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,7 +63,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
-import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
@@ -68,6 +70,7 @@ import com.appdev.alarmapp.ui.AlarmCancel.convertToMilliseconds
 import com.appdev.alarmapp.ui.AlarmCancel.playTextToSpeech
 import com.appdev.alarmapp.ui.AlarmCancel.startCurrentTimeAndDate
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.MainScreen.formattedTheTime
 import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
@@ -79,9 +82,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
-
 @Composable
-fun MissionHandlerScreen(
+fun RangedNumbersMissionHandlerScreen(
     intent: Intent = Intent(),
     textToSpeech: TextToSpeech,
     cubeHeightWidth: Dp,
@@ -94,7 +96,6 @@ fun MissionHandlerScreen(
     timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
-
     var oldMissionId by remember {
         mutableStateOf(mainViewModel.missionDetails.missionID)
     }
@@ -127,20 +128,37 @@ fun MissionHandlerScreen(
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
     var progress by remember { mutableFloatStateOf(1f) }
-    var countdown by remember { mutableStateOf(3) }
+    var countdown by remember { mutableStateOf(5) }
     var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
 
-    var selectedBlocks by remember { mutableStateOf(emptyList<Int>()) }
+    var clickedNumbers by remember { mutableStateOf(emptyList<Int>()) }
+
+    val elementsCountToPick by remember {
+        mutableIntStateOf(mainViewModel.missionDetails.valuesToPick)
+    }
 
     var modifiedIndices by remember {
         mutableStateOf(
             if (missionViewModel.missionHandler.preservedIndexes.isEmpty()) {
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
+                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateRangedAndStore(elementsCountToPick))
                 missionViewModel.missionHandler.preservedIndexes
             } else {
                 missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
+                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateRangedAndStore(elementsCountToPick))
                 missionViewModel.missionHandler.preservedIndexes
+            }
+        )
+    }
+
+    var finalRangedList by remember {
+        mutableStateOf(
+            if (missionViewModel.missionHandler.getRangeRandomNumbers.isEmpty()) {
+                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateTotalRangedAndReStore(modifiedIndices,totalSize))
+                missionViewModel.missionHandler.getRangeRandomNumbers
+            } else {
+                missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
+                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateTotalRangedAndReStore(modifiedIndices,totalSize))
+                missionViewModel.missionHandler.getRangeRandomNumbers
             }
         )
     }
@@ -504,8 +522,12 @@ fun MissionHandlerScreen(
         key3 = missionViewModel.missionHandler.correctChoiceList
     ) {
         if (missionViewModel.missionHandler.preservedIndexes.isEmpty() && countdown != 0) {
-            missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
+            missionViewModel.missionEventHandler(MissionDemoHandler.GenerateRangedAndStore(elementsCountToPick))
             modifiedIndices = missionViewModel.missionHandler.preservedIndexes
+        }
+        if(missionViewModel.missionHandler.getRangeRandomNumbers.isEmpty() && countdown != 0){
+            missionViewModel.missionEventHandler(MissionDemoHandler.GenerateTotalRangedAndReStore(modifiedIndices,totalSize))
+            finalRangedList = missionViewModel.missionHandler.getRangeRandomNumbers
         }
         if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown == 0) {
             modifiedIndices = missionViewModel.missionHandler.correctChoiceList
@@ -654,7 +676,7 @@ fun MissionHandlerScreen(
                     dismissCallback.onDismissClicked()
                 }
             } else {
-                controller.navigate(Routes.CommonMissionScreen.route) {
+                controller.navigate(Routes.RangeMemoryMissionSetting.route) {
                     popUpTo(controller.graph.startDestinationId)
                     launchSingleTop
                 }
@@ -662,14 +684,16 @@ fun MissionHandlerScreen(
         }
         if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size) && mainViewModel.missionDetails.repeatProgress != mainViewModel.missionDetails.repeatTimes && oldMissionId == mainViewModel.missionDetails.missionID) {
             missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-            selectedBlocks = emptyList()
-            countdown = 3
-            Log.d("CHKVM", "I AM CALLED")
-
+            clickedNumbers = emptyList()
+            countdown = 5
             mainViewModel.missionData(MissionDataHandler.MissionProgress(mainViewModel.missionDetails.repeatProgress + 1))
         }
-
     }
+
+
+
+
+    //---------------------------------DESIGN--------------------------------
 
 
 
@@ -732,7 +756,7 @@ fun MissionHandlerScreen(
             }
 
             Text(
-                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
+                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} remaining numbers",
                 color = Color.White,
                 fontSize = 20.sp,
                 textAlign = TextAlign.Center,
@@ -749,43 +773,86 @@ fun MissionHandlerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(colPadding)
                 ) {
-                    items(totalSize) { row ->
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(rowHeight),
-                            horizontalArrangement = Arrangement.SpaceAround
-                        ) {
-                            items(totalSize) { column ->
-                                val blockIndex = row * totalSize + column
-                                val isBlockSelected = selectedBlocks.contains(blockIndex)
-                                RubikCubeBlock(
-                                    modifier = Modifier
-                                        .clipToBounds()
-                                        .background(
-                                            if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
-                                                showWrong = true
-                                                Color.Red
-                                            } else if (modifiedIndices.contains(
-                                                    blockIndex
-                                                )
-                                            ) Color(
-                                                0xFF9BA2B2
-                                            ) else Color(0xff1C1F26)
+                    if(countdown!=0){
+                        items(modifiedIndices.chunked(if(elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
+                            val numDummyElements = if(chunk.size < elementsCountToPick && elementsCountToPick < 5){
+                                elementsCountToPick - chunk.size
+                            } else if(chunk.size < 5 && elementsCountToPick > 5){
+                                5 - chunk.size
+                            } else{
+                                0
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(rowHeight),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                chunk.forEach { number ->
+                                    RubikCubeNumberBlock(
+                                        modifier = Modifier
+                                            .clipToBounds()
+                                            , cubeHeightWidth,number.toString()
+                                    )
+                                }
+                                if(numDummyElements!=0){
+                                    repeat(numDummyElements){
+                                        Spacer(
+                                            modifier = Modifier
+                                                .size(cubeHeightWidth)
                                         )
-                                        .clickable {
-                                            if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
-                                                if (!selectedBlocks.contains(blockIndex)) {
-                                                    // Handle block click during countdown
-                                                    missionViewModel.missionEventHandler(
-                                                        MissionDemoHandler.checkMatch(blockIndex)
-                                                    )
-                                                    selectedBlocks += blockIndex
-                                                    progress = 1f
-                                                }
-                                            }
-                                        }, cubeHeightWidth
-                                )
+                                    }
+                                }
+                            }
+                        }
+                    } else{
+                        items(finalRangedList.chunked(if(elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
+                            val numDummyElements = if(chunk.size < elementsCountToPick && elementsCountToPick < 5){
+                                elementsCountToPick - chunk.size
+                            } else if(chunk.size < 5 && elementsCountToPick > 5){
+                                5 - chunk.size
+                            } else{
+                                0
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(rowHeight),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                chunk.forEach { number ->
+                                        RubikCubeNumberBlock(
+                                            modifier = Modifier
+                                                .clipToBounds()
+                                                .background(
+                                                    if ((missionViewModel.missionHandler.notMatched) && number == missionViewModel.missionHandler.clicked) {
+                                                        showWrong = true
+                                                        Color.Red
+                                                    } else if (modifiedIndices.contains(
+                                                            number
+                                                        ) && missionViewModel.missionHandler.correctChoiceList.isNotEmpty()
+                                                    ) Color(0xFFF57C00) else Color(0xff1C1F26)
+                                                )
+                                                .clickable {
+                                                    if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+//                                                    if (!clickedNumbers.contains(number)) {
+//                                                        // Handle block click during countdown
+//
+//                                                    }
+                                                        missionViewModel.missionEventHandler(
+                                                            MissionDemoHandler.checkMatch(number)
+                                                        )
+                                                        clickedNumbers += number
+                                                        progress = 1f
+                                                    }
+                                                }, cubeHeightWidth,number.toString()
+                                        )
+
+                                }
+                                if(numDummyElements!=0){
+                                    repeat(numDummyElements){
+                                        Spacer(
+                                            modifier = Modifier
+                                                .size(cubeHeightWidth)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -797,18 +864,17 @@ fun MissionHandlerScreen(
 }
 
 @Composable
-fun RubikCubeBlock(modifier: Modifier = Modifier, cubeHeightWidth: Dp) {
+fun RubikCubeNumberBlock(modifier: Modifier = Modifier, cubeHeightWidth: Dp,data:String) {
     Box(
         modifier = modifier
             .height(cubeHeightWidth)
             .width(cubeHeightWidth),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Default.Star,
-            contentDescription = null,
-            tint = Color.White
+        Text(
+            text = data,
+            color = Color.White,
+            fontSize = 30.sp, fontWeight = FontWeight.Medium
         )
     }
 }
-

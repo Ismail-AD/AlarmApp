@@ -490,7 +490,7 @@ fun StepMission(
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true
                     }
-                } else{
+                } else {
                     timerEndsCallback.onTimeEnds()
                 }
             }
@@ -517,12 +517,14 @@ fun StepMission(
                         Log.d("CHKLOC", "old location $previousLocation")
 
                         // Calculate distance between previous and current location
-                        val distance = calculateDistance(previousLocation!!, location)
+                        location?.let {
+                            val distance = calculateDistance(previousLocation!!, it)
 
-                        Log.d("CHKLOC", "distance calculated $distance")
-                        if (distance > 1.0 && startUpdating) {
-                            stepsToBeDone -= 1
-                            previousLocation = location
+                            Log.d("CHKLOC", "distance calculated $distance")
+                            if (distance > 1.0 && startUpdating) {
+                                stepsToBeDone -= 1
+                                previousLocation = it
+                            }
                         }
                     } else {
                         // If previous location is null, update it with current location
@@ -568,7 +570,7 @@ fun StepMission(
                             isSelected = singleMission.isSelected,
                             setOfSentences = convertStringToSet(singleMission.selectedSentences),
                             imageId = singleMission.imageId,
-                            codeId = singleMission.codeId
+                            codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -626,6 +628,48 @@ fun StepMission(
                                 popUpTo(Routes.PreviewAlarm.route) {
                                     inclusive = true
                                 }
+                                launchSingleTop = true
+                            }
+                        }
+                        "RangeNumbers" -> {
+                            controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "RangeAlphabet" -> {
+                            controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "WalkOff" -> {
+                            controller.navigate(Routes.WalkOffScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ReachDestination" -> {
+                            controller.navigate(Routes.AtLocationMissionScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ArrangeNumbers" -> {
+                            controller.navigate(Routes.ArrangeNumbersScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ArrangeAlphabet" -> {
+                            controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                        "ArrangeShapes" -> {
+                            controller.navigate(Routes.ArrangeShapesScreen.route){
+                                popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }

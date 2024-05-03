@@ -132,17 +132,14 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
     val backStackEntry = controller.currentBackStackEntryAsState()
 
     BackHandler {
-        controller.navigate(Routes.MissionMenuScreen.route) {
-            popUpTo(controller.graph.startDestinationId)
-            launchSingleTop = true
-        }
+        controller.popBackStack()
     }
 
     Scaffold(bottomBar = {
         if (guideOrNot) {
             Row(
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
+                modifier = Modifier.background(MaterialTheme.colorScheme.onBackground)
                     .padding(vertical = 14.dp)
                     .fillMaxWidth()
             ) {
@@ -182,6 +179,11 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
 //                                if(currentState is BillingResultState.Success){
                                     mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
 //                                }
+                                mainViewModel.missionData(
+                                    MissionDataHandler.RepeatTimes(
+                                        repeat =  1
+                                    )
+                                )
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
                                 mainViewModel.setDefaultSettings(
                                     DefaultSettingsHandler.GetNewObject(
@@ -211,6 +213,11 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                 mainViewModel.missionData(
                                     MissionDataHandler.IsSelectedMission(
                                         isSelected = true
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.RepeatTimes(
+                                        repeat =  1
                                     )
                                 )
                                 mainViewModel.missionData(
@@ -437,7 +444,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                     openAppSettings(context)
                                 },
                             ) {
-                                Text("Continue")
+                                Text("Continue",color = MaterialTheme.colorScheme.surfaceTint)
                             }
                         },
                         dismissButton = {
@@ -446,7 +453,7 @@ fun CameraMissionDemo(controller: NavHostController, mainViewModel: MainViewMode
                                     showRationale = false
                                 },
                             ) {
-                                Text("Dismiss")
+                                Text("Dismiss",color = MaterialTheme.colorScheme.surfaceTint)
                             }
                         },
                     )

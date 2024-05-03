@@ -1,6 +1,10 @@
 package com.appdev.alarmapp.ui.MissionDemos
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.location.LocationManager
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -22,20 +26,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +53,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +67,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -67,11 +79,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.appdev.alarmapp.BillingResultState
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.checkOutViewModel
@@ -79,9 +90,10 @@ import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.openAppSettings
+import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.ui.theme.signatureBlue
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
-import com.appdev.alarmapp.utils.Helper
+import com.appdev.alarmapp.utils.LocationByName
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.QrCodeData
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -91,137 +103,145 @@ import com.google.accompanist.permissions.shouldShowRationale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(
-    ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class,
-)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewModel, checkOutViewModel: checkOutViewModel = hiltViewModel()) {
+fun LocationMissionSetup(
+    controller: NavHostController,
+    mainViewModel: MainViewModel,
+    checkOutViewModel: checkOutViewModel = hiltViewModel()
+) {
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
-
-    val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
-    val context = LocalContext.current
     val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
+    val permissionState =
+        rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
+    val context = LocalContext.current
+    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
+    var currentState by remember { mutableStateOf(billingState.value) }
+
 
     var showRationale by remember(permissionState) {
         mutableStateOf(false)
     }
-    val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
-    var currentState by remember { mutableStateOf(billingState.value) }
-    LaunchedEffect(key1 = billingState.value) {
-        currentState = billingState.value
-    }
-    val sheetState = rememberModalBottomSheetState()
-    val configSheetState = rememberModalBottomSheetState()
-    var bottomSheetState by remember {
+    var showDialog by remember(permissionState) {
         mutableStateOf(false)
     }
     var guideOrNot by remember {
         mutableStateOf(permissionState.status.isGranted)
     }
-    var showToast by remember(permissionState) {
+    var showNonSelectToast by remember(permissionState) {
         mutableStateOf(false)
     }
+    var loading by remember { mutableStateOf(false) }
+    LaunchedEffect(permissionState.status) {
+        if (permissionState.status.isGranted) {
+            guideOrNot = permissionState.status.isGranted
+        }
+    }
+    LaunchedEffect(key1 = billingState.value) {
+        currentState = billingState.value
+    }
+    
+    val backStackEntry = controller.currentBackStackEntryAsState()
+
+    BackHandler {
+        controller.navigate(Routes.MissionMenuScreen.route) {
+            popUpTo(controller.graph.startDestinationId)
+            launchSingleTop = true
+        }
+    }
+
     var showEmptyToast by remember {
         mutableStateOf(false)
     }
     var clickedElement by remember {
-        mutableLongStateOf(if (mainViewModel.missionDetails.codeId > 1) mainViewModel.missionDetails.codeId else if (mainViewModel.selectedCode.codeId > 1) mainViewModel.selectedCode.codeId else -1)
-    }
-    var updateAttempt by remember {
-        mutableStateOf(false)
+        mutableLongStateOf(if (mainViewModel.missionDetails.locId > 1) mainViewModel.missionDetails.locId else if (mainViewModel.selectedLocationByName.locId > 1) mainViewModel.selectedLocationByName.locId else -1)
     }
     var configBottomBar by remember {
         mutableStateOf(false)
     }
-    var filename by remember {
-        mutableStateOf(mainViewModel.detectedQrCodeState.qrCode)
-    }
-    var codeName by remember {
-        mutableStateOf(mainViewModel.detectedQrCodeState.qrCode)
-    }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(mainViewModel.detectedQrCodeState) {
-        if (mainViewModel.detectedQrCodeState.qrCode.trim().isNotEmpty()) {
-            bottomSheetState = true
-            filename = mainViewModel.detectedQrCodeState.qrCode
-            codeName = mainViewModel.detectedQrCodeState.qrCode
-        }
+    val sheetState = rememberModalBottomSheetState()
+    val configSheetState = rememberModalBottomSheetState()
+    var bottomSheetState by remember {
+        mutableStateOf(false)
     }
-    LaunchedEffect(key1 = bottomSheetState) {
-        if (!bottomSheetState && mainViewModel.detectedQrCodeState.qrCode.trim().isNotEmpty()) {
-            mainViewModel.updateDetectedString(MainViewModel.ProcessingState(qrCode = ""))
-        }
+    var updateAttempt by remember {
+        mutableStateOf(false)
     }
-    LaunchedEffect(key1 = Unit) {
-        if (!mainViewModel.detectedQrCodeState.startProcess) {
-            mainViewModel.updateDetectedString(
-                MainViewModel.ProcessingState(
-                    qrCode = "",
-                    startProcess = true
-                )
-            )
+    var filename by remember {
+        mutableStateOf(mainViewModel.locationNameToSave)
+    }
+    var codeName by remember {
+        mutableStateOf(mainViewModel.locationNameToSave)
+    }
+    val locationsList by mainViewModel.locationList.collectAsStateWithLifecycle(
+        initialValue = emptyList()
+    )
+    var selectedLocIndex by remember { mutableLongStateOf(if (mainViewModel.selectedLocationByName.locId > 1) mainViewModel.selectedLocationByName.locId else if (mainViewModel.missionDetails.locId > 1) mainViewModel.missionDetails.locId else -1) }
+    LaunchedEffect(key1 = locationsList) {
+        loading = locationsList.isEmpty()
+        delay(700)
+        if (locationsList.isEmpty()) {
+            loading = false
         }
     }
     LaunchedEffect(showEmptyToast) {
         if (showEmptyToast) {
-            Toast.makeText(context, "File name should not be Empty !", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Location short name should not be Empty !", Toast.LENGTH_SHORT).show()
             showEmptyToast = false
         }
     }
-    LaunchedEffect(showToast) {
-        if (showToast) {
+    LaunchedEffect(showNonSelectToast) {
+        if (showNonSelectToast) {
             Toast.makeText(
                 context,
-                "Code not selected! Please scan and select a code",
+                "Location not selected! Please long tap and press 'yes' to save location from map",
                 Toast.LENGTH_SHORT
             )
                 .show()
-            showToast = false
+            showNonSelectToast = false
         }
     }
-
-    val codesList by mainViewModel.codesList.collectAsStateWithLifecycle(
-        initialValue = emptyList()
-    )
-
-    var loading by remember { mutableStateOf(false) }
-    var selectedCodeIndex by remember { mutableLongStateOf(if (mainViewModel.selectedCode.codeId > 1) mainViewModel.selectedCode.codeId else if (mainViewModel.missionDetails.codeId > 1) mainViewModel.missionDetails.codeId else -1) }
-    LaunchedEffect(key1 = codesList) {
-        loading = codesList.isEmpty()
-        delay(700)
-        if (codesList.isEmpty()) {
-            loading = false
+    LaunchedEffect(mainViewModel.locationNameToSave) {
+        if (mainViewModel.locationNameToSave.trim().isNotEmpty()) {
+            bottomSheetState = true
+            filename = mainViewModel.locationNameToSave
+            codeName = mainViewModel.locationNameToSave
         }
     }
-    LaunchedEffect(permissionState.status) {
-        if (permissionState.status.isGranted) {
-            guideOrNot = permissionState.status.isGranted
+    LaunchedEffect(key1 = bottomSheetState) {
+        if (!bottomSheetState && mainViewModel.locationNameToSave.trim().isNotEmpty()) {
+            mainViewModel.updateLocationName("")
         }
     }
     BackHandler {
         controller.popBackStack()
     }
 
+
+    //-----------------------------------CODE------------------------------
+
     Scaffold(bottomBar = {
         if (guideOrNot) {
             Row(
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.background(MaterialTheme.colorScheme.onBackground)
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.onBackground)
                     .padding(vertical = 14.dp)
                     .fillMaxWidth()
             ) {
                 CustomButton(
                     onClick = {
-                        if (selectedCodeIndex > 1) {
+                        if (selectedLocIndex > 1) {
                             controller.navigate(Routes.PreviewAlarm.route) {
-                                popUpTo(Routes.BarCodeDemoScreen.route) {
+                                popUpTo(Routes.CameraRoutineScreen.route) {
                                     inclusive = false
                                 }
                                 launchSingleTop = true
                             }
                         } else {
-                            showToast = true
+                            showNonSelectToast = true
                         }
                     },
                     text = "Preview",
@@ -234,24 +254,24 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 CustomButton(
                     onClick = {
                         if (mainViewModel.managingDefault) {
-                            if (selectedCodeIndex > 1) {
+                            if (selectedLocIndex > 1) {
+
                                 mainViewModel.missionData(
                                     MissionDataHandler.IsSelectedMission(
                                         isSelected = true
                                     )
                                 )
                                 mainViewModel.missionData(
-                                    MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
+                                    MissionDataHandler.SelectedLocationID(mainViewModel.selectedLocationByName.locId)
                                 )
 //                                if(currentState is BillingResultState.Success){
-                                    mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
+                                mainViewModel.missionData(MissionDataHandler.AddList(defaultSettings.value.listOfMissions))
 //                                }
                                 mainViewModel.missionData(
                                     MissionDataHandler.RepeatTimes(
                                         repeat =  1
                                     )
                                 )
-
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
                                 mainViewModel.setDefaultSettings(
                                     DefaultSettingsHandler.GetNewObject(
@@ -271,13 +291,13 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     launchSingleTop = true
                                 }
                             } else {
-                                showToast = true
+                                showNonSelectToast = true
                             }
                         } else {
 //                            if (currentState !is BillingResultState.Success) {
 //                                mainViewModel.missionData(MissionDataHandler.ResetList)
 //                            }
-                            if (selectedCodeIndex > 1) {
+                            if (selectedLocIndex > 1) {
                                 mainViewModel.missionData(
                                     MissionDataHandler.IsSelectedMission(
                                         isSelected = true
@@ -289,7 +309,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     )
                                 )
                                 mainViewModel.missionData(
-                                    MissionDataHandler.SelectedQrCode(mainViewModel.selectedCode.codeId)
+                                    MissionDataHandler.SelectedLocationID(mainViewModel.selectedLocationByName.locId)
                                 )
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
                                 controller.navigate(Routes.Preview.route) {
@@ -297,9 +317,10 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     launchSingleTop = true
                                 }
                             } else {
-                                showToast = true
+                                showNonSelectToast = true
                             }
                         }
+
                     },
                     text = "Complete",
                     width = 0.83f,
@@ -314,21 +335,21 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                 .fillMaxSize()
                 .padding(it), contentAlignment = Alignment.TopCenter
         ) {
-            if (loading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Dialog(onDismissRequest = { /*TODO*/ }) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                }
-            }
+//        if (loading) {
+//            Box(
+//                modifier = Modifier.fillMaxSize(),
+//            ) {
+//                Column(
+//                    modifier = Modifier.fillMaxSize(),
+//                    verticalArrangement = Arrangement.Center,
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+//                    Dialog(onDismissRequest = { /*TODO*/ }) {
+//                        CircularProgressIndicator()
+//                    }
+//                }
+//            }
+//        }
 
             Column(
                 modifier = Modifier
@@ -363,7 +384,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         }
                     }
                     Text(
-                        text = "QR/Barcode",
+                        text = "Destination",
                         color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 17.sp,
                         textAlign = TextAlign.Center, fontWeight = FontWeight.W500
@@ -378,7 +399,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 10.dp, horizontal = 22.dp)
+                                .padding(vertical = 8.dp, horizontal = 22.dp)
                                 .background(
                                     MaterialTheme.colorScheme.secondaryContainer,
                                     shape = RoundedCornerShape(10.dp)
@@ -386,23 +407,25 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             verticalArrangement = Arrangement.spacedBy(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Spacer(modifier = Modifier.height(30.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
                             Text(
-                                text = "Scan a code of a part of your morning routine",
+                                text = "1.Location Should be turned on\n\n2.Long Press on specific location at Map to save it\n\n3.Reach at same spot to clear the mission",
                                 color = MaterialTheme.colorScheme.surfaceTint,
-                                fontSize = 21.sp,
-                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Start,
                                 fontWeight = FontWeight.W500,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 30.dp)
+                                    .padding(horizontal = 20.dp)
                             )
                             Image(
-                                painter = painterResource(id = R.drawable.qr),
+                                painter = painterResource(id = R.drawable.googlemap),
                                 contentDescription = "",
                                 modifier = Modifier
-                                    .width(200.dp)
-                                    .height(300.dp)
+                                    .clip(RoundedCornerShape(15.dp))
+                                    .width(270.dp)
+                                    .height(270.dp)
+                                    .scale(2.7f)
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                         }
@@ -420,7 +443,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     permissionState.launchPermissionRequest()
                                 }
                             },
-                            text = "Scan",
+                            text = "Continue",
                             width = 0.85f,
                             backgroundColor = signatureBlue,
                             textColor = Color.White
@@ -439,13 +462,19 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             item {
                                 Card(
                                     onClick = {
-                                        controller.navigate(Routes.BarCodeScanScreen.route) {
-                                            popUpTo(controller.graph.startDestinationId)
-                                            launchSingleTop = true
+                                        if (isLocationEnabled(context)) {
+                                            controller.navigate(Routes.MapScreen.route) {
+                                                popUpTo(Routes.ReachLocationMissionScreen.route){
+                                                    inclusive = false
+                                                }
+                                                launchSingleTop = true
+                                            }
+                                        } else {
+                                            showDialog = true
                                         }
                                     }, shape = RoundedCornerShape(10.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if(isDarkMode) Color(
+                                        containerColor = if (isDarkMode) Color(
                                             0xff3F434F
                                         ) else Color.LightGray
                                     ), modifier = Modifier
@@ -477,43 +506,94 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             item {
                                 Spacer(modifier = Modifier.height(20.dp))
                             }
-                            items(codesList) { qrCodeData ->
-                                singleEntry(isDarkMode,
-                                    qrCodeData = qrCodeData,
-                                    isSelected = selectedCodeIndex == qrCodeData.codeId,
+                            items(locationsList) { locData ->
+                                singleEntryLocation(isDarkMode,
+                                    qrCodeData = locData,
+                                    isSelected = selectedLocIndex == locData.locId,
                                     changeSheetState = {
-                                        clickedElement = qrCodeData.codeId
-                                        filename = qrCodeData.qrCodeString
-                                        codeName = qrCodeData.qrCodeName
+                                        clickedElement = locData.locId
+                                        filename = locData.locationString
+                                        codeName = locData.locationName
                                         configBottomBar = true
                                     }
                                 ) {
-                                    selectedCodeIndex = qrCodeData.codeId
-                                    mainViewModel.updateSelectedCode(qrCodeData)
+                                    selectedLocIndex = locData.locId
+                                    mainViewModel.updateSelectedLocationName(locData)
                                 }
                             }
                         }
                     }
+
                 }
+                if (configBottomBar) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
+                            filename = ""
+                            configBottomBar = false
+                        },
+                        sheetState = sheetState,
+                        dragHandle = {}) {
+                        Column(modifier = Modifier.background(MaterialTheme.colorScheme.onBackground)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(0.96f),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                IconButton(onClick = {
+                                    scope.launch {
+                                        sheetState.hide()
+                                    }
+                                    configBottomBar = false
+                                    filename = ""
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = "",
+                                        tint = MaterialTheme.colorScheme.surfaceTint
+                                    )
+                                }
+                            }
+                            if (selectedLocIndex != clickedElement) {
+                                singleSheetItem(
+                                    name = "Delete location",
+                                    icon = Icons.Filled.Delete
+                                ) {
+                                    mainViewModel.deleteLocationByName(clickedElement)
+                                    scope.launch {
+                                        configSheetState.hide()
+                                    }
+                                    configBottomBar = false
+                                    filename = ""
+                                }
+                            }
+                            singleSheetItem(name = "Edit location", icon = Icons.Filled.Edit) {
+                                updateAttempt = true
+                                configBottomBar = false
+                                bottomSheetState = true
+                            }
+
+                            Spacer(modifier = Modifier.height(30.dp))
+                        }
+                    }
+                }
+
                 if (bottomSheetState) {
                     ModalBottomSheet(
                         onDismissRequest = {
-                            Log.d("BARCHK","$filename is code string and other us ${mainViewModel.detectedQrCodeState.qrCode.trim()}")
                             if (!updateAttempt) {
-                                if (codeName.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
+                                if (codeName.isEmpty() && mainViewModel.locationNameToSave.trim()
                                         .isNotEmpty()
                                 ) {
-                                    mainViewModel.insertCode(
-                                        QrCodeData(
-                                            codeId = System.currentTimeMillis(),
-                                            qrCodeString = mainViewModel.detectedQrCodeState.qrCode, qrCodeName = mainViewModel.detectedQrCodeState.qrCode
+                                    mainViewModel.insertLocationByName(
+                                        LocationByName(
+                                            locId = System.currentTimeMillis(),
+                                            locationString = filename, locationName = mainViewModel.locationNameToSave
                                         )
                                     )
                                 } else {
-                                    mainViewModel.insertCode(
-                                        QrCodeData(
-                                            codeId = System.currentTimeMillis(),
-                                            qrCodeString = filename, qrCodeName = codeName
+                                    mainViewModel.insertLocationByName(
+                                        LocationByName(
+                                            locId = System.currentTimeMillis(),
+                                            locationString = filename, locationName = codeName
                                         )
                                     )
                                 }
@@ -533,10 +613,10 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "QR/Barcode name",
+                                    text = "Location name",
                                     color = MaterialTheme.colorScheme.surfaceTint,
                                     fontSize = 18.sp,
-                                    modifier = Modifier.fillMaxWidth(0.73f),
+                                    modifier = Modifier.fillMaxWidth(0.69f),
                                     textAlign = TextAlign.End, fontWeight = FontWeight.W500
                                 )
 
@@ -546,20 +626,20 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                 ) {
                                     IconButton(onClick = {
                                         if (!updateAttempt) {
-                                            if (codeName.isEmpty() && mainViewModel.detectedQrCodeState.qrCode.trim()
+                                            if (codeName.isEmpty() && mainViewModel.locationNameToSave.trim()
                                                     .isNotEmpty()
                                             ) {
-                                                mainViewModel.insertCode(
-                                                    QrCodeData(
-                                                        codeId = System.currentTimeMillis(),
-                                                        qrCodeString = mainViewModel.detectedQrCodeState.qrCode, qrCodeName = mainViewModel.detectedQrCodeState.qrCode
+                                                mainViewModel.insertLocationByName(
+                                                    LocationByName(
+                                                        locId = System.currentTimeMillis(),
+                                                        locationString = filename, locationName = mainViewModel.locationNameToSave
                                                     )
                                                 )
                                             } else {
-                                                mainViewModel.insertCode(
-                                                    QrCodeData(
-                                                        codeId = System.currentTimeMillis(),
-                                                        qrCodeString = filename, qrCodeName = codeName
+                                                mainViewModel.insertLocationByName(
+                                                    LocationByName(
+                                                        locId = System.currentTimeMillis(),
+                                                        locationString = filename, locationName = codeName
                                                     )
                                                 )
                                             }
@@ -616,17 +696,17 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     onClick = {
                                         if(codeName.trim().isNotEmpty()){
                                             if (updateAttempt) {
-                                                mainViewModel.updateQrCode(
-                                                    QrCodeData(
-                                                        codeId = clickedElement,
-                                                        qrCodeString = filename, qrCodeName = codeName
+                                                mainViewModel.updateLocationByName(
+                                                    LocationByName(
+                                                        locId = clickedElement,
+                                                        locationString = filename, locationName = codeName
                                                     )
                                                 )
                                             } else {
-                                                mainViewModel.insertCode(
-                                                    QrCodeData(
-                                                        codeId = System.currentTimeMillis(),
-                                                        qrCodeString = filename, qrCodeName = codeName
+                                                mainViewModel.insertLocationByName(
+                                                    LocationByName(
+                                                        locId = System.currentTimeMillis(),
+                                                        locationString = filename, locationName = codeName
                                                     )
                                                 )
                                             }
@@ -647,55 +727,42 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                         }
                     }
                 }
-                if (configBottomBar) {
-                    ModalBottomSheet(
-                        onDismissRequest = {
-                            filename = ""
-                            configBottomBar = false
+                if (showDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDialog = false },
+                        title = {
+                            Text(
+                                "Location Services Disabled",
+                                color = MaterialTheme.colorScheme.surfaceTint
+                            )
                         },
-                        sheetState = sheetState,
-                        dragHandle = {}) {
-                        Column(modifier = Modifier.background(MaterialTheme.colorScheme.onBackground)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(0.96f),
-                                horizontalArrangement = Arrangement.End
+                        text = {
+                            Text(
+                                "Please enable location services and try again.",
+                                color = MaterialTheme.colorScheme.surfaceTint
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    // Open device settings to enable location
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                    showDialog = false
+                                }
                             ) {
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        sheetState.hide()
-                                    }
-                                    configBottomBar = false
-                                    filename = ""
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Close,
-                                        contentDescription = "",
-                                        tint = MaterialTheme.colorScheme.surfaceTint
-                                    )
+                                Text("Enable", color = MaterialTheme.colorScheme.surfaceTint)
+                            }
+                        },
+                        dismissButton = {
+                            Button(
+                                onClick = {
+                                    showDialog = false
                                 }
+                            ) {
+                                Text("Cancel", color = MaterialTheme.colorScheme.surfaceTint)
                             }
-                            if (selectedCodeIndex != clickedElement) {
-                                singleSheetItem(
-                                    name = "Delete Code",
-                                    icon = Icons.Filled.Delete
-                                ) {
-                                    mainViewModel.deleteQrCode(clickedElement)
-                                    scope.launch {
-                                        configSheetState.hide()
-                                    }
-                                    configBottomBar = false
-                                    filename = ""
-                                }
-                            }
-                            singleSheetItem(name = "Edit Code", icon = Icons.Filled.Edit) {
-                                updateAttempt = true
-                                configBottomBar = false
-                                bottomSheetState = true
-                            }
-
-                            Spacer(modifier = Modifier.height(30.dp))
                         }
-                    }
+                    )
                 }
                 if (showRationale) {
                     AlertDialog(
@@ -706,7 +773,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                             Text(text = "Permissions required by the Application")
                         },
                         text = {
-                            Text(text = "The Application requires the following permissions to work:\n CAMERA_ACCESS")
+                            Text(text = "The Application requires the following permissions to work:\n LOCATION_ACCESS")
                         },
                         confirmButton = {
                             TextButton(
@@ -715,7 +782,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     openAppSettings(context)
                                 },
                             ) {
-                                Text("Continue")
+                                Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
                             }
                         },
                         dismissButton = {
@@ -724,7 +791,7 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
                                     showRationale = false
                                 },
                             ) {
-                                Text("Dismiss")
+                                Text("Dismiss", color = MaterialTheme.colorScheme.surfaceTint)
                             }
                         },
                     )
@@ -737,9 +804,9 @@ fun BarCodeMissionDemo(controller: NavHostController, mainViewModel: MainViewMod
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun singleEntry(
+fun singleEntryLocation(
     isDarkMode: Boolean,
-    qrCodeData: QrCodeData,
+    qrCodeData: LocationByName,
     isSelected: Boolean,
     changeSheetState: () -> Unit,
     onQrCodeClicked: () -> Unit
@@ -771,14 +838,14 @@ fun singleEntry(
 
                 Column {
                     Text(
-                        text = "Name: " + if (qrCodeData.qrCodeName.length > 20) "${qrCodeData.qrCodeName.take(19)}..." else qrCodeData.qrCodeName,
+                        text = "Name: " + if (qrCodeData.locationName.length > 20) "${qrCodeData.locationName.take(19)}..." else qrCodeData.locationName,
 
                         overflow = TextOverflow.Ellipsis,
                         color =MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
                     )
                     Text(
-                        text = "Value: "+if (qrCodeData.qrCodeString.length > 20) "${qrCodeData.qrCodeString.take(19)}..." else qrCodeData.qrCodeString,
+                        text = "Value: "+if (qrCodeData.locationString.length > 20) "${qrCodeData.locationString.take(19)}..." else qrCodeData.locationString,
                         overflow = TextOverflow.Ellipsis,
                         color =MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp, top = 5.dp)
@@ -811,72 +878,8 @@ fun singleEntry(
 }
 
 
-//@OptIn(ExperimentalMaterial3Api::class)
-//@Composable
-//fun singleEntry(
-//    imageData: ImageData,
-//    isSelected: Boolean,
-//    onImageClick: () -> Unit,
-//    deleteImage: () -> Unit
-//) {
-//    Card(
-//        onClick = {
-//            onImageClick()
-//        },
-//        modifier = Modifier
-//            .padding(5.dp)
-//            .width(110.dp)
-//            .height(130.dp),
-//        shape = RoundedCornerShape(10.dp),
-//        colors = CardDefaults.cardColors(containerColor = Color(0xff3F434F))
-//    ) {
-//        Box(
-//            contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()
-//        ) {
-//            imageData.bitmap?.let {
-//                Image(
-//                    bitmap = it.asImageBitmap(),
-//                    contentDescription = "",
-//                    contentScale = ContentScale.Crop
-//                )
-//            }
-//            if (!isSelected) {
-//                Box(
-//                    modifier = Modifier
-//                        .fillMaxSize()
-//                        .padding(top = 2.dp, end = 2.dp), contentAlignment = Alignment.TopEnd
-//                ) {
-//                    Box(
-//                        modifier = Modifier
-//                            .size(22.dp)
-//                            .background(Color(0xff222325), CircleShape)
-//                            .clickable {
-//                                deleteImage()
-//                            }, contentAlignment = Alignment.Center
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.Close,
-//                            contentDescription = "Tick",
-//                            tint = Color.White.copy(alpha = 0.75f), modifier = Modifier.size(17.dp)
-//                        )
-//                    }
-//                }
-//            }
-//            if (isSelected) {
-//                Box(
-//                    modifier = Modifier
-//                        .background(Color.Black.copy(alpha = 0.45f))
-//                        .fillMaxSize(),
-//                    contentAlignment = Alignment.Center
-//                ) {
-//                    // Your tick icon here
-//                    Icon(
-//                        imageVector = Icons.Default.Check,
-//                        contentDescription = "Tick",
-//                        tint = Color(0xff13a8c4), modifier = Modifier.size(70.dp)
-//                    )
-//                }
-//            }
-//        }
-//    }
-//}
+fun isLocationEnabled(context: Context): Boolean {
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+}

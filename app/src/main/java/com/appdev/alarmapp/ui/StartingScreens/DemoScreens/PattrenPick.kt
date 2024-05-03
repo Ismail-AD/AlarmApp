@@ -54,6 +54,7 @@ import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -65,14 +66,14 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatternPick(controller: NavHostController, mainViewModel: MainViewModel) {
+fun PatternPick(ringtoneRepository: RingtoneRepository,controller: NavHostController, mainViewModel: MainViewModel) {
     var selectedCard by remember { mutableIntStateOf(-1) }
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val alarmScheduler by remember {
-        mutableStateOf(AlarmScheduler(context, mainViewModel))
+        mutableStateOf(AlarmScheduler(context, ringtoneRepository))
     }
     var remainingTime by remember { mutableStateOf(0L) }
     val alarmIdRec by mainViewModel.alarmID.collectAsStateWithLifecycle()

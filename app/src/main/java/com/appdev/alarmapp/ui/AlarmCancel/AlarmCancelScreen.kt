@@ -51,10 +51,10 @@ import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.SnoozeCallback
-import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -83,6 +83,7 @@ fun AlarmCancelScreen(
     snoozeCallback: SnoozeCallback,
     controller: NavHostController,
     mainViewModel: MainViewModel,
+    ringtoneRepository: RingtoneRepository,
 ) {
     val context = LocalContext.current
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
@@ -129,7 +130,7 @@ fun AlarmCancelScreen(
     }
 
     var alarmScheduler by remember {
-        mutableStateOf(AlarmScheduler(context, mainViewModel))
+        mutableStateOf(AlarmScheduler(context, ringtoneRepository))
     }
 
     var showSnoozed by remember {
@@ -531,7 +532,6 @@ fun AlarmCancelScreen(
             }
 
             alarmEntity?.let {
-
                 if (it.snoozeTime != -1 && mainViewModel.isRealAlarm) {
                     CustomButton(
                         onClick = {
@@ -620,7 +620,7 @@ fun AlarmCancelScreen(
                                         setOfSentences = convertStringToSet(singleMission.selectedSentences),
                                         imageId =
                                         singleMission.imageId,
-                                        codeId = singleMission.codeId
+                                        codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
                                     )
                                 )
                             }
@@ -653,9 +653,29 @@ fun AlarmCancelScreen(
                             "Photo" -> {
                                 controller.navigate(Routes.PhotoMissionPreviewScreen.route)
                             }
-
                             "QR/Barcode" -> {
                                 controller.navigate(Routes.BarCodePreviewAlarmScreen.route)
+                            }
+                            "RangeNumbers" -> {
+                                controller.navigate(Routes.RangeMemoryMissionPreview.route)
+                            }
+                            "RangeAlphabet" -> {
+                                controller.navigate(Routes.RangeAlphabetMissionPreview.route)
+                            }
+                            "WalkOff" -> {
+                                controller.navigate(Routes.WalkOffScreen.route)
+                            }
+                            "ReachDestination" -> {
+                                controller.navigate(Routes.AtLocationMissionScreen.route)
+                            }
+                            "ArrangeNumbers" -> {
+                                controller.navigate(Routes.ArrangeNumbersScreen.route)
+                            }
+                            "ArrangeAlphabet" -> {
+                                controller.navigate(Routes.ArrangeAlphabetsScreen.route)
+                            }
+                            "ArrangeShapes" -> {
+                                controller.navigate(Routes.ArrangeShapesScreen.route)
                             }
 
                             else -> {
@@ -764,10 +784,7 @@ fun snoozeAlarm(
     val snoozeMinutes =
         alarmEntity.snoozeTime // Set the snooze duration in minutes (adjust as needed)
     val currentTimeMillis = System.currentTimeMillis()
-    Log.d("CHKNB", "CURRENT TIME : ${convertMillisToLocalTime(currentTimeMillis)}")
-
     val snoozeTimeMillis = currentTimeMillis + (snoozeMinutes * 60 * 1000)
-    Log.d("CHKNB", "TIME OF TRIGGER: ${convertMillisToLocalTime(snoozeTimeMillis)}")
     mainViewModel.updateHandler(EventHandlerAlarm.getNextMilli(upcomingMilli = snoozeTimeMillis))
     mainViewModel.updateHandler(EventHandlerAlarm.update)
 

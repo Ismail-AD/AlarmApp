@@ -4,6 +4,9 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import androidx.room.Room
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.Repository.AlarmRepository
+import com.appdev.alarmapp.Repository.RingtoneRepository
+import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
 import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
 import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
@@ -14,6 +17,7 @@ import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.DatabaseName
 import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
 import com.appdev.alarmapp.utils.DaoClasses.QrCodeDao
 import com.appdev.alarmapp.utils.DaoClasses.RecordingsDao
+import com.appdev.alarmapp.utils.DaoClasses.locationNameDao
 import com.appdev.alarmapp.utils.RoomDB
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -41,6 +45,7 @@ object RoomModule {
             }
         }
     }
+
     @Singleton
     @Provides
     fun fireBaseDBInstance(): FirebaseDatabase = Firebase.database
@@ -76,6 +81,12 @@ object RoomModule {
     @Provides
     fun provideDatabaseThePhraseClass(roomDatabase: RoomDB): PhraseDao {
         return roomDatabase.phraseDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideDatabaseOfLocationClass(roomDatabase: RoomDB): locationNameDao {
+        return roomDatabase.locationByNameDao()
     }
 
     @Singleton

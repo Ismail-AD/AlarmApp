@@ -32,17 +32,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CameraEnhance
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.LooksOne
+import androidx.compose.material.icons.filled.Pentagon
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,6 +97,7 @@ import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.AlarmManagement.getDayOfWeek
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
@@ -113,7 +123,7 @@ import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    alarmSchedule: AlarmScheduler,
+    ringtoneRepository: RingtoneRepository,
     controller: NavHostController,
     mainViewModel: MainViewModel
 ) {
@@ -167,7 +177,7 @@ fun MainScreen(
     }
 
     val alarmScheduler by remember {
-        mutableStateOf(AlarmScheduler(context, mainViewModel))
+        mutableStateOf(AlarmScheduler(context, ringtoneRepository))
     }
     LaunchedEffect(key1 = showToast, key2 = showToast2) {
         if (showToast) {
@@ -179,20 +189,6 @@ fun MainScreen(
         }
     }
     LaunchedEffect(key1 = alarmList, key2 = stateChanges) {
-        val deviceRestartedValue = sharedPrefs.getBoolean("device_restarted", false)
-        if (alarmList.isNotEmpty()) {
-            if (deviceRestartedValue) {
-                for (alarm in alarmList) {
-                    alarmScheduler.schedule(
-                        alarm,
-                        mainViewModel.basicSettings.value.showInNotification
-                    )
-                }
-                sharedPrefs.edit().putBoolean("device_restarted", false).apply()
-            } else {
-                notificationService.cancelRestartNotification()
-            }
-        }
         allAlarms = if (alarmSettings.activeSort) {
             val activeAlarms = alarmList.filter { it.isActive }
             val inactiveAlarms = alarmList.filter { !it.isActive }
@@ -758,14 +754,6 @@ fun MainScreen(
                         mainViewModel.updateHandler(EventHandlerAlarm.getSnoozeTime(getSnoozeTime = alarm.snoozeTime))
                         mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = on))
                         mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = false))
-                        Log.d(
-                            "CHKW",
-                            "At main active on : ${convertMillisToLocalTime(alarm.nextTimeInMillis)} "
-                        )
-                        Log.d(
-                            "CHKW",
-                            "At main active on mpt upcome : ${convertMillisToLocalTime(alarm.timeInMillis)} "
-                        )
 
                         if (on) {
                             mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = alarm.skipTheAlarm))
@@ -1034,8 +1022,6 @@ fun MainScreen(
                                     alarmToPreview,
                                     mainViewModel.basicSettings.value.showInNotification
                                 )
-
-
                             }
                         } else {
                             showToast2 = true
@@ -1423,6 +1409,62 @@ fun AlarmBox(
                         "Typing" -> {
                             Icon(
                                 imageVector = Icons.Filled.Keyboard,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "ArrangeNumbers" -> {
+                            Icon(
+                                imageVector = Icons.Filled.RepeatOne,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "ArrangeAlphabet" -> {
+                            Icon(
+                                imageVector = Icons.Filled.CompareArrows,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "ArrangeShapes" -> {
+                            Icon(
+                                imageVector = Icons.Filled.Pentagon,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "RangeNumbers" -> {
+                            Icon(
+                                imageVector = Icons.Filled.LooksOne,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "RangeAlphabet" -> {
+                            Icon(
+                                imageVector = Icons.Filled.SortByAlpha,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "ReachDestination" -> {
+                            Icon(
+                                imageVector = Icons.Filled.AddLocationAlt,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        "WalkOff" -> {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
                                 contentDescription = "",
                                 tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(18.dp)

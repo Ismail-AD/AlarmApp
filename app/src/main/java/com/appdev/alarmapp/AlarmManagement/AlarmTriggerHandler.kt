@@ -10,9 +10,12 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.appdev.alarmapp.ApplicationClass
+import com.appdev.alarmapp.MainActivity
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
@@ -35,8 +38,10 @@ class AlarmTriggerHandler : BroadcastReceiver() {
             context?.let {
                 val sharedPreferences = it.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                 sharedPreferences.edit().putBoolean("device_restarted", true).apply()
-                val notificationService = NotificationService(it)
-                notificationService.showRestartNotification("Tap to open the app and automatically reschedule alarms after device restart")
+                val serviceIntent = Intent(it, rescheduleService::class.java)
+                ContextCompat.startForegroundService(it, serviceIntent)
+//                val notificationService = NotificationService(it)
+//                notificationService.showRestartNotification("Tap to open the app and automatically reschedule alarms after device restart")
             }
         } else {
 

@@ -1,11 +1,11 @@
 package com.appdev.alarmapp.ui.MainScreen
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.media.MediaPlayer
-import android.net.Uri
-import android.os.Handler
+import android.location.Geocoder
 import android.util.Log
 import androidx.camera.core.CameraSelector
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -25,6 +25,7 @@ import com.appdev.alarmapp.utils.CustomPhrase
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.ImageData
+import com.appdev.alarmapp.utils.LocationByName
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.QrCodeData
@@ -37,6 +38,13 @@ import com.appdev.alarmapp.utils.newAlarmHandler
 import com.appdev.alarmapp.utils.toRingtoneEntity
 import com.appdev.alarmapp.utils.toSystemRingtoneEntity
 import com.appdev.alarmapp.utils.whichMissionHandler
+import com.appdev.alarmapp.utils.whichRangeMissionHandle
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -46,6 +54,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import kotlin.random.Random
@@ -111,8 +121,15 @@ class MainViewModel @Inject constructor(
     var isRealAlarm by mutableStateOf(false)
     var dummyListEmpty by mutableStateOf(false)
     var whichMission by mutableStateOf(MissionState())
+    var whichRangeMission by mutableStateOf(RangeMissionState())
     var selectedImage by mutableStateOf(ImageData())
     var selectedCode by mutableStateOf(QrCodeData(qrCodeString = "", qrCodeName = ""))
+    var selectedLocationByName by mutableStateOf(
+        LocationByName(
+            locationName = "",
+            locationString = ""
+        )
+    )
     var flashLight by mutableStateOf(false)
     var previewMode by mutableStateOf(false)
     var hasSnoozed by mutableStateOf(false)
@@ -123,12 +140,66 @@ class MainViewModel @Inject constructor(
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
     val snoozeTime: StateFlow<Long> = _snoozeTime.asStateFlow()
 
+    private val _currentLocation = MutableStateFlow<LatLng?>(null)
+    val currentLocation: StateFlow<LatLng?> = _currentLocation
+
+
+    private val _isFetchingLocation = MutableStateFlow(false)
+    val isFetchingLocation: StateFlow<Boolean> = _isFetchingLocation
+
+
+    private val _isFetchingLocationName = MutableStateFlow(false)
+    val isFetchingLocationName: StateFlow<Boolean> = _isFetchingLocationName
+
+    suspend fun getLocationName(latitude: Double, longitude: Double, context: Context): String {
+        _isFetchingLocationName.value = true
+        return withContext(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(context)
+                val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+                if (addresses?.isNotEmpty() == true) {
+                    _isFetchingLocationName.value = false
+                    addresses[0].getAddressLine(0) ?: "Unknown Location"
+                } else {
+                    _isFetchingLocationName.value = false
+                    "Unknown Location"
+                }
+            } catch (e: Exception) {
+                _isFetchingLocationName.value = false
+                "Unknown Location"
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startLocationUpdates(fusedLocationClient: FusedLocationProviderClient) {
+        _isFetchingLocation.value = true
+        viewModelScope.launch {
+            try {
+                fusedLocationClient.getCurrentLocation(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    CancellationTokenSource().token
+                ).addOnSuccessListener { location ->
+                    _currentLocation.value = LatLng(location.latitude, location.longitude)
+                    _isFetchingLocation.value = false
+                }
+            } catch (e: Exception) {
+                _currentLocation.value = null
+                _isFetchingLocation.value = false
+            }
+        }
+    }
+
+    fun updateMyCurrentLocationToNull() {
+        _currentLocation.value = null
+    }
+
     // Function to update the snooze time
     fun updateSnoozeTime(newTime: Long) {
         _snoozeTime.value = newTime
     }
 
-    fun updateDummyListEmptyness(yesOrNo:Boolean) {
+    fun updateDummyListEmptyness(yesOrNo: Boolean) {
         dummyListEmpty = yesOrNo
     }
 
@@ -139,6 +210,7 @@ class MainViewModel @Inject constructor(
     val _uiState: MutableStateFlow<QrScanUIState> = MutableStateFlow(QrScanUIState())
     val uiState: StateFlow<QrScanUIState> = _uiState
     var detectedQrCodeState by mutableStateOf(ProcessingState())
+    var locationNameToSave by mutableStateOf("")
     var newAlarm by mutableStateOf(getAlarmEntityWithDefaultSettings())
     fun sendFeedback(data: String, onComplete: (Boolean, String) -> Unit) {
         ringtoneRepository.sendFeedbackInfo(data) { DoneOrNot, Message ->
@@ -206,6 +278,10 @@ class MainViewModel @Inject constructor(
         detectedQrCodeState = processingState
     }
 
+    fun updateLocationName(locationName: String) {
+        locationNameToSave = locationName
+    }
+
     fun onQrCodeDetected(result: String) {
         _uiState.update { it.copy(detectedQR = result) }
     }
@@ -221,6 +297,10 @@ class MainViewModel @Inject constructor(
 
     fun updateSelectedCode(qrCodeData: QrCodeData) {
         selectedCode = qrCodeData
+    }
+
+    fun updateSelectedLocationName(locationByName: LocationByName) {
+        selectedLocationByName = locationByName
     }
 
     val alarmList: Flow<List<AlarmEntity>> = alarmRepository.roomDataFlow
@@ -241,6 +321,9 @@ class MainViewModel @Inject constructor(
     val codesList: Flow<List<QrCodeData>> =
         ringtoneRepository.listOfQrCodes.flowOn(Dispatchers.IO)
 
+    val locationList: Flow<List<LocationByName>> =
+        ringtoneRepository.listOfLocationNames.flowOn(Dispatchers.IO)
+
 
     fun insertDefaultSettings(defaultSettings: DefaultSettings) {
         viewModelScope.launch {
@@ -253,6 +336,33 @@ class MainViewModel @Inject constructor(
             ringtoneRepository.deleteAllRingtones()
         }
     }
+
+    fun insertLocationByName(locationByName: LocationByName) {
+        viewModelScope.launch {
+            ringtoneRepository.insertLocationByName(locationByName)
+        }
+    }
+
+    fun getLocationById(codeId: Long) {
+        viewModelScope.launch {
+            ringtoneRepository.getLocationByName(codeId)?.let {
+                selectedLocationByName = it
+            }
+        }
+    }
+
+    fun updateLocationByName(locationByName: LocationByName) {
+        viewModelScope.launch {
+            ringtoneRepository.updateLocationByName(locationByName)
+        }
+    }
+
+    fun deleteLocationByName(id: Long) {
+        viewModelScope.launch {
+            ringtoneRepository.deleteLocationByName(id)
+        }
+    }
+
 
     fun insertCode(qrCodeData: QrCodeData) {
         viewModelScope.launch {
@@ -267,7 +377,6 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-
 
     fun updateQrCode(qrCodeData: QrCodeData) {
         viewModelScope.launch {
@@ -355,7 +464,19 @@ class MainViewModel @Inject constructor(
                 isShake = whichMissionHandler.missionShake,
                 isMemory = whichMissionHandler.missionMemory,
                 isSteps = whichMissionHandler.isSteps,
-                isSquat = whichMissionHandler.isSquat
+                isSquat = whichMissionHandler.isSquat, isWalk = whichMissionHandler.isWalk
+            )
+        }
+    }
+
+    fun whichRangeMissionHandler(whichRangeMissionHandle: whichRangeMissionHandle) {
+        when (whichRangeMissionHandle) {
+            is whichRangeMissionHandle.thisMission -> whichRangeMission = whichRangeMission.copy(
+                isNumbers = whichRangeMissionHandle.missionNumber,
+                isAlphabets = whichRangeMissionHandle.missionAlphabet,
+                orderAlphabet = whichRangeMissionHandle.missionOrderAlphabet,
+                orderNumbers = whichRangeMissionHandle.missionOrderNumbers,
+                orderShapes = whichRangeMissionHandle.missionOrderShapes
             )
         }
     }
@@ -524,7 +645,7 @@ class MainViewModel @Inject constructor(
                 repeatProgress = missionDataHandler.repeatProgress,
                 isSelected = missionDataHandler.isSelected,
                 selectedSentences = convertSetToString(missionDataHandler.setOfSentences),
-                imageId = missionDataHandler.imageId, codeId = missionDataHandler.codeId
+                imageId = missionDataHandler.imageId, codeId = missionDataHandler.codeId, locId = missionDataHandler.locId, valuesToPick = missionDataHandler.valuesToPick
             )
 
             is MissionDataHandler.MissionLevel -> missionDetails =
@@ -570,7 +691,7 @@ class MainViewModel @Inject constructor(
                     repeatProgress = 1,
                     missionLevel = "Very Easy",
                     missionName = "",
-                    isSelected = false, selectedSentences = "", codeId = 0, imageId = 0
+                    isSelected = false, selectedSentences = "", codeId = 0, imageId = 0, locId = 0, difficultyLevel = "Normal Mode"
                 )
                 sentencesList = emptySet()
             }
@@ -602,13 +723,19 @@ class MainViewModel @Inject constructor(
                 missionDetails.copy(imageId = missionDataHandler.imageId)
 
             is MissionDataHandler.SelectedQrCode -> {
-                Log.d(
-                    "BARCHK",
-                    "As selectedCode is done from list : ${missionDataHandler.selectedCodeId}"
-                )
-
                 missionDetails =
                     missionDetails.copy(codeId = missionDataHandler.selectedCodeId)
+            }
+
+            is MissionDataHandler.DifficultyLevel -> missionDetails =
+                missionDetails.copy(difficultyLevel = missionDataHandler.difficultyLevel)
+
+            is MissionDataHandler.NumbersCount -> missionDetails =
+                missionDetails.copy(valuesToPick = missionDataHandler.noOfValue)
+
+            is MissionDataHandler.SelectedLocationID -> {
+                missionDetails =
+                    missionDetails.copy(locId = missionDataHandler.selectedLocId)
             }
         }
     }
@@ -721,7 +848,15 @@ class MainViewModel @Inject constructor(
         val isMath: Boolean = false,
         val isShake: Boolean = false,
         val isMemory: Boolean = false,
-        val isSteps: Boolean = false, val isSquat: Boolean = false
+        val isSteps: Boolean = false, val isSquat: Boolean = false, val isWalk: Boolean = false
+    )
+
+    data class RangeMissionState(
+        val isNumbers: Boolean = false,
+        val isAlphabets: Boolean = false,
+        val orderAlphabet: Boolean = false,
+        val orderNumbers: Boolean = false,
+        val orderShapes: Boolean = false,
     )
 
     data class ProcessingState(

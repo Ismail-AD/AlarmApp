@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.Hilt.TokenManagement
+import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MainUI.MainUiScreen
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationScreen
@@ -37,10 +38,11 @@ fun navGraph(
     controller: NavHostController,
     isToken: TokenManagement,
     applicationContext: Context,
+    ringtoneRepository: RingtoneRepository,
 ) {
 
     val mainViewModel: MainViewModel = hiltViewModel()
-    val alarmScheduler = AlarmScheduler(applicationContext,mainViewModel)
+    val alarmScheduler = AlarmScheduler(applicationContext,ringtoneRepository)
     val start = if (isToken.getToken() != null) {
         Routes.MainUIScreen.route
     } else {
@@ -83,7 +85,7 @@ fun navGraph(
             SoundPreferScreen(controller = controller,mainViewModel)
         }
         composable(route = Routes.Pattern.route) {
-            PatternPick(controller,mainViewModel)
+            PatternPick(ringtoneRepository,controller,mainViewModel)
         }
         composable(route = Routes.Setting.route) {
             SettingUpScreen(controller)
@@ -92,7 +94,7 @@ fun navGraph(
             NotificationScreen(controller)
         }
         composable(route = Routes.MainUIScreen.route) {
-            MainUiScreen(alarmScheduler,textToSpeech,isToken, mainViewModel = mainViewModel)
+            MainUiScreen(ringtoneRepository,textToSpeech,isToken, mainViewModel = mainViewModel)
         }
     }
 }

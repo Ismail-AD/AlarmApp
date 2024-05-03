@@ -9,14 +9,9 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.appdev.alarmapp.ModelClass.DismissSettings
-import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
-import com.appdev.alarmapp.ui.MainScreen.MainViewModel
-import com.appdev.alarmapp.ui.MainScreen.getAMPM
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
 import com.appdev.alarmapp.utils.ObjectsGlobal
 import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.CHANNEL_ID
@@ -48,6 +43,7 @@ class SnoozeService : Service() {
         utils = Utils(applicationContext)
     }
 
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val channel = NotificationChannel(
             CHANNEL_ID_SNOOZE,
@@ -63,17 +59,6 @@ class SnoozeService : Service() {
         val notifyIt = intent?.getBooleanExtra("notify", false)
 
 
-//        notifyIt?.let {
-//            if (it && alarmEntity != null) {
-//                val currentTimeMillis = System.currentTimeMillis()
-//                val finalTimeMillis = currentTimeMillis + (alarmEntity.snoozeTime * 60000)
-//                val finalTimeFormatted = convertMillisToFormattedTime(finalTimeMillis)
-//
-//                notificationService.showNotification("Snooze until: $finalTimeFormatted")
-//            } else {
-//                notificationService.cancelNotification()
-//            }
-//        }
         timeInMillis?.let {
             val minutes = intent.getIntExtra("minutes", 0)
             val idOfAlarm = intent.getLongExtra("id", 0L)
@@ -87,40 +72,28 @@ class SnoozeService : Service() {
                 .setPriority(NotificationCompat.PRIORITY_LOW) // Set priority to low to make it silent
                 .setContentText("Snooze until: $finalTimeFormatted")
                 .build()
-            Log.d("CHKSM", "START ID OF SERVICE $startId")
+
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(startId, notification,FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
-            } else{
+                    startForeground(startId, notification, FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            } else {
                 startForeground(startId, notification)
             }
-
             val totalTimeMillis = TimeUnit.MINUTES.toMillis(minutes.toLong())
-            Log.d("CHKSN", "1. $minutes are minutes from intent and millis are $totalTimeMillis")
+
 
             countdownJob = CoroutineScope(Dispatchers.Default).launch {
                 var remainingTimeMillis = totalTimeMillis
                 while (remainingTimeMillis > 0 && utils.getSnoozeTimerById(idOfAlarm) != null) {
-//                    Log.d(
-//                        "CHKSN",
-//                        "2. Remaining time was still greater than zero and is $remainingTimeMillis"
-//                    )
                     remainingTimeFlow.value = remainingTimeMillis
-//                    if (utils.getSnoozeTimerById(idOfAlarm) != null) {
-//                        Log.d("CHKSM", "----**-----GOING TO UPDATE LIST VAI SERVICE---------")
-//                        utils.startOrUpdateSnoozeTimer(SnoozeTimer(idOfAlarm, remainingTimeMillis))
-//                    }
-                    broadcastRemainingTime(remainingTimeMillis,idOfAlarm)
+                    broadcastRemainingTime(remainingTimeMillis, idOfAlarm)
                     remainingTimeMillis = finalTimeMillis - System.currentTimeMillis()
-//                    Log.d("CHKSN", "alarm VIA SERVICE ${utils.getSnoozeTimerById(idOfAlarm)}")
                 }
-                Log.d("CHKSM", "OUT OF WHILE LOOP START ID $startId")
                 stopForeground(true)
                 utils.stopSnoozeTimer(idOfAlarm)
                 stopSelf(startId)
             }
         }
-
         return START_STICKY
     }
 
@@ -132,13 +105,14 @@ class SnoozeService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun broadcastRemainingTime(remainingMillis: Long,id:Long) {
+    private fun broadcastRemainingTime(remainingMillis: Long, id: Long) {
         val intent = Intent("countdown-tick").apply {
             putExtra("remainingMillis", remainingMillis)
             putExtra("idOfAl", id)
         }
 //        Log.d("CHKSN", "3. Going to broadcast remaining")
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+
     }
 
     override fun onDestroy() {

@@ -1,40 +1,47 @@
 package com.appdev.alarmapp.ui.MissionViewer
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.location.Location
+import android.location.LocationManager
 import android.media.AudioManager
 import android.os.Build
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -46,59 +53,66 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
-import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.convertToMilliseconds
 import com.appdev.alarmapp.ui.AlarmCancel.playTextToSpeech
 import com.appdev.alarmapp.ui.AlarmCancel.startCurrentTimeAndDate
+import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
-import com.appdev.alarmapp.utils.MissionDemoHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
 
+@SuppressLint("MissingPermission")
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MissionHandlerScreen(
+fun AtLocationMission(
     intent: Intent = Intent(),
     textToSpeech: TextToSpeech,
-    cubeHeightWidth: Dp,
-    colPadding: Dp,
-    rowHeight: Dp,
-    controller: NavHostController,
-    totalSize: Int,
-    missionViewModel: MissionViewModel = hiltViewModel(),
     mainViewModel: MainViewModel,
-    timerEndsCallback: TimerEndsCallback,
+    controller: NavHostController, timerEndsCallback: TimerEndsCallback,
     dismissCallback: DismissCallback
 ) {
 
-    var oldMissionId by remember {
-        mutableStateOf(mainViewModel.missionDetails.missionID)
-    }
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+
     val context = LocalContext.current
+    val fusedLocationClient: FusedLocationProviderClient by remember {
+        mutableStateOf(LocationServices.getFusedLocationProviderClient(context))
+    }
+    var locationName by remember { mutableStateOf("Unknown Location") }
+    val currentLocation by mainViewModel.currentLocation.collectAsStateWithLifecycle()
+    val loaderState by mainViewModel.isFetchingLocation.collectAsStateWithLifecycle()
     val alarmEntity: AlarmEntity? by remember {
         mutableStateOf(intent.getParcelableExtra("Alarm"))
     }
@@ -106,7 +120,6 @@ fun MissionHandlerScreen(
     var speechIsDone by remember { mutableStateOf(alarmEntity?.isLabel ?: false) }
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) }
     val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val vibratorManager =
             context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -122,36 +135,31 @@ fun MissionHandlerScreen(
     val previewMode by remember {
         mutableStateOf(intent.getBooleanExtra("Preview", false))
     }
-    var isEnd by remember { mutableStateOf(false) }
+    var countdown by remember { mutableStateOf(10) }
 
-
-    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    var progress by remember { mutableFloatStateOf(1f) }
-    var countdown by remember { mutableStateOf(3) }
-    var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
-
-    var selectedBlocks by remember { mutableStateOf(emptyList<Int>()) }
-
-    var modifiedIndices by remember {
-        mutableStateOf(
-            if (missionViewModel.missionHandler.preservedIndexes.isEmpty()) {
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
-                missionViewModel.missionHandler.preservedIndexes
-            } else {
-                missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
-                missionViewModel.missionHandler.preservedIndexes
-            }
-        )
+    val locPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+    var showRationale by remember(locPermissionState) {
+        mutableStateOf(false)
     }
 
+    var isMatched by remember { mutableStateOf<Boolean?>(null) }
+
+
+    var progress by remember { mutableFloatStateOf(1f) }
+
+    val permissionState =
+        rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
+    var showDialog by remember(permissionState) {
+        mutableStateOf(false)
+    }
+    var dataToBeMatched by remember {
+        mutableStateOf(mainViewModel.selectedLocationByName.locationString)
+    }
 
     val animatedProgress = animateFloatAsState(
         targetValue = progress,
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec, label = ""
     ).value
-    val coroutineScope = rememberCoroutineScope()
-
     LaunchedEffect(key1 = Unit) {
         if (dismissSettings.muteTone) {
             Helper.stopStream()
@@ -452,12 +460,9 @@ fun MissionHandlerScreen(
         }
     }
 
-
-
-
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = dismissSettings.missionTime * 1000
+        val duration = 7500L // 3 seconds
         while (elapsedTime < duration && progress > 0.00100f) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
@@ -471,9 +476,9 @@ fun MissionHandlerScreen(
                 controller.popBackStack()
             } else {
                 if (!mainViewModel.isSnoozed) {
-                    mainViewModel.dummyMissionList = emptyList()
-                    mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
                     controller.navigate(Routes.PreviewAlarm.route) {
+                        mainViewModel.dummyMissionList = emptyList()
+                        mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
                         popUpTo(controller.graph.startDestinationId)
                         launchSingleTop = true
                     }
@@ -485,211 +490,196 @@ fun MissionHandlerScreen(
     }
     LaunchedEffect(key1 = countdown) {
         if (countdown > 0) {
-            coroutineScope.launch {
+            scope.launch {
                 delay(1000)
                 countdown--
             }
+        } else {
+            progress = 1f
         }
     }
-    LaunchedEffect(key1 = showWrong, key2 = missionViewModel.missionHandler.notMatched) {
-        if (missionViewModel.missionHandler.notMatched) {
-            delay(500)
-            missionViewModel.missionEventHandler(MissionDemoHandler.updateMatch(false))
-            showWrong = false
+    LaunchedEffect(key1 = currentLocation) {
+        if (currentLocation != null) {
+            locationName = mainViewModel.getLocationName(
+                currentLocation!!.latitude,
+                currentLocation!!.longitude,
+                context
+            )
+            isMatched = locationName == dataToBeMatched
         }
     }
-    LaunchedEffect(
-        key1 = modifiedIndices,
-        key2 = countdown,
-        key3 = missionViewModel.missionHandler.correctChoiceList
-    ) {
-        if (missionViewModel.missionHandler.preservedIndexes.isEmpty() && countdown != 0) {
-            missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
-            modifiedIndices = missionViewModel.missionHandler.preservedIndexes
-        }
-        if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown == 0) {
-            modifiedIndices = missionViewModel.missionHandler.correctChoiceList
-        }
 
-        if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) {
-            delay(500)
-        }
 
-        if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size) && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes) {
-            Log.d("CHKVM", "IF CALLED")
+    LaunchedEffect(key1 = isMatched) {
+        isMatched?.let {
+            if (it) {
+                if (mainViewModel.isRealAlarm || previewMode) {
+                    val mutableList = mainViewModel.dummyMissionList.toMutableList()
+                    mutableList.removeFirst()
+                    mainViewModel.dummyMissionList = mutableList
+                    if (mainViewModel.dummyMissionList.isNotEmpty()) {
+                        val singleMission = mainViewModel.dummyMissionList.first()
 
-            if (mainViewModel.isRealAlarm || previewMode) {
-                val mutableList = mainViewModel.dummyMissionList.toMutableList()
-                mutableList.removeFirst()
-                mainViewModel.dummyMissionList = mutableList
-                missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-                if (mainViewModel.dummyMissionList.isNotEmpty()) {
-                    val singleMission = mainViewModel.dummyMissionList.first()
-
-                    mainViewModel.missionData(
-                        MissionDataHandler.AddCompleteMission(
-                            missionId = singleMission.missionID,
-                            repeat = singleMission.repeatTimes,
-                            repeatProgress = singleMission.repeatProgress,
-                            missionLevel = singleMission.missionLevel,
-                            missionName = singleMission.missionName,
-                            isSelected = singleMission.isSelected,
-                            setOfSentences = convertStringToSet(singleMission.selectedSentences),
-                            imageId = singleMission.imageId,
-                            codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                        mainViewModel.missionData(
+                            MissionDataHandler.AddCompleteMission(
+                                missionId = singleMission.missionID,
+                                repeat = singleMission.repeatTimes,
+                                repeatProgress = singleMission.repeatProgress,
+                                missionLevel = singleMission.missionLevel,
+                                missionName = singleMission.missionName,
+                                isSelected = singleMission.isSelected,
+                                setOfSentences = convertStringToSet(singleMission.selectedSentences),
+                                imageId = singleMission.imageId,
+                                codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                            )
                         )
-                    )
-                    when (mainViewModel.missionDetails.missionName) {
-                        "Memory" -> {
-                            controller.navigate(Routes.MissionScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "Shake" -> {
-                            controller.navigate(Routes.MissionShakeScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "Math" -> {
-                            controller.navigate(Routes.MissionMathScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "Typing" -> {
-                            controller.navigate(Routes.TypingPreviewScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "Photo" -> {
-                            controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "Step" -> {
-                            controller.navigate(Routes.StepDetectorScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "Squat" -> {
-                            controller.navigate(Routes.SquatMissionScreen.route) {
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-
-                        "QR/Barcode" -> {
-                            controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
-                                popUpTo(Routes.PreviewAlarm.route) {
-                                    inclusive = true
+                        when (mainViewModel.missionDetails.missionName) {
+                            "Memory" -> {
+                                controller.navigate(Routes.MissionScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
                                 }
-                                launchSingleTop = true
                             }
-                        }
-                        "RangeNumbers" -> {
-                            controller.navigate(Routes.RangeMemoryMissionPreview.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                        "RangeAlphabet" -> {
-                            controller.navigate(Routes.RangeAlphabetMissionPreview.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                        "WalkOff" -> {
-                            controller.navigate(Routes.WalkOffScreen.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                        "ReachDestination" -> {
-                            controller.navigate(Routes.AtLocationMissionScreen.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                        "ArrangeNumbers" -> {
-                            controller.navigate(Routes.ArrangeNumbersScreen.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                        "ArrangeAlphabet" -> {
-                            controller.navigate(Routes.ArrangeAlphabetsScreen.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                        "ArrangeShapes" -> {
-                            controller.navigate(Routes.ArrangeShapesScreen.route){
-                                popUpTo(controller.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
 
-                        else -> {
-                            Helper.stopStream()
-                            textToSpeech.stop()
-                            vibrator.cancel()
-                            dismissCallback.onDismissClicked()
+                            "Step" -> {
+                                controller.navigate(Routes.StepDetectorScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "Squat" -> {
+                                controller.navigate(Routes.SquatMissionScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "Shake" -> {
+                                controller.navigate(Routes.MissionShakeScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "Math" -> {
+                                controller.navigate(Routes.MissionMathScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "Typing" -> {
+                                controller.navigate(Routes.TypingPreviewScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "Photo" -> {
+                                controller.navigate(Routes.PhotoMissionPreviewScreen.route) {
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            "QR/Barcode" -> {
+                                controller.navigate(Routes.BarCodePreviewAlarmScreen.route) {
+                                    popUpTo(Routes.PreviewAlarm.route) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+                            "RangeNumbers" -> {
+                                controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                            "RangeAlphabet" -> {
+                                controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                            "WalkOff" -> {
+                                controller.navigate(Routes.WalkOffScreen.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                            "ReachDestination" -> {
+                                controller.navigate(Routes.AtLocationMissionScreen.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                            "ArrangeNumbers" -> {
+                                controller.navigate(Routes.ArrangeNumbersScreen.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                            "ArrangeAlphabet" -> {
+                                controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                            "ArrangeShapes" -> {
+                                controller.navigate(Routes.ArrangeShapesScreen.route){
+                                    popUpTo(controller.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            else -> {
+                                Helper.stopStream()
+                                textToSpeech.stop()
+                                vibrator.cancel()
+                                dismissCallback.onDismissClicked()
+                            }
                         }
+                    } else {
+                        Helper.stopStream()
+                        textToSpeech.stop()
+                        vibrator.cancel()
+                        dismissCallback.onDismissClicked()
                     }
                 } else {
-                    Helper.stopStream()
-                    textToSpeech.stop()
-                    vibrator.cancel()
-                    dismissCallback.onDismissClicked()
+                    mainViewModel.updateMyCurrentLocationToNull()
+                    controller.navigate(Routes.ReachLocationMissionScreen.route) {
+                        popUpTo(controller.graph.startDestinationId)
+                        launchSingleTop
+                    }
                 }
             } else {
-                controller.navigate(Routes.CommonMissionScreen.route) {
-                    popUpTo(controller.graph.startDestinationId)
-                    launchSingleTop
-                }
+                progress = 1f
             }
         }
-        if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size) && mainViewModel.missionDetails.repeatProgress != mainViewModel.missionDetails.repeatTimes && oldMissionId == mainViewModel.missionDetails.missionID) {
-            missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-            selectedBlocks = emptyList()
-            countdown = 3
-            Log.d("CHKVM", "I AM CALLED")
-
-            mainViewModel.missionData(MissionDataHandler.MissionProgress(mainViewModel.missionDetails.repeatProgress + 1))
-        }
-
     }
-
-
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (countdown != 0) Color(0xff232E4C) else Color(0xff121315)),
+            .background(Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
+
             Column(modifier = Modifier.fillMaxWidth()) {
                 LinearProgressIndicator(
-                    trackColor = backColor,
-                    color = Color.White,
+                    progress = {
+                        animatedProgress
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 2.dp), progress = animatedProgress
+                        .padding(horizontal = 2.dp),
+                    color = Color.White,
+                    trackColor = backColor,
                 )
 
             }
@@ -721,94 +711,173 @@ fun MissionHandlerScreen(
                         tint = Color.White, modifier = Modifier.size(22.dp)
                     )
                 }
-                Text(
-                    text = "${mainViewModel.missionDetails.repeatProgress} / ${mainViewModel.missionDetails.repeatTimes}",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 17.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.W500,
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                )
             }
-
-            Text(
-                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
-                color = Color.White,
-                fontSize = 20.sp,
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.W500,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 15.dp)
-            )
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(colPadding)
-                ) {
-                    items(totalSize) { row ->
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(rowHeight),
-                            horizontalArrangement = Arrangement.SpaceAround
+                    .fillMaxHeight(0.5f)
+                    .padding(bottom = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                if (loaderState) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            items(totalSize) { column ->
-                                val blockIndex = row * totalSize + column
-                                val isBlockSelected = selectedBlocks.contains(blockIndex)
-                                RubikCubeBlock(
-                                    modifier = Modifier
-                                        .clipToBounds()
-                                        .background(
-                                            if ((missionViewModel.missionHandler.notMatched) && blockIndex == missionViewModel.missionHandler.clicked) {
-                                                showWrong = true
-                                                Color.Red
-                                            } else if (modifiedIndices.contains(
-                                                    blockIndex
-                                                )
-                                            ) Color(
-                                                0xFF9BA2B2
-                                            ) else Color(0xff1C1F26)
-                                        )
-                                        .clickable {
-                                            if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
-                                                if (!selectedBlocks.contains(blockIndex)) {
-                                                    // Handle block click during countdown
-                                                    missionViewModel.missionEventHandler(
-                                                        MissionDemoHandler.checkMatch(blockIndex)
-                                                    )
-                                                    selectedBlocks += blockIndex
-                                                    progress = 1f
-                                                }
-                                            }
-                                        }, cubeHeightWidth
-                                )
+                            Dialog(onDismissRequest = { /*TODO*/ }) {
+                                CircularProgressIndicator()
                             }
                         }
                     }
                 }
+//                if (!loaderState && currentLocation != null) {
+//                    Text(
+//                        text = if (countdown != 0) "1. Don't turn off your location until mission ends ! \n2. Stand up and take your position ! \n\nStarting in $countdown" else "Take steps softly",
+//                        color = Color.White,
+//                        fontSize = 23.sp,
+//                        lineHeight = 32.sp,
+//                        fontWeight = FontWeight.W400,
+//                        textAlign = TextAlign.Center,
+//                        modifier = Modifier.padding(horizontal = 15.dp)
+//                    )
+//                    Text(
+//                        text = if (countdown != 0) "" else "$distanceToCover",
+//                        color = Color.White,
+//                        fontSize = 70.sp,
+//                        fontWeight = FontWeight.W700,
+//                        modifier = Modifier.padding(top = 20.dp),
+//                        letterSpacing = 3.sp
+//                    )
+//                } else {
+                Text(
+                    text = if (isMatched != null && !isMatched!!) "You are standing at wrong location reach following one !" else "Reach at following location to end the mission",
+                    color = Color.White,
+                    fontSize = 23.sp,
+                    lineHeight = 29.sp,
+                    fontWeight = FontWeight.W400,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Text(
+                    text = "Name: " + mainViewModel.selectedLocationByName.locationName,
+                    color = Color.White,
+                    fontSize = 20.sp, textAlign = TextAlign.Start,
+                    fontWeight = FontWeight.W400,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 20.dp, top = 40.dp)
+                )
+                Text(
+                    text = "Location: " + mainViewModel.selectedLocationByName.locationString,
+                    color = Color.White,
+                    fontSize = 20.sp, textAlign = TextAlign.Start,
+                    fontWeight = FontWeight.W400,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 7.dp)
+                )
+                Spacer(modifier = Modifier.height(40.dp))
+                CustomButton(onClick = {
+                    if (!locationEnabled(context)) {
+                        showDialog = true
+                    } else {
+                        mainViewModel.startLocationUpdates(fusedLocationClient)
+                    }
+                }, text = "Get my location")
+
+//                }
             }
         }
-
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = {
+                    Text(
+                        "Location Services Disabled",
+                        color = MaterialTheme.colorScheme.surfaceTint
+                    )
+                },
+                text = {
+                    Text(
+                        "Please enable location services and try again.",
+                        color = MaterialTheme.colorScheme.surfaceTint
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showDialog = false
+                        }
+                    ) {
+                        Text("Okay", color = MaterialTheme.colorScheme.surfaceTint)
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = {
+                            showDialog = false
+                        }
+                    ) {
+                        Text("Cancel", color = MaterialTheme.colorScheme.surfaceTint)
+                    }
+                }
+            )
+        }
+        if (showRationale) {
+            AlertDialog(
+                onDismissRequest = {
+                    showRationale = false
+                },
+                title = {
+                    Text(
+                        text = "Permissions required by the Application",
+                        color = MaterialTheme.colorScheme.surfaceTint
+                    )
+                },
+                text = {
+                    Text(
+                        text = "The Application requires the permissions to work",
+                        color = MaterialTheme.colorScheme.surfaceTint
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showRationale = false
+                            locPermissionState.launchPermissionRequest()
+                        },
+                    ) {
+                        Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showRationale = false
+                        },
+                    ) {
+                        Text("Dismiss", color = MaterialTheme.colorScheme.surfaceTint)
+                    }
+                },
+            )
+        }
     }
+
 }
 
-@Composable
-fun RubikCubeBlock(modifier: Modifier = Modifier, cubeHeightWidth: Dp) {
-    Box(
-        modifier = modifier
-            .height(cubeHeightWidth)
-            .width(cubeHeightWidth),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Default.Star,
-            contentDescription = null,
-            tint = Color.White
-        )
-    }
+private fun locationEnabled(context: Context): Boolean {
+    val locationManager: LocationManager =
+        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
+        LocationManager.NETWORK_PROVIDER
+    )
 }
 
+private fun createLocationRequest(): LocationRequest {
+    return LocationRequest.Builder(100, 1000).build()
+}
