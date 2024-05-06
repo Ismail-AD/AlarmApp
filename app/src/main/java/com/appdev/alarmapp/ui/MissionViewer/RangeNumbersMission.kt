@@ -140,11 +140,19 @@ fun RangedNumbersMissionHandlerScreen(
     var modifiedIndices by remember {
         mutableStateOf(
             if (missionViewModel.missionHandler.preservedIndexes.isEmpty()) {
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateRangedAndStore(elementsCountToPick))
+                missionViewModel.missionEventHandler(
+                    MissionDemoHandler.GenerateRangedAndStore(
+                        elementsCountToPick
+                    )
+                )
                 missionViewModel.missionHandler.preservedIndexes
             } else {
                 missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateRangedAndStore(elementsCountToPick))
+                missionViewModel.missionEventHandler(
+                    MissionDemoHandler.GenerateRangedAndStore(
+                        elementsCountToPick
+                    )
+                )
                 missionViewModel.missionHandler.preservedIndexes
             }
         )
@@ -153,11 +161,21 @@ fun RangedNumbersMissionHandlerScreen(
     var finalRangedList by remember {
         mutableStateOf(
             if (missionViewModel.missionHandler.getRangeRandomNumbers.isEmpty()) {
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateTotalRangedAndReStore(modifiedIndices,totalSize))
+                missionViewModel.missionEventHandler(
+                    MissionDemoHandler.GenerateTotalRangedAndReStore(
+                        modifiedIndices,
+                        totalSize
+                    )
+                )
                 missionViewModel.missionHandler.getRangeRandomNumbers
             } else {
                 missionViewModel.missionEventHandler(MissionDemoHandler.ResetData)
-                missionViewModel.missionEventHandler(MissionDemoHandler.GenerateTotalRangedAndReStore(modifiedIndices,totalSize))
+                missionViewModel.missionEventHandler(
+                    MissionDemoHandler.GenerateTotalRangedAndReStore(
+                        modifiedIndices,
+                        totalSize
+                    )
+                )
                 missionViewModel.missionHandler.getRangeRandomNumbers
             }
         )
@@ -512,6 +530,9 @@ fun RangedNumbersMissionHandlerScreen(
     LaunchedEffect(key1 = showWrong, key2 = missionViewModel.missionHandler.notMatched) {
         if (missionViewModel.missionHandler.notMatched) {
             delay(500)
+            clickedNumbers = emptyList()
+            finalRangedList = finalRangedList.shuffled()
+            missionViewModel.missionEventHandler(MissionDemoHandler.ResetCorrectList)
             missionViewModel.missionEventHandler(MissionDemoHandler.updateMatch(false))
             showWrong = false
         }
@@ -522,11 +543,20 @@ fun RangedNumbersMissionHandlerScreen(
         key3 = missionViewModel.missionHandler.correctChoiceList
     ) {
         if (missionViewModel.missionHandler.preservedIndexes.isEmpty() && countdown != 0) {
-            missionViewModel.missionEventHandler(MissionDemoHandler.GenerateRangedAndStore(elementsCountToPick))
+            missionViewModel.missionEventHandler(
+                MissionDemoHandler.GenerateRangedAndStore(
+                    elementsCountToPick
+                )
+            )
             modifiedIndices = missionViewModel.missionHandler.preservedIndexes
         }
-        if(missionViewModel.missionHandler.getRangeRandomNumbers.isEmpty() && countdown != 0){
-            missionViewModel.missionEventHandler(MissionDemoHandler.GenerateTotalRangedAndReStore(modifiedIndices,totalSize))
+        if (missionViewModel.missionHandler.getRangeRandomNumbers.isEmpty() && countdown != 0) {
+            missionViewModel.missionEventHandler(
+                MissionDemoHandler.GenerateTotalRangedAndReStore(
+                    modifiedIndices,
+                    totalSize
+                )
+            )
             finalRangedList = missionViewModel.missionHandler.getRangeRandomNumbers
         }
         if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown == 0) {
@@ -558,7 +588,9 @@ fun RangedNumbersMissionHandlerScreen(
                             isSelected = singleMission.isSelected,
                             setOfSentences = convertStringToSet(singleMission.selectedSentences),
                             imageId = singleMission.imageId,
-                            codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                            codeId = singleMission.codeId,
+                            locId = singleMission.locId,
+                            valuesToPick = singleMission.valuesToPick
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -619,44 +651,51 @@ fun RangedNumbersMissionHandlerScreen(
                                 launchSingleTop = true
                             }
                         }
+
                         "RangeNumbers" -> {
-                            controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                            controller.navigate(Routes.RangeMemoryMissionPreview.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "RangeAlphabet" -> {
-                            controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                            controller.navigate(Routes.RangeAlphabetMissionPreview.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "WalkOff" -> {
-                            controller.navigate(Routes.WalkOffScreen.route){
+                            controller.navigate(Routes.WalkOffScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ReachDestination" -> {
-                            controller.navigate(Routes.AtLocationMissionScreen.route){
+                            controller.navigate(Routes.AtLocationMissionScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ArrangeNumbers" -> {
-                            controller.navigate(Routes.ArrangeNumbersScreen.route){
+                            controller.navigate(Routes.ArrangeNumbersScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ArrangeAlphabet" -> {
-                            controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                            controller.navigate(Routes.ArrangeAlphabetsScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ArrangeShapes" -> {
-                            controller.navigate(Routes.ArrangeShapesScreen.route){
+                            controller.navigate(Routes.ArrangeShapesScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
@@ -691,10 +730,7 @@ fun RangedNumbersMissionHandlerScreen(
     }
 
 
-
-
     //---------------------------------DESIGN--------------------------------
-
 
 
     Box(
@@ -773,28 +809,30 @@ fun RangedNumbersMissionHandlerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(colPadding)
                 ) {
-                    if(countdown!=0){
-                        items(modifiedIndices.chunked(if(elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
-                            val numDummyElements = if(chunk.size < elementsCountToPick && elementsCountToPick < 5){
-                                elementsCountToPick - chunk.size
-                            } else if(chunk.size < 5 && elementsCountToPick > 5){
-                                5 - chunk.size
-                            } else{
-                                0
-                            }
+                    if (countdown != 0) {
+                        items(modifiedIndices.chunked(if (elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
+                            val numDummyElements =
+                                if (chunk.size < elementsCountToPick && elementsCountToPick < 5) {
+                                    elementsCountToPick - chunk.size
+                                } else if (chunk.size < 5 && elementsCountToPick > 5) {
+                                    5 - chunk.size
+                                } else {
+                                    0
+                                }
                             Row(
-                                modifier = Modifier.fillMaxWidth().height(rowHeight),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(rowHeight),
                                 horizontalArrangement = Arrangement.SpaceAround
                             ) {
                                 chunk.forEach { number ->
                                     RubikCubeNumberBlock(
                                         modifier = Modifier
-                                            .clipToBounds()
-                                            , cubeHeightWidth,number.toString()
+                                            .clipToBounds(), cubeHeightWidth, number.toString()
                                     )
                                 }
-                                if(numDummyElements!=0){
-                                    repeat(numDummyElements){
+                                if (numDummyElements != 0) {
+                                    repeat(numDummyElements) {
                                         Spacer(
                                             modifier = Modifier
                                                 .size(cubeHeightWidth)
@@ -803,50 +841,51 @@ fun RangedNumbersMissionHandlerScreen(
                                 }
                             }
                         }
-                    } else{
-                        items(finalRangedList.chunked(if(elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
-                            val numDummyElements = if(chunk.size < elementsCountToPick && elementsCountToPick < 5){
-                                elementsCountToPick - chunk.size
-                            } else if(chunk.size < 5 && elementsCountToPick > 5){
-                                5 - chunk.size
-                            } else{
-                                0
-                            }
+                    } else {
+                        items(finalRangedList.chunked(if (elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
+                            val numDummyElements =
+                                if (chunk.size < elementsCountToPick && elementsCountToPick < 5) {
+                                    elementsCountToPick - chunk.size
+                                } else if (chunk.size < 5 && elementsCountToPick > 5) {
+                                    5 - chunk.size
+                                } else {
+                                    0
+                                }
                             Row(
-                                modifier = Modifier.fillMaxWidth().height(rowHeight),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(rowHeight),
                                 horizontalArrangement = Arrangement.SpaceAround
                             ) {
                                 chunk.forEach { number ->
-                                        RubikCubeNumberBlock(
-                                            modifier = Modifier
-                                                .clipToBounds()
-                                                .background(
-                                                    if ((missionViewModel.missionHandler.notMatched) && number == missionViewModel.missionHandler.clicked) {
-                                                        showWrong = true
-                                                        Color.Red
-                                                    } else if (modifiedIndices.contains(
-                                                            number
-                                                        ) && missionViewModel.missionHandler.correctChoiceList.isNotEmpty()
-                                                    ) Color(0xFFF57C00) else Color(0xff1C1F26)
-                                                )
-                                                .clickable {
-                                                    if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
-//                                                    if (!clickedNumbers.contains(number)) {
-//                                                        // Handle block click during countdown
-//
-//                                                    }
+                                    RubikCubeNumberBlock(
+                                        modifier = Modifier
+                                            .clipToBounds()
+                                            .background(
+                                                if ((missionViewModel.missionHandler.notMatched) && number == missionViewModel.missionHandler.clicked) {
+                                                    showWrong = true
+                                                    Color.Red
+                                                } else if (modifiedIndices.contains(
+                                                        number
+                                                    ) && missionViewModel.missionHandler.correctChoiceList.isNotEmpty()
+                                                ) Color(0xFFF57C00) else Color(0xff1C1F26)
+                                            )
+                                            .clickable {
+                                                if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+                                                    if (!clickedNumbers.contains(number)) {
                                                         missionViewModel.missionEventHandler(
                                                             MissionDemoHandler.checkMatch(number)
                                                         )
                                                         clickedNumbers += number
                                                         progress = 1f
                                                     }
-                                                }, cubeHeightWidth,number.toString()
-                                        )
+                                                }
+                                            }, cubeHeightWidth, number.toString()
+                                    )
 
                                 }
-                                if(numDummyElements!=0){
-                                    repeat(numDummyElements){
+                                if (numDummyElements != 0) {
+                                    repeat(numDummyElements) {
                                         Spacer(
                                             modifier = Modifier
                                                 .size(cubeHeightWidth)
@@ -864,7 +903,7 @@ fun RangedNumbersMissionHandlerScreen(
 }
 
 @Composable
-fun RubikCubeNumberBlock(modifier: Modifier = Modifier, cubeHeightWidth: Dp,data:String) {
+fun RubikCubeNumberBlock(modifier: Modifier = Modifier, cubeHeightWidth: Dp, data: String) {
     Box(
         modifier = modifier
             .height(cubeHeightWidth)

@@ -70,6 +70,7 @@ sealed interface DefaultSettingsHandler {
 
 sealed interface MissionDemoHandler {
     data class checkMatch(val clickedIndex: Int) : MissionDemoHandler
+    object ResetCorrectList : MissionDemoHandler
     data class CheckCharacterMatches(val clickedCharacter: Char) : MissionDemoHandler
     data class updateMatch(val matched: Boolean) : MissionDemoHandler
     data class GenerateAndStore(val size: Int) : MissionDemoHandler

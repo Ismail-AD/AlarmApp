@@ -542,7 +542,7 @@ fun ArrangeNumbersMHScreen(
                                     mainViewModel.missionDetails.repeatProgress + 1
                                 )
                             )
-                        } else if (shuffledList.value.zip(correctList.value)
+                        }  else if (shuffledList.value.zip(correctList.value)
                                 .all { (a, b) -> a == b } && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes
                         ) {
                             if (mainViewModel.isRealAlarm || previewMode) {
@@ -563,7 +563,9 @@ fun ArrangeNumbersMHScreen(
                                             isSelected = singleMission.isSelected,
                                             setOfSentences = convertStringToSet(singleMission.selectedSentences),
                                             imageId = singleMission.imageId,
-                                            codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                                            codeId = singleMission.codeId,
+                                            locId = singleMission.locId,
+                                            valuesToPick = singleMission.valuesToPick
                                         )
                                     )
                                     when (mainViewModel.missionDetails.missionName) {
@@ -624,44 +626,51 @@ fun ArrangeNumbersMHScreen(
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "RangeNumbers" -> {
-                                            controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                                            controller.navigate(Routes.RangeMemoryMissionPreview.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "RangeAlphabet" -> {
-                                            controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                                            controller.navigate(Routes.RangeAlphabetMissionPreview.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "WalkOff" -> {
-                                            controller.navigate(Routes.WalkOffScreen.route){
+                                            controller.navigate(Routes.WalkOffScreen.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "ReachDestination" -> {
-                                            controller.navigate(Routes.AtLocationMissionScreen.route){
+                                            controller.navigate(Routes.AtLocationMissionScreen.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "ArrangeNumbers" -> {
-                                            controller.navigate(Routes.ArrangeNumbersScreen.route){
+                                            controller.navigate(Routes.ArrangeNumbersScreen.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "ArrangeAlphabet" -> {
-                                            controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                                            controller.navigate(Routes.ArrangeAlphabetsScreen.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
                                         }
+
                                         "ArrangeShapes" -> {
-                                            controller.navigate(Routes.ArrangeShapesScreen.route){
+                                            controller.navigate(Routes.ArrangeShapesScreen.route) {
                                                 popUpTo(controller.graph.startDestinationId)
                                                 launchSingleTop = true
                                             }
@@ -756,7 +765,7 @@ fun ArrangeNumbersMHScreen(
                 }
 
                 Text(
-                    text = if (showWrong && countdown != 0) "Order not matched! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
+                    text = if (showWrong && countdown == 0) "Order is not correct ! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
                     color = Color.White,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,
@@ -791,7 +800,8 @@ fun ArrangeNumbersMHScreen(
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(3),
                             state = state.gridState,
-                            modifier = Modifier.reorderable(state)
+                            modifier = Modifier
+                                .reorderable(state)
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {

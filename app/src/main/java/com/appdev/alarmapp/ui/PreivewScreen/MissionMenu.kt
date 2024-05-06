@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
@@ -90,9 +92,7 @@ fun MissionMenu(
     var showRationale by remember(locPermissionState) {
         mutableStateOf(false)
     }
-    var onGranted by remember {
-        mutableStateOf(false)
-    }
+    val scrollState = rememberScrollState()
 
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
     if (Helper.isPlaying()) {
@@ -147,7 +147,7 @@ fun MissionMenu(
             Row(
                 modifier = Modifier
                     .fillMaxWidth(0.63f)
-                    .padding(top = 10.dp,start = 15.dp,end=15.dp),
+                    .padding(top = 10.dp, start = 15.dp, end = 15.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -192,11 +192,75 @@ fun MissionMenu(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
+                    .padding(top = 10.dp).verticalScroll(scrollState),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Wake your brain",
+                    "Most popular missions",
+                    fontSize = 15.sp,
+                    letterSpacing = 0.sp,
+                    color = MaterialTheme.colorScheme.surfaceTint,
+                    textAlign = TextAlign.Start,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 14.dp, bottom = 10.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp)
+                ) {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.Calculate,
+                        title = "Math"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Math"))
+                        mainViewModel.whichMissionHandle(
+                            whichMissionHandler.thisMission(
+                                missionMemory = false,
+                                missionMath = true,
+                                missionShake = false,
+                                isSteps = false, isSquat = false, isWalk = false
+                            )
+                        )
+                        controller.navigate(Routes.CommonMissionScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.QrCode2,
+                        title = "QR/Barcode"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "QR/Barcode"))
+                        controller.navigate(Routes.BarCodeDemoScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.CameraEnhance,
+                        title = "Photo"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Photo"))
+                        controller.navigate(Routes.CameraRoutineScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+
+                }
+                Text(
+                    "Memory missions",
                     fontSize = 15.sp,
                     letterSpacing = 0.sp,
                     color = MaterialTheme.colorScheme.surfaceTint,
@@ -232,12 +296,21 @@ fun MissionMenu(
                         }
                     }
                     singleCard(
-                        isDarkMode = isDarkMode,
-                        iconID = Icons.Filled.Keyboard,
-                        title = "Typing"
+                        isDarkMode,
+                        iconID = Icons.Filled.LooksOne,
+                        title = "Numbers"
                     ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Typing"))
-                        controller.navigate(Routes.TypeMissionScreen.route) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "RangeNumbers"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = true,
+                                missionAlphabet = false,
+                                missionOrderAlphabet = false,
+                                missionOrderNumbers = false,
+                                missionOrderShapes = false
+                            )
+                        )
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
                             popUpTo(Routes.MissionMenuScreen.route) {
                                 inclusive = false
                             }
@@ -246,27 +319,36 @@ fun MissionMenu(
                     }
                     singleCard(
                         isDarkMode = isDarkMode,
-                        iconID = Icons.Filled.Calculate,
-                        title = "Math"
+                        iconID = Icons.Filled.SortByAlpha,
+                        title = "Alphabets"
                     ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Math"))
-                        mainViewModel.whichMissionHandle(
-                            whichMissionHandler.thisMission(
-                                missionMemory = false,
-                                missionMath = true,
-                                missionShake = false,
-                                isSteps = false, isSquat = false, isWalk = false
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "RangeAlphabet"))
+                        mainViewModel.whichRangeMissionHandler(
+                            whichRangeMissionHandle.thisMission(
+                                missionNumber = false,
+                                missionAlphabet = true,
+                                missionOrderAlphabet = false,
+                                missionOrderNumbers = false,
+                                missionOrderShapes = false
                             )
                         )
-                        controller.navigate(Routes.CommonMissionScreen.route) {
+                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
                             popUpTo(Routes.MissionMenuScreen.route) {
                                 inclusive = false
                             }
                             launchSingleTop = true
                         }
                     }
-
                 }
+                Text(
+                    "Arrange Missions",
+                    fontSize = 15.sp,
+                    letterSpacing = 0.sp,
+                    color = MaterialTheme.colorScheme.surfaceTint,
+                    textAlign = TextAlign.Start,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 14.dp, bottom = 10.dp)
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -281,7 +363,11 @@ fun MissionMenu(
                         mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "ArrangeNumbers"))
                         mainViewModel.whichRangeMissionHandler(
                             whichRangeMissionHandle.thisMission(
-                                missionNumber = false, missionAlphabet = false,missionOrderAlphabet = false,missionOrderNumbers = true,missionOrderShapes = false
+                                missionNumber = false,
+                                missionAlphabet = false,
+                                missionOrderAlphabet = false,
+                                missionOrderNumbers = true,
+                                missionOrderShapes = false
                             )
                         )
                         controller.navigate(Routes.RangeMemoryMissionSetting.route) {
@@ -336,86 +422,8 @@ fun MissionMenu(
                         }
                     }
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp, horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(15.dp)
-                ) {
-                    singleCard(
-                        isDarkMode,
-                        iconID = Icons.Filled.LooksOne,
-                        title = "Numbers"
-                    ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "RangeNumbers"))
-                        mainViewModel.whichRangeMissionHandler(
-                            whichRangeMissionHandle.thisMission(
-                                missionNumber = true, missionAlphabet = false,missionOrderAlphabet = false,missionOrderNumbers = false,missionOrderShapes = false
-                            )
-                        )
-                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
-                            popUpTo(Routes.MissionMenuScreen.route) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                        }
-                    }
-                    singleCard(
-                        isDarkMode = isDarkMode,
-                        iconID = Icons.Filled.SortByAlpha,
-                        title = "Alphabets"
-                    ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "RangeAlphabet"))
-                        mainViewModel.whichRangeMissionHandler(
-                            whichRangeMissionHandle.thisMission(
-                                missionNumber = false,
-                                missionAlphabet = true,
-                                missionOrderAlphabet = false,
-                                missionOrderNumbers = false,
-                                missionOrderShapes = false
-                            )
-                        )
-                        controller.navigate(Routes.RangeMemoryMissionSetting.route) {
-                            popUpTo(Routes.MissionMenuScreen.route) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                        }
-                    }
-//                    singleCard(
-//                        isDarkMode = isDarkMode,
-//                        iconID = Icons.Filled.Calculate,
-//                        title = "Math"
-//                    ) {
-//                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Math"))
-//                        mainViewModel.whichMissionHandle(
-//                            whichMissionHandler.thisMission(
-//                                missionMemory = false,
-//                                missionMath = true,
-//                                missionShake = false,
-//                                isSteps = false, isSquat = false, isWalk = false
-//                            )
-//                        )
-//                        controller.navigate(Routes.CommonMissionScreen.route) {
-//                            popUpTo(Routes.MissionMenuScreen.route) {
-//                                inclusive = false
-//                            }
-//                            launchSingleTop = true
-//                        }
-//                    }
-                }
-
-            }
-
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
                 Text(
-                    "Wake your body",
+                    "Motion missions",
                     fontSize = 15.sp,
                     letterSpacing = 0.sp,
                     color = MaterialTheme.colorScheme.surfaceTint,
@@ -423,12 +431,14 @@ fun MissionMenu(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(start = 14.dp, bottom = 10.dp)
                 )
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 10.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
+
                     singleCard(
                         isDarkMode = isDarkMode,
                         imageId = R.drawable.shoes,
@@ -462,60 +472,6 @@ fun MissionMenu(
                             showToast = true
                         }
 
-                    }
-                    singleCard(
-                        isDarkMode = isDarkMode,
-                        iconID = Icons.Filled.QrCode2,
-                        title = "QR/Barcode"
-                    ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "QR/Barcode"))
-                        controller.navigate(Routes.BarCodeDemoScreen.route) {
-                            popUpTo(Routes.MissionMenuScreen.route) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                        }
-                    }
-                    singleCard(
-                        isDarkMode = isDarkMode,
-                        iconID = Icons.Filled.ScreenRotation,
-                        title = "Shake"
-                    ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Shake"))
-                        mainViewModel.whichMissionHandle(
-                            whichMissionHandler.thisMission(
-                                missionMemory = false,
-                                missionMath = false,
-                                missionShake = true,
-                                isSteps = false, isSquat = false, isWalk = false
-                            )
-                        )
-                        controller.navigate(Routes.CommonMissionScreen.route) {
-                            popUpTo(Routes.MissionMenuScreen.route) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                        }
-                    }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp, horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(15.dp)
-                ) {
-                    singleCard(
-                        isDarkMode = isDarkMode,
-                        iconID = Icons.Filled.CameraEnhance,
-                        title = "Photo"
-                    ) {
-                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Photo"))
-                        controller.navigate(Routes.CameraRoutineScreen.route) {
-                            popUpTo(Routes.MissionMenuScreen.route) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                        }
                     }
                     singleCard(
                         isDarkMode = isDarkMode,
@@ -554,47 +510,101 @@ fun MissionMenu(
                         }
                     }
                 }
-                if (showRationale) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            showRationale = false
-                        },
-                        title = {
-                            Text(
-                                text = "Permissions required by the Application",
-                                color = MaterialTheme.colorScheme.surfaceTint
+                Text(
+                    "Other missions",
+                    fontSize = 15.sp,
+                    letterSpacing = 0.sp,
+                    color = MaterialTheme.colorScheme.surfaceTint,
+                    textAlign = TextAlign.Start,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 14.dp, bottom = 10.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp)
+                ) {
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.ScreenRotation,
+                        title = "Shake"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Shake"))
+                        mainViewModel.whichMissionHandle(
+                            whichMissionHandler.thisMission(
+                                missionMemory = false,
+                                missionMath = false,
+                                missionShake = true,
+                                isSteps = false, isSquat = false, isWalk = false
                             )
-                        },
-                        text = {
-                            Text(
-                                text = "The Application requires the permissions to work",
-                                color = MaterialTheme.colorScheme.surfaceTint
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    showRationale = false
-                                    locPermissionState.launchPermissionRequest()
-                                },
-                            ) {
-                                Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
+                        )
+                        controller.navigate(Routes.CommonMissionScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
                             }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    showRationale = false
-                                },
-                            ) {
-                                Text("Dismiss", color = MaterialTheme.colorScheme.surfaceTint)
+                            launchSingleTop = true
+                        }
+                    }
+                    singleCard(
+                        isDarkMode = isDarkMode,
+                        iconID = Icons.Filled.Keyboard,
+                        title = "Typing"
+                    ) {
+                        mainViewModel.missionData(MissionDataHandler.MissionName(missionName = "Typing"))
+                        controller.navigate(Routes.TypeMissionScreen.route) {
+                            popUpTo(Routes.MissionMenuScreen.route) {
+                                inclusive = false
                             }
-                        },
-                    )
+                            launchSingleTop = true
+                        }
+                    }
                 }
 
-
             }
+
+
+
+            if (showRationale) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showRationale = false
+                    },
+                    title = {
+                        Text(
+                            text = "Permissions required by the Application",
+                            color = MaterialTheme.colorScheme.surfaceTint
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "The Application requires the permissions to work",
+                            color = MaterialTheme.colorScheme.surfaceTint
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showRationale = false
+                                locPermissionState.launchPermissionRequest()
+                            },
+                        ) {
+                            Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showRationale = false
+                            },
+                        ) {
+                            Text("Dismiss", color = MaterialTheme.colorScheme.surfaceTint)
+                        }
+                    },
+                )
+            }
+
+
         }
     }
 }

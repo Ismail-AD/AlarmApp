@@ -1944,6 +1944,21 @@ fun getImageForSliderValue(value: String): Int {
         else -> R.drawable.easy
     }
 }
+fun getImageForSelectedValue(value: String): Int {
+    return when (value) {
+        "Normal Mode" -> R.drawable.normalnum
+        "Hard Mode" -> R.drawable.hardnum
+        else -> R.drawable.normalnum
+    }
+}
+fun getAlphaImageForSelectedValue(value: String): Int {
+    return when (value) {
+        "Normal Mode" -> R.drawable.normalalpha
+        "Hard Mode" -> R.drawable.hardalpha
+        else -> R.drawable.normalalpha
+    }
+}
+
 
 
 fun getMathEqForSliderValue(value: String): String {

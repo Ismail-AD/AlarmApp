@@ -74,6 +74,8 @@ import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.PreivewScreen.getAlphaImageForSelectedValue
+import com.appdev.alarmapp.ui.PreivewScreen.getImageForSelectedValue
 import com.appdev.alarmapp.ui.PreivewScreen.getImageForSliderValue
 import com.appdev.alarmapp.ui.PreivewScreen.getMathEqForSliderValue
 import com.appdev.alarmapp.ui.theme.backColor
@@ -103,10 +105,10 @@ fun RangeMemoryMissionSetting(
     val timesState =
         rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "RangeNumbers" || mainViewModel.missionDetails.missionName == "RangeAlphabet" || mainViewModel.missionDetails.missionName == "ArrangeShapes" || mainViewModel.missionDetails.missionName == "ArrangeAlphabet" || mainViewModel.missionDetails.missionName == "ArrangeNumbers")) mainViewModel.missionDetails.repeatTimes - 1 else 0)
     val rangeState_312 =
-        rememberLazyListState(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 3 else 0)
+        rememberLazyListState(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 4 else 0)
 
     var currentIndexTimes by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "RangeNumbers")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && mainViewModel.missionDetails.missionName == "RangeAlphabet") mainViewModel.missionDetails.repeatTimes - 1 else 0) }
-    var currentIndexRange_312 by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 3 else 0) }
+    var currentIndexRange_312 by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 4 else 0) }
 
     val scope = rememberCoroutineScope()
 
@@ -297,11 +299,34 @@ fun RangeMemoryMissionSetting(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(20.dp))
-//                    if (mainViewModel.whichRangeMission.isNumbers) {
-                    Image(
-                        painter = painterResource(id = getImageForSliderValue(if (mainViewModel.missionDetails.missionID > 1) mainViewModel.missionDetails.missionLevel else selectedItem)),
-                        contentDescription = "", modifier = Modifier.size(150.dp)
-                    )
+
+                    if(mainViewModel.whichRangeMission.isNumbers){
+                        Image(
+                            painter = painterResource(id = getImageForSelectedValue(if (mainViewModel.missionDetails.missionID > 1) mainViewModel.missionDetails.missionLevel else selectedItem)),
+                            contentDescription = "", modifier = Modifier.size(200.dp)
+                        )
+                    } else if( mainViewModel.whichRangeMission.orderNumbers){
+                        Image(
+                            painter = painterResource(id = R.drawable.arrangenum),
+                            contentDescription = "", modifier = Modifier.size(200.dp)
+                        )
+                    } else if( mainViewModel.whichRangeMission.orderAlphabet){
+                        Image(
+                            painter = painterResource(id = R.drawable.arrangealpha),
+                            contentDescription = "", modifier = Modifier.size(200.dp)
+                        )
+                    }
+                    else if( mainViewModel.whichRangeMission.isAlphabets){
+                        Image(
+                            painter = painterResource(id = getAlphaImageForSelectedValue(if (mainViewModel.missionDetails.missionID > 1) mainViewModel.missionDetails.missionLevel else selectedItem)),
+                            contentDescription = "", modifier = Modifier.size(200.dp)
+                        )
+                    } else{
+                        Image(
+                            painter = painterResource(id = R.drawable.shapeset),
+                            contentDescription = "", modifier = Modifier.size(200.dp)
+                        )
+                    }
 //                    }
 
                     Text(
@@ -423,7 +448,7 @@ fun RangeMemoryMissionSetting(
                                 ) {
                                     mainViewModel.missionData(
                                         MissionDataHandler.NumbersCount(
-                                            noOfValue = currentIndexRange_312 + 3
+                                            noOfValue = currentIndexRange_312 + 4
                                         )
                                     )
                                     Card(
@@ -449,7 +474,7 @@ fun RangeMemoryMissionSetting(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (mainViewModel.whichRangeMission.isNumbers) "${index + 3}" else if (mainViewModel.whichRangeMission.isAlphabets) "${(index + 3)}" else "${(index + 3)}",
+                                                text = if (mainViewModel.whichRangeMission.isNumbers) "${index + 4}" else if (mainViewModel.whichRangeMission.isAlphabets) "${(index + 4)}" else "${(index + 4)}",
                                                 color = if (isDarkMode) if (index == currentIndexRange_312) Color.White else Color.Gray else if (index == currentIndexRange_312) Color.Black else Color.Gray,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.W600

@@ -79,6 +79,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -125,6 +126,9 @@ fun LocationMissionSetup(
     var showDialog by remember(permissionState) {
         mutableStateOf(false)
     }
+    var showMapStepDialog by remember(permissionState) {
+        mutableStateOf(false)
+    }
     var guideOrNot by remember {
         mutableStateOf(permissionState.status.isGranted)
     }
@@ -140,7 +144,7 @@ fun LocationMissionSetup(
     LaunchedEffect(key1 = billingState.value) {
         currentState = billingState.value
     }
-    
+
     val backStackEntry = controller.currentBackStackEntryAsState()
 
     BackHandler {
@@ -188,7 +192,8 @@ fun LocationMissionSetup(
     }
     LaunchedEffect(showEmptyToast) {
         if (showEmptyToast) {
-            Toast.makeText(context, "Location short name should not be Empty !", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Location short name should not be Empty !", Toast.LENGTH_SHORT)
+                .show()
             showEmptyToast = false
         }
     }
@@ -269,7 +274,7 @@ fun LocationMissionSetup(
 //                                }
                                 mainViewModel.missionData(
                                     MissionDataHandler.RepeatTimes(
-                                        repeat =  1
+                                        repeat = 1
                                     )
                                 )
                                 mainViewModel.missionData(MissionDataHandler.SubmitData)
@@ -305,7 +310,7 @@ fun LocationMissionSetup(
                                 )
                                 mainViewModel.missionData(
                                     MissionDataHandler.RepeatTimes(
-                                        repeat =  1
+                                        repeat = 1
                                     )
                                 )
                                 mainViewModel.missionData(
@@ -463,12 +468,7 @@ fun LocationMissionSetup(
                                 Card(
                                     onClick = {
                                         if (isLocationEnabled(context)) {
-                                            controller.navigate(Routes.MapScreen.route) {
-                                                popUpTo(Routes.ReachLocationMissionScreen.route){
-                                                    inclusive = false
-                                                }
-                                                launchSingleTop = true
-                                            }
+                                            showMapStepDialog = true
                                         } else {
                                             showDialog = true
                                         }
@@ -586,7 +586,8 @@ fun LocationMissionSetup(
                                     mainViewModel.insertLocationByName(
                                         LocationByName(
                                             locId = System.currentTimeMillis(),
-                                            locationString = filename, locationName = mainViewModel.locationNameToSave
+                                            locationString = filename,
+                                            locationName = mainViewModel.locationNameToSave
                                         )
                                     )
                                 } else {
@@ -632,14 +633,16 @@ fun LocationMissionSetup(
                                                 mainViewModel.insertLocationByName(
                                                     LocationByName(
                                                         locId = System.currentTimeMillis(),
-                                                        locationString = filename, locationName = mainViewModel.locationNameToSave
+                                                        locationString = filename,
+                                                        locationName = mainViewModel.locationNameToSave
                                                     )
                                                 )
                                             } else {
                                                 mainViewModel.insertLocationByName(
                                                     LocationByName(
                                                         locId = System.currentTimeMillis(),
-                                                        locationString = filename, locationName = codeName
+                                                        locationString = filename,
+                                                        locationName = codeName
                                                     )
                                                 )
                                             }
@@ -665,7 +668,10 @@ fun LocationMissionSetup(
                                     singleLine = true,
                                     modifier = Modifier
                                         .fillMaxWidth(0.8f),
-                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.surfaceTint, fontSize = 16.sp),
+                                    textStyle = TextStyle(
+                                        color = MaterialTheme.colorScheme.surfaceTint,
+                                        fontSize = 16.sp
+                                    ),
                                     maxLines = 1,
                                     decorationBox = { innerTextField ->
                                         Box(
@@ -694,19 +700,21 @@ fun LocationMissionSetup(
                             ) {
                                 CustomButton(
                                     onClick = {
-                                        if(codeName.trim().isNotEmpty()){
+                                        if (codeName.trim().isNotEmpty()) {
                                             if (updateAttempt) {
                                                 mainViewModel.updateLocationByName(
                                                     LocationByName(
                                                         locId = clickedElement,
-                                                        locationString = filename, locationName = codeName
+                                                        locationString = filename,
+                                                        locationName = codeName
                                                     )
                                                 )
                                             } else {
                                                 mainViewModel.insertLocationByName(
                                                     LocationByName(
                                                         locId = System.currentTimeMillis(),
-                                                        locationString = filename, locationName = codeName
+                                                        locationString = filename,
+                                                        locationName = codeName
                                                     )
                                                 )
                                             }
@@ -714,7 +722,7 @@ fun LocationMissionSetup(
                                             filename = ""
                                             codeName = ""
                                             bottomSheetState = false
-                                        } else{
+                                        } else {
                                             showEmptyToast = true
                                         }
                                     },
@@ -726,6 +734,84 @@ fun LocationMissionSetup(
 
                         }
                     }
+                }
+                if (showMapStepDialog) {
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Dialog(onDismissRequest = {
+                            showMapStepDialog = false
+                            controller.navigate(Routes.MapScreen.route) {
+                                popUpTo(Routes.ReachLocationMissionScreen.route) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }) {
+                            Column(
+                                modifier = Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.onBackground,
+                                        shape = RoundedCornerShape(10.dp)
+                                    ), horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "1. Long tap/press on your choice location on Map ",
+                                    color = MaterialTheme.colorScheme.surfaceTint,
+                                    fontSize = 18.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 20.dp), fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "2. Tap 'Yes/No' according to your choice ",
+                                    color = MaterialTheme.colorScheme.surfaceTint,
+                                    fontSize = 18.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 10.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Image(
+                                    painter = painterResource(id = R.drawable.locadialog),
+                                    contentDescription = "",
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(15.dp))
+                                        .width(250.dp)
+                                        .height(250.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 15.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(bottom = 20.dp)
+                                    ) {
+                                        CustomButton(
+                                            onClick = {
+                                                showMapStepDialog = false
+                                                controller.navigate(Routes.MapScreen.route) {
+                                                    popUpTo(Routes.ReachLocationMissionScreen.route) {
+                                                        inclusive = false
+                                                    }
+                                                    launchSingleTop = true
+                                                }
+                                            },
+                                            text = "Okay",
+                                            width = 0.8f,
+                                            backgroundColor = Color(0xff3F434F)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                 }
                 if (showDialog) {
                     AlertDialog(
@@ -826,7 +912,8 @@ fun singleEntryLocation(
                 color = if (isSelected) Color(0xff0FAACB) else Color.Transparent
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (isSelected && isDarkMode) Color(0xff2F333E) else MaterialTheme.colorScheme.secondaryContainer)
+                containerColor = if (isSelected && isDarkMode) Color(0xff2F333E) else MaterialTheme.colorScheme.secondaryContainer
+            )
 
         ) {
             Row(
@@ -838,16 +925,24 @@ fun singleEntryLocation(
 
                 Column {
                     Text(
-                        text = "Name: " + if (qrCodeData.locationName.length > 20) "${qrCodeData.locationName.take(19)}..." else qrCodeData.locationName,
+                        text = "Name: " + if (qrCodeData.locationName.length > 20) "${
+                            qrCodeData.locationName.take(
+                                19
+                            )
+                        }..." else qrCodeData.locationName,
 
                         overflow = TextOverflow.Ellipsis,
-                        color =MaterialTheme.colorScheme.surfaceTint,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp)
                     )
                     Text(
-                        text = "Value: "+if (qrCodeData.locationString.length > 20) "${qrCodeData.locationString.take(19)}..." else qrCodeData.locationString,
+                        text = "Value: " + if (qrCodeData.locationString.length > 20) "${
+                            qrCodeData.locationString.take(
+                                19
+                            )
+                        }..." else qrCodeData.locationString,
                         overflow = TextOverflow.Ellipsis,
-                        color =MaterialTheme.colorScheme.surfaceTint,
+                        color = MaterialTheme.colorScheme.surfaceTint,
                         fontSize = 16.sp, modifier = Modifier.padding(start = 13.dp, top = 5.dp)
                     )
                 }
@@ -865,7 +960,7 @@ fun singleEntryLocation(
                             }, contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = if(isDarkMode)  R.drawable.dots else R.drawable.dotsblack),
+                            painter = painterResource(id = if (isDarkMode) R.drawable.dots else R.drawable.dotsblack),
                             contentDescription = "",
                             modifier = Modifier
                                 .size(22.dp)

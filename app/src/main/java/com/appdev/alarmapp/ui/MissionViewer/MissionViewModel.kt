@@ -120,6 +120,20 @@ class MissionViewModel @Inject constructor() : ViewModel() {
                     )
                 }
             }
+
+            is MissionDemoHandler.ResetCorrectList -> {
+               if(missionHandler.correctAlphabetsList.isNotEmpty()){
+                   missionHandler.correctAlphabetsList =
+                       emptyList()
+                   missionHandler =
+                       missionHandler.copy(correctAlphabetsList = missionHandler.correctAlphabetsList)
+               } else{
+                   missionHandler.correctChoiceList =
+                       emptyList()
+                   missionHandler =
+                       missionHandler.copy(correctChoiceList = missionHandler.correctChoiceList)
+               }
+            }
         }
     }
 

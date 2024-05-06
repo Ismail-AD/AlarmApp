@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
+import androidx.compose.material.icons.filled.ChangeHistory
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.Diamond
@@ -142,8 +143,7 @@ fun ArrangeShapesMHScreen(
 
     var clickedNumbers by remember { mutableStateOf(emptyList<Int>()) }
 
-
-    var correctList = remember { mutableStateOf((listOf(Icons.Filled.Circle,Icons.Filled.Rectangle,Icons.Filled.Hexagon,Icons.Filled.Pentagon,Icons.Filled.Square,Icons.Filled.Favorite,Icons.Filled.StarRate,Icons.Filled.LocalFireDepartment,Icons.Filled.WaterDrop,Icons.Filled.EmojiEmotions,Icons.Filled.Diamond,Icons.Filled.Cookie)).shuffled().take(elementsCountToPick)) }
+    var correctList = remember { mutableStateOf((listOf(Icons.Filled.Circle,Icons.Filled.ChangeHistory,Icons.Filled.Hexagon,Icons.Filled.Pentagon,Icons.Filled.Square,Icons.Filled.Favorite,Icons.Filled.StarRate,Icons.Filled.LocalFireDepartment,Icons.Filled.WaterDrop,Icons.Filled.EmojiEmotions,Icons.Filled.Diamond,Icons.Filled.Cookie)).shuffled().take(elementsCountToPick)) }
     var shuffledList = remember { mutableStateOf(correctList.value.shuffled()) }
     val state =
         rememberReorderableLazyGridState(dragCancelledAnimation = NoDragCancelledAnimation(),
@@ -756,7 +756,7 @@ fun ArrangeShapesMHScreen(
                 }
 
                 Text(
-                    text = if (showWrong && countdown != 0) "Order not matched! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
+                    text = if (showWrong && countdown == 0) "Order is not correct ! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
                     color = Color.White,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,

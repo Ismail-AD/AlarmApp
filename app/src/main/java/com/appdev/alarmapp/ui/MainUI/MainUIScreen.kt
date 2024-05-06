@@ -8,6 +8,9 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -104,7 +107,7 @@ import java.time.LocalTime
 
 @Composable
 fun MainUiScreen(
-    ringtoneRepository:RingtoneRepository,
+    ringtoneRepository: RingtoneRepository,
     textToSpeech: TextToSpeech,
     tokenManagement: TokenManagement,
     controller: NavHostController = rememberNavController(),
@@ -265,37 +268,55 @@ fun MainUiScreen(
     ) { PV ->
         NavHost(
             navController = controller,
-            startDestination = Routes.MainScreen.route,
-            enterTransition = {
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Right,
-                    animationSpec = tween(700)
-                )
+            startDestination = Routes.MainScreen.route, modifier = Modifier.background(MaterialTheme.colorScheme.background)
+        ) {
+            composable(route = Routes.MainScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
             },
             exitTransition = {
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Left,
-                    animationSpec = tween(700)
-                )
+                    fadeOut(animationSpec = tween(90))
             },
             popEnterTransition = {
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Right,
-                    animationSpec = tween(700)
-                )
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
             },
             popExitTransition = {
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Companion.Left,
-                    animationSpec = tween(700)
-                )
-            }, modifier = Modifier.background(MaterialTheme.colorScheme.background)
-        ) {
-            composable(route = Routes.MainScreen.route) {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 MainScreen(ringtoneRepository, controller, mainViewModel)
             }
 
-            composable(route = Routes.SquatMissionScreen.route) {
+            composable(route = Routes.SquatMissionScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 SquatMission(
                     mainViewModel = mainViewModel,
                     controller = controller,
@@ -305,11 +326,53 @@ fun MainUiScreen(
                         }
                     })
             }
-            composable(route = Routes.LabelScreen.route) {
+            composable(route = Routes.LabelScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 LabelScreen(textToSpeech, controller, mainViewModel)
             }
 
-            composable(route = Routes.TypingPreviewScreen.route) {
+            composable(route = Routes.TypingPreviewScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 TypingMissionHandler(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
@@ -325,38 +388,269 @@ fun MainUiScreen(
                     })
             }
 
-            composable(route = Routes.FeedbackScreen.route) {
+            composable(route = Routes.FeedbackScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 FeedbackScreen(mainViewModel = mainViewModel, controller = controller)
             }
 
-            composable(route = Routes.FifthScreen.route) {
+            composable(route = Routes.FifthScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 SettingsScreen(controller, mainViewModel)
             }
-            composable(route = Routes.SoundPowerUpScreen.route) {
+            composable(route = Routes.SoundPowerUpScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 SoundPowerUp(textToSpeech, controller, mainViewModel)
             }
-            composable(route = Routes.SetUsabilityScreen.route) {
+            composable(route = Routes.SetUsabilityScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 UsabilityScreen(controller)
             }
-            composable(route = Routes.AlarmDismissScreen.route) {
+            composable(route = Routes.AlarmDismissScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 AlarmDismissSettings(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.GeneralScreen.route) {
+            composable(route = Routes.GeneralScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 GeneralSettings(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.ThemeChangeScreen.route) {
+            composable(route = Routes.ThemeChangeScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 SetTheme(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.SettingsOfAlarmScreen.route) {
+            composable(route = Routes.SettingsOfAlarmScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 AlarmSettings(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.DefaultSettingsScreen.route) {
+            composable(route = Routes.DefaultSettingsScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 DefaultAlarmMissions(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.Purchase.route) {
+            composable(route = Routes.Purchase.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 InAppPurchase(controller)
             }
-            composable(route = Routes.Preview.route) {
+            composable(route = Routes.Preview.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 PreviewScreen(
                     ringtoneRepository,
                     textToSpeech,
@@ -364,13 +658,55 @@ fun MainUiScreen(
                     mainViewModel
                 )
             }
-            composable(route = Routes.Ringtone.route) {
+            composable(route = Routes.Ringtone.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 RingtoneSelection(
                     controller,
                     mainViewModel
                 )
             }
-            composable(route = Routes.PreviewAlarm.route) {
+            composable(route = Routes.PreviewAlarm.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 AlarmCancelScreen(
                     textToSpeech = textToSpeech,
                     onDismissCallback = object : DismissCallback {
@@ -389,7 +725,28 @@ fun MainUiScreen(
                     ringtoneRepository = ringtoneRepository
                 )
             }
-            composable(route = Routes.MissionShakeScreen.route) {
+            composable(route = Routes.MissionShakeScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 ShakeDetectionScreen(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller, timerEndsCallback =
                     object : TimerEndsCallback {
@@ -403,10 +760,52 @@ fun MainUiScreen(
                         }
                     })
             }
-            composable(route = Routes.CameraRoutineScreen.route) {
+            composable(route = Routes.CameraRoutineScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 CameraMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.PhotoMissionPreviewScreen.route) {
+            composable(route = Routes.PhotoMissionPreviewScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 PhotoMissionScreen(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
@@ -422,10 +821,52 @@ fun MainUiScreen(
                         }
                     })
             }
-            composable(route = Routes.PhotoClickScreen.route) {
+            composable(route = Routes.PhotoClickScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 PhotoClickScreen(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.BarCodeDemoScreen.route) {
+            composable(route = Routes.BarCodeDemoScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 BarCodeMissionDemo(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.BarCodeScanScreen.route, enterTransition = {
@@ -442,7 +883,28 @@ fun MainUiScreen(
                 }) {
                 ScanBarCodeScreen(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.BarCodePreviewAlarmScreen.route) {
+            composable(route = Routes.BarCodePreviewAlarmScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 BarCodeMissionScreen(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
                     timerEndsCallback =
@@ -458,7 +920,28 @@ fun MainUiScreen(
                         }
                     })
             }
-            composable(route = Routes.StepDetectorScreen.route) {
+            composable(route = Routes.StepDetectorScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 StepMission(textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller, timerEndsCallback =
                     object : TimerEndsCallback {
@@ -472,29 +955,199 @@ fun MainUiScreen(
                         }
                     })
             }
-            composable(route = Routes.SnoozeScreen.route) {
+            composable(route = Routes.SnoozeScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 SnoozeScreen(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.CommonMissionScreen.route) {
+            composable(route = Routes.CommonMissionScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 MemoryMissionScreen(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.RangeMemoryMissionSetting.route) {
+            composable(route = Routes.RangeMemoryMissionSetting.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 RangeMemoryMissionSetting(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.TypeMissionScreen.route) {
+            composable(route = Routes.TypeMissionScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 TypingMissionScreen(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.SentenceScreen.route) {
+            composable(route = Routes.SentenceScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 SentenceSelection(mainViewModel = mainViewModel, controller = controller)
             }
-            composable(route = Routes.MissionMenuScreen.route) {
+            composable(route = Routes.MissionMenuScreen.route, enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                    animationSpec = tween(600)
+                )
+            },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                        animationSpec = tween(600)
+                    )
+                },
+                popEnterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                        animationSpec = tween(600)
+                    )
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                        animationSpec = tween(600)
+                    )
+                }) {
                 MissionMenu(controller = controller, mainViewModel)
             }
-            composable(route = Routes.MapScreen.route) {
-                showMap(mainViewModel = mainViewModel,controller)
+            composable(route = Routes.MapScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
+                showMap(mainViewModel = mainViewModel, controller)
             }
 
-            composable(route = Routes.MissionMathScreen.route) {
+            composable(route = Routes.MissionMathScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 MathMissionHandler(textToSpeech = textToSpeech,
                     mainViewModel = mainViewModel,
                     missionLevel = mainViewModel.missionDetails.missionLevel,
@@ -511,11 +1164,53 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(route = Routes.ReachLocationMissionScreen.route) {
+            composable(route = Routes.ReachLocationMissionScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 LocationMissionSetup(controller = controller, mainViewModel)
             }
 
-            composable(route = Routes.AtLocationMissionScreen.route) {
+            composable(route = Routes.AtLocationMissionScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 AtLocationMission(
                     textToSpeech = textToSpeech, mainViewModel = mainViewModel,
                     controller = controller,
@@ -533,7 +1228,28 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(route = Routes.WalkOffScreen.route) {
+            composable(route = Routes.WalkOffScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 WalkOffMission(
                     textToSpeech = textToSpeech,
                     mainViewModel = mainViewModel,
@@ -551,7 +1267,28 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(Routes.RangeAlphabetMissionPreview.route) {
+            composable(Routes.RangeAlphabetMissionPreview.route, enterTransition = {
+                fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                    initialScale = 0.92f,
+                    animationSpec = tween(
+                        220, delayMillis = 90
+                    )
+                )
+            },
+                exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+                },
+                popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+                },
+                popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+                }) {
                 val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
                     "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
                     "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
@@ -595,7 +1332,28 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(Routes.ArrangeShapesScreen.route) {
+            composable(Routes.ArrangeShapesScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 ArrangeShapesMHScreen(
                     textToSpeech = textToSpeech,
                     controller = controller,
@@ -613,7 +1371,28 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(Routes.ArrangeAlphabetsScreen.route) {
+            composable(Routes.ArrangeAlphabetsScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 ArrangeAlphabetsMHScreen(
                     textToSpeech = textToSpeech,
                     controller = controller,
@@ -631,7 +1410,28 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(Routes.ArrangeNumbersScreen.route) {
+            composable(Routes.ArrangeNumbersScreen.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 ArrangeNumbersMHScreen(
                     textToSpeech = textToSpeech,
                     controller = controller,
@@ -649,7 +1449,28 @@ fun MainUiScreen(
                     }
                 )
             }
-            composable(Routes.RangeMemoryMissionPreview.route) {
+            composable(Routes.RangeMemoryMissionPreview.route, enterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+            },
+            popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+            }) {
                 val diffLevel = when (mainViewModel.missionDetails.difficultyLevel) {
                     "Normal Mode" -> mainViewModel.missionDetails.valuesToPick * 2
                     "Hard Mode" -> mainViewModel.missionDetails.valuesToPick * 3
@@ -695,7 +1516,28 @@ fun MainUiScreen(
             }
 
 
-            composable(route = Routes.MissionScreen.route) {
+            composable(route = Routes.MissionScreen.route, enterTransition = {
+                fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                    initialScale = 0.92f,
+                    animationSpec = tween(
+                        220, delayMillis = 90
+                    )
+                )
+            },
+                exitTransition = {
+                    fadeOut(animationSpec = tween(90))
+                },
+                popEnterTransition = {
+                    fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(
+                            220, delayMillis = 90
+                        )
+                    )
+                },
+                popExitTransition = {
+                    fadeOut(animationSpec = tween(90))
+                }) {
                 val sizeOfBlocks = when (mainViewModel.missionDetails.missionLevel) {
                     "Very Easy" -> 3
                     "Easy" -> 4

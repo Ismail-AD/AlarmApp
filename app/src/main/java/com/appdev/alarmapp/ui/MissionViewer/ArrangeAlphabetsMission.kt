@@ -742,7 +742,7 @@ fun ArrangeAlphabetsMHScreen(
                 }
 
                 Text(
-                    text = if (showWrong && countdown != 0) "Order not matched! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
+                    text = if (showWrong && countdown == 0) "Order is not correct ! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
                     color = Color.White,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,
