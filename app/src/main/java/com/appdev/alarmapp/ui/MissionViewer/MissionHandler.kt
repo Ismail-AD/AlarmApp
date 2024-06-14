@@ -10,6 +10,7 @@ import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -67,6 +68,7 @@ import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.convertToMilliseconds
 import com.appdev.alarmapp.ui.AlarmCancel.playTextToSpeech
 import com.appdev.alarmapp.ui.AlarmCancel.startCurrentTimeAndDate
+import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
@@ -503,11 +505,11 @@ fun MissionHandlerScreen(
         key2 = countdown,
         key3 = missionViewModel.missionHandler.correctChoiceList
     ) {
-        if (missionViewModel.missionHandler.preservedIndexes.isEmpty() && countdown != 0) {
+        if (missionViewModel.missionHandler.preservedIndexes.isEmpty() && countdown > 0) {
             missionViewModel.missionEventHandler(MissionDemoHandler.GenerateAndStore(totalSize))
             modifiedIndices = missionViewModel.missionHandler.preservedIndexes
         }
-        if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown == 0) {
+        if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown <= 0) {
             modifiedIndices = missionViewModel.missionHandler.correctChoiceList
         }
 
@@ -676,7 +678,7 @@ fun MissionHandlerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (countdown != 0) Color(0xff232E4C) else Color(0xff121315)),
+            .background(if (countdown > 0) Color(0xff232E4C) else Color(0xff121315)),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
@@ -732,7 +734,7 @@ fun MissionHandlerScreen(
             }
 
             Text(
-                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
+                text = if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && (missionViewModel.missionHandler.correctChoiceList.size == missionViewModel.missionHandler.preservedIndexes.size)) "Round ${mainViewModel.missionDetails.repeatProgress} Cleared" else if (showWrong) "Wrong" else if (missionViewModel.missionHandler.preservedIndexes.isNotEmpty() && countdown > 0) "Memorize! $countdown" else "Spot ${missionViewModel.missionHandler.preservedIndexes.size - missionViewModel.missionHandler.correctChoiceList.size} color tiles",
                 color = Color.White,
                 fontSize = 20.sp,
                 textAlign = TextAlign.Center,
@@ -774,7 +776,7 @@ fun MissionHandlerScreen(
                                             ) else Color(0xff1C1F26)
                                         )
                                         .clickable {
-                                            if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+                                            if (countdown <= 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
                                                 if (!selectedBlocks.contains(blockIndex)) {
                                                     // Handle block click during countdown
                                                     missionViewModel.missionEventHandler(
@@ -792,7 +794,17 @@ fun MissionHandlerScreen(
                 }
             }
         }
-
+        if(countdown > 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 25.dp).align(Alignment.BottomCenter), contentAlignment = Alignment.Center
+            ) {
+                CustomButton(onClick = {
+                    countdown = 0
+                }, text = "Start Mission", width = 0.85f)
+            }
+        }
     }
 }
 

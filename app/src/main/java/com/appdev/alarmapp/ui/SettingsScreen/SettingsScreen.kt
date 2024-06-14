@@ -50,7 +50,7 @@ fun SettingsScreen(controller: NavHostController, mainViewModel: MainViewModel) 
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 20.dp)
+            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 100.dp)
         ) {
             item {
                 Text(
@@ -147,7 +147,12 @@ fun SettingsScreen(controller: NavHostController, mainViewModel: MainViewModel) 
             }
             item {
                 OptionMenu(title = "About") {
-
+                    controller.navigate(Routes.ThemeChangeScreen.route) {
+                        popUpTo(Routes.SettingsOfAlarmScreen.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
                 }
             }
         }

@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.GeofenceManager
 import com.appdev.alarmapp.AlarmManagement.SnoozeCallback
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
@@ -110,8 +111,10 @@ fun AlarmCancelScreen(
         mutableStateOf(Ringtone())
     }
 
-
     val scope = rememberCoroutineScope()
+    var timeToDismiss by remember {
+        mutableStateOf(0L)
+    }
 
     val systemUiController = rememberSystemUiController()
 
@@ -123,6 +126,13 @@ fun AlarmCancelScreen(
     }
     BackHandler {
 
+    }
+
+    LaunchedEffect(key1 = alarmEntity) {
+        if (timeToDismiss == 0L && dismissSettings.dismissTime >= 1 && alarmEntity != null) {
+            timeToDismiss =
+                minutesToMillis(dismissSettings.dismissTime) + alarmEntity!!.nextTimeInMillis
+        }
     }
 
     val previewMode by remember {
@@ -144,7 +154,7 @@ fun AlarmCancelScreen(
 
 
     DisposableEffect(key1 = Unit) {
-        if(!Helper.isPlaying()){
+        if (!Helper.isPlaying()) {
             alarmEntity?.let {
                 Helper.updateCustomValue(it.customVolume)
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -188,7 +198,7 @@ fun AlarmCancelScreen(
     }
     LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Speech Begins and values are $timeIsDone  and $speechIsDone")
-        if(!Helper.isPlaying()){
+        if (!Helper.isPlaying()) {
 
 
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -201,8 +211,7 @@ fun AlarmCancelScreen(
 
                     if (timeIsDone) {
                         timeIsDone = false
-                    }
-                    else if(speechIsDone){
+                    } else if (speechIsDone) {
                         speechIsDone = false
                     }
                 }
@@ -257,10 +266,17 @@ fun AlarmCancelScreen(
             }
         }
     }
+    var geofenceManager by remember {
+        mutableStateOf(GeofenceManager(context))
+    }
 
-    LaunchedEffect(key1 = Unit,key2 = timeIsDone, key3 = speechIsDone) {
+    LaunchedEffect(key1 = Unit, key2 = timeIsDone, key3 = speechIsDone) {
         Log.d("CHKSP", "Going to check to play tone and values are $timeIsDone  and $speechIsDone")
 
+        if (mainViewModel.currentLocation != null) {
+            mainViewModel.updateMyCurrentLocationToNull()
+            geofenceManager.deregisterGeofence()
+        }
         if (!mainViewModel.isRealAlarm && !previewMode) {
             Log.d("CHKMUS", "Mission Viewer Music Started")
             Helper.playStream(context, R.raw.alarmsound)
@@ -497,6 +513,25 @@ fun AlarmCancelScreen(
 //        }
 //    }
 
+
+    LaunchedEffect(key1 = timeToDismiss) {
+        if (timeToDismiss != 0L) {
+            scope.launch {
+                while (true) {
+                    val currentTimeInMillis = System.currentTimeMillis()
+                    if (currentTimeInMillis >= timeToDismiss) {
+                        Helper.stopStream()
+                        textToSpeech.stop()
+                        vibrator.cancel()
+                        onDismissCallback.onDismissClicked()
+                        break
+                    }
+                    delay(1000) // Check again after 1 second
+                }
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -620,7 +655,9 @@ fun AlarmCancelScreen(
                                         setOfSentences = convertStringToSet(singleMission.selectedSentences),
                                         imageId =
                                         singleMission.imageId,
-                                        codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                                        codeId = singleMission.codeId,
+                                        locId = singleMission.locId,
+                                        valuesToPick = singleMission.valuesToPick
                                     )
                                 )
                             }
@@ -653,27 +690,35 @@ fun AlarmCancelScreen(
                             "Photo" -> {
                                 controller.navigate(Routes.PhotoMissionPreviewScreen.route)
                             }
+
                             "QR/Barcode" -> {
                                 controller.navigate(Routes.BarCodePreviewAlarmScreen.route)
                             }
+
                             "RangeNumbers" -> {
                                 controller.navigate(Routes.RangeMemoryMissionPreview.route)
                             }
+
                             "RangeAlphabet" -> {
                                 controller.navigate(Routes.RangeAlphabetMissionPreview.route)
                             }
+
                             "WalkOff" -> {
                                 controller.navigate(Routes.WalkOffScreen.route)
                             }
+
                             "ReachDestination" -> {
                                 controller.navigate(Routes.AtLocationMissionScreen.route)
                             }
+
                             "ArrangeNumbers" -> {
                                 controller.navigate(Routes.ArrangeNumbersScreen.route)
                             }
+
                             "ArrangeAlphabet" -> {
                                 controller.navigate(Routes.ArrangeAlphabetsScreen.route)
                             }
+
                             "ArrangeShapes" -> {
                                 controller.navigate(Routes.ArrangeShapesScreen.route)
                             }
@@ -773,6 +818,10 @@ fun AlarmCancelScreen(
             }
         }
     }
+}
+
+fun minutesToMillis(minutes: Int): Long {
+    return minutes * 60 * 1000L
 }
 
 fun snoozeAlarm(

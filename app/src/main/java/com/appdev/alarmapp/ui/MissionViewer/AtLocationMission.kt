@@ -2,8 +2,10 @@ package com.appdev.alarmapp.ui.MissionViewer
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.location.Location
 import android.location.LocationManager
 import android.media.AudioManager
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
@@ -72,6 +75,7 @@ import com.appdev.alarmapp.ui.AlarmCancel.playTextToSpeech
 import com.appdev.alarmapp.ui.AlarmCancel.startCurrentTimeAndDate
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
+import com.appdev.alarmapp.ui.MissionDemos.bitmapDescriptorFromVector
 import com.appdev.alarmapp.ui.PreivewScreen.setMaxVolume
 import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.Helper
@@ -87,6 +91,15 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.Circle
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -155,6 +168,47 @@ fun AtLocationMission(
     var dataToBeMatched by remember {
         mutableStateOf(mainViewModel.selectedLocationByName.locationString)
     }
+    var markerState = remember { MarkerState(position = LatLng(0.0, 0.0)) }
+
+
+    val singapore = LatLng(1.35, 103.87)
+    var cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(singapore, 30f)
+    }
+    var uiSettings by remember { mutableStateOf(MapUiSettings()) }
+    var mapProperties by remember { mutableStateOf(MapProperties()) }
+    var calculatedLocation by remember { mutableStateOf<LatLng?>(null) }
+
+
+    LaunchedEffect(key1 = Unit, key2 = mainViewModel.selectedLocationByName) {
+        if (mainViewModel.missionDetails.locId > 0) {
+            mainViewModel.getLocationById(mainViewModel.missionDetails.locId)
+        } else {
+            calculatedLocation = LatLng(mainViewModel.longitude, mainViewModel.latitude)
+        }
+
+        if (mainViewModel.selectedLocationByName.locationString.trim().isNotEmpty()) {
+            calculatedLocation = LatLng(
+                mainViewModel.selectedLocationByName.longitude,
+                mainViewModel.selectedLocationByName.latitude
+            )
+        }
+
+    }
+    LaunchedEffect(key1 = calculatedLocation) {
+        calculatedLocation?.let {
+            markerState = MarkerState(it)
+        }
+    }
+    LaunchedEffect(key1 = loaderState) {
+        if (!loaderState && currentLocation != null) {
+            currentLocation?.let {
+                cameraPositionState.position =
+                    CameraPosition.fromLatLngZoom(LatLng(it.latitude, it.longitude), 18f)
+            }
+        }
+    }
+
 
     val animatedProgress = animateFloatAsState(
         targetValue = progress,
@@ -462,7 +516,7 @@ fun AtLocationMission(
 
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = 7500L // 3 seconds
+        val duration = dismissSettings.missionTime * 1000
         while (elapsedTime < duration && progress > 0.00100f) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
@@ -488,6 +542,9 @@ fun AtLocationMission(
             }
         }
     }
+    var startUpdating by remember(locPermissionState) {
+        mutableStateOf(false)
+    }
     LaunchedEffect(key1 = countdown) {
         if (countdown > 0) {
             scope.launch {
@@ -495,9 +552,80 @@ fun AtLocationMission(
                 countdown--
             }
         } else {
+            startUpdating = true
             progress = 1f
         }
     }
+    var totalDistance by remember {
+        mutableStateOf(0f)
+    }
+    var updateCounter by remember {
+        mutableStateOf(3)
+    }
+    var currentDistance by remember {
+        mutableStateOf(FloatArray(1))
+    }
+    var startPoint by remember {
+        mutableStateOf<Location?>(null)
+    }
+
+    DisposableEffect(key1 = Unit, key2 = startUpdating) {
+        val locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation.let { location ->
+                    location?.let {
+                        if (currentLocation != null) {
+                            isMatched = LatLng(it.latitude, it.longitude) == LatLng(
+                                calculatedLocation!!.latitude,
+                                calculatedLocation!!.longitude
+                            )
+                            mainViewModel.updateCurrentLocation(it)
+                            if (startPoint != null) {
+                                Log.d("CHKDIS", "UP: $updateCounter")
+                                if (updateCounter > 0) {
+                                    updateCounter--
+                                } else {
+                                    Location.distanceBetween(
+                                        startPoint!!.latitude, startPoint!!.longitude,
+                                        it.latitude, it.longitude,
+                                        currentDistance
+                                    )
+                                    totalDistance = currentDistance[0]
+                                    Log.d("CHKDIS", "Dis: $totalDistance")
+
+                                    if (totalDistance > 2f) {
+                                        startPoint = it
+                                        totalDistance = 0f
+                                        currentDistance[0] = 0f
+                                        progress = 1f
+                                        updateCounter = 7
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val locationRequest = createLocationRequest()
+        if (locPermissionState.status.shouldShowRationale) {
+            showRationale = true
+        } else if (locPermissionState.status.isGranted) {
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback, Looper.getMainLooper()
+            )
+        } else {
+            locPermissionState.launchPermissionRequest()
+        }
+
+        onDispose {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
+    }
+
+
     LaunchedEffect(key1 = currentLocation) {
         if (currentLocation != null) {
             locationName = mainViewModel.getLocationName(
@@ -506,6 +634,9 @@ fun AtLocationMission(
                 context
             )
             isMatched = locationName == dataToBeMatched
+        }
+        if (currentLocation != null && startPoint == null) {
+            startPoint = currentLocation
         }
     }
 
@@ -530,7 +661,9 @@ fun AtLocationMission(
                                 isSelected = singleMission.isSelected,
                                 setOfSentences = convertStringToSet(singleMission.selectedSentences),
                                 imageId = singleMission.imageId,
-                                codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                                codeId = singleMission.codeId,
+                                locId = singleMission.locId,
+                                valuesToPick = singleMission.valuesToPick
                             )
                         )
                         when (mainViewModel.missionDetails.missionName) {
@@ -591,44 +724,51 @@ fun AtLocationMission(
                                     launchSingleTop = true
                                 }
                             }
+
                             "RangeNumbers" -> {
-                                controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                                controller.navigate(Routes.RangeMemoryMissionPreview.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
                             }
+
                             "RangeAlphabet" -> {
-                                controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                                controller.navigate(Routes.RangeAlphabetMissionPreview.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
                             }
+
                             "WalkOff" -> {
-                                controller.navigate(Routes.WalkOffScreen.route){
+                                controller.navigate(Routes.WalkOffScreen.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
                             }
+
                             "ReachDestination" -> {
-                                controller.navigate(Routes.AtLocationMissionScreen.route){
+                                controller.navigate(Routes.AtLocationMissionScreen.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
                             }
+
                             "ArrangeNumbers" -> {
-                                controller.navigate(Routes.ArrangeNumbersScreen.route){
+                                controller.navigate(Routes.ArrangeNumbersScreen.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
                             }
+
                             "ArrangeAlphabet" -> {
-                                controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                                controller.navigate(Routes.ArrangeAlphabetsScreen.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
                             }
+
                             "ArrangeShapes" -> {
-                                controller.navigate(Routes.ArrangeShapesScreen.route){
+                                controller.navigate(Routes.ArrangeShapesScreen.route) {
                                     popUpTo(controller.graph.startDestinationId)
                                     launchSingleTop = true
                                 }
@@ -654,8 +794,6 @@ fun AtLocationMission(
                         launchSingleTop
                     }
                 }
-            } else {
-                progress = 1f
             }
         }
     }
@@ -686,9 +824,10 @@ fun AtLocationMission(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                    .padding(start = 10.dp, top = 10.dp, end = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            )  {
                 IconButton(onClick = {
                     mainViewModel.dummyMissionList = emptyList()
                     mainViewModel.dummyMissionList = mainViewModel.missionDetailsList
@@ -711,18 +850,33 @@ fun AtLocationMission(
                         tint = Color.White, modifier = Modifier.size(22.dp)
                     )
                 }
+                if (mainViewModel.isRealAlarm || previewMode) {
+                    CustomButton(
+                        onClick = {
+                            controller.navigate(Routes.AlternativeMissionScreen.route) {
+                                popUpTo(controller.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        },
+                        text = "Emergency",
+                        width = 0.36f, height = 39.dp,
+                        backgroundColor = Color.Transparent,
+                        isBorderPreview = true,
+                        borderColor = Color.Red,
+                        textColor = Color.Red, fontSize = 16.sp
+                    )
+                }
             }
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.5f)
+                    .fillMaxSize()
                     .padding(bottom = 30.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
+                verticalArrangement = Arrangement.Top
             ) {
                 if (loaderState) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -735,62 +889,51 @@ fun AtLocationMission(
                         }
                     }
                 }
-//                if (!loaderState && currentLocation != null) {
-//                    Text(
-//                        text = if (countdown != 0) "1. Don't turn off your location until mission ends ! \n2. Stand up and take your position ! \n\nStarting in $countdown" else "Take steps softly",
-//                        color = Color.White,
-//                        fontSize = 23.sp,
-//                        lineHeight = 32.sp,
-//                        fontWeight = FontWeight.W400,
-//                        textAlign = TextAlign.Center,
-//                        modifier = Modifier.padding(horizontal = 15.dp)
-//                    )
-//                    Text(
-//                        text = if (countdown != 0) "" else "$distanceToCover",
-//                        color = Color.White,
-//                        fontSize = 70.sp,
-//                        fontWeight = FontWeight.W700,
-//                        modifier = Modifier.padding(top = 20.dp),
-//                        letterSpacing = 3.sp
-//                    )
-//                } else {
-                Text(
-                    text = if (isMatched != null && !isMatched!!) "You are standing at wrong location reach following one !" else "Reach at following location to end the mission",
-                    color = Color.White,
-                    fontSize = 23.sp,
-                    lineHeight = 29.sp,
-                    fontWeight = FontWeight.W400,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                Text(
-                    text = "Name: " + mainViewModel.selectedLocationByName.locationName,
-                    color = Color.White,
-                    fontSize = 20.sp, textAlign = TextAlign.Start,
-                    fontWeight = FontWeight.W400,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 20.dp, end = 20.dp, top = 40.dp)
-                )
-                Text(
-                    text = "Location: " + mainViewModel.selectedLocationByName.locationString,
-                    color = Color.White,
-                    fontSize = 20.sp, textAlign = TextAlign.Start,
-                    fontWeight = FontWeight.W400,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 7.dp)
-                )
-                Spacer(modifier = Modifier.height(40.dp))
-                CustomButton(onClick = {
-                    if (!locationEnabled(context)) {
-                        showDialog = true
-                    } else {
-                        mainViewModel.startLocationUpdates(fusedLocationClient)
+                if (!loaderState && currentLocation != null) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        GoogleMap(
+                            modifier = Modifier.fillMaxSize(),
+                            uiSettings = uiSettings.copy(
+                                scrollGesturesEnabled = true,
+                                zoomControlsEnabled = true,
+                                mapToolbarEnabled = true,
+                                tiltGesturesEnabled = true,
+                            ),
+                            properties = mapProperties.copy(isMyLocationEnabled = true),
+                            cameraPositionState = cameraPositionState,
+                        ) {
+                            calculatedLocation?.let { cal ->
+                                Marker(
+                                    state = MarkerState(
+                                        position = LatLng(
+                                            cal.latitude,
+                                            cal.longitude
+                                        )
+                                    ),
+                                    title = "Tapped Location", icon = bitmapDescriptorFromVector()
+                                )
+                            }
+                        }
                     }
-                }, text = "Get my location")
-
-//                }
+                } else {
+                    Text(
+                        text = "1. Reach the green marker wait for a while to complete the mission\n2. To start the mission,your current location needs to be fetched !",
+                        color = Color.White,
+                        fontSize = 23.sp,
+                        lineHeight = 32.sp,
+                        fontWeight = FontWeight.W400,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 15.dp)
+                    )
+                    Spacer(modifier = Modifier.height(40.dp))
+                    CustomButton(onClick = {
+                        if (!locationEnabled(context)) {
+                            showDialog = true
+                        } else {
+                            mainViewModel.startLocationUpdates(fusedLocationClient)
+                        }
+                    }, text = "Get my location")
+                }
             }
         }
         if (showDialog) {

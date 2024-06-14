@@ -36,7 +36,6 @@ class AlarmScheduler(
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val rp = ringtoneRepository
 
-
     fun schedule(alarmData: AlarmEntity, showNotify: Boolean) {
         val intent = Intent(context, AlarmTriggerHandler::class.java)
         intent.action = "${context.packageName}.ACTION_ALARM"

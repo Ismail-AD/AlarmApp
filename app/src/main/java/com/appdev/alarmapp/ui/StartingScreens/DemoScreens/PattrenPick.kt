@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PublishedWithChanges
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -130,7 +131,7 @@ fun PatternPick(ringtoneRepository: RingtoneRepository,controller: NavHostContro
             selectedCard = 1
             showBottomSheet = true
         }
-        MemoryBox(selectedCard == 2, iconID = Icons.Filled.ScreenRotation, title = "Shake") {
+        MemoryBox(selectedCard == 2, iconID = Icons.Filled.PublishedWithChanges, title = "Arrange Shapes") {
             selectedCard = 2
             showBottomSheet = true
         }
@@ -191,12 +192,17 @@ fun PatternPick(ringtoneRepository: RingtoneRepository,controller: NavHostContro
                             2 -> {
                                 mainViewModel.missionData(
                                     MissionDataHandler.MissionName(
-                                        missionName = "Shake"
+                                        missionName = "ArrangeShapes"
                                     )
                                 )
                                 mainViewModel.missionData(
                                     MissionDataHandler.RepeatTimes(
-                                        repeat = 5
+                                        repeat = 1
+                                    )
+                                )
+                                mainViewModel.missionData(
+                                    MissionDataHandler.NumbersCount(
+                                        noOfValue = 3
                                     )
                                 )
                             }
@@ -263,8 +269,8 @@ fun PatternPick(ringtoneRepository: RingtoneRepository,controller: NavHostContro
 
                     2 -> {
                         singleSheetItem(
-                            title = "Shake",
-                            iconInTitle = Icons.Filled.ScreenRotation,
+                            title = "Arrange Shapes",
+                            iconInTitle = Icons.Filled.PublishedWithChanges,
                             percentage = "90",
                             fill = 0.9f,
                             percentage2 = "60",

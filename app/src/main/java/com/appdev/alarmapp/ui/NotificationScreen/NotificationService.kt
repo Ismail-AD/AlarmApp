@@ -20,25 +20,26 @@ class NotificationService(private val context: Context) {
             .setContentTitle("Alarmy")
             .setContentText("[Next Alarm] $text")
             .setOngoing(true) // Make non-swipeable
+            .setPriority(NotificationCompat.PRIORITY_LOW) // Set priority to low
             .setContentIntent(createPendingIntent()) // Add click action
             .build()
         notificationManager.notify(1, notificationBuilder)
     }
 
 
-    fun showRestartNotification(text: String) {
-        val notificationBuilder = NotificationCompat.Builder(context, ObjectsGlobal.CHANNEL_ID)
-            .setSmallIcon(R.drawable.alarmlogo)
-            .setContentTitle("Alarmy")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentText(text)
-            .build()
-        notificationManager.notify(2, notificationBuilder)
-    }
-    fun generateRandomNotificationId(): Int {
-        // Generate a random number for the notification ID
-        return (0..Int.MAX_VALUE).random()
-    }
+//    fun showRestartNotification(text: String) {
+//        val notificationBuilder = NotificationCompat.Builder(context, ObjectsGlobal.CHANNEL_ID)
+//            .setSmallIcon(R.drawable.alarmlogo)
+//            .setContentTitle("Alarmy")
+//            .setPriority(NotificationCompat.PRIORITY_HIGH)
+//            .setContentText(text)
+//            .build()
+//        notificationManager.notify(2, notificationBuilder)
+//    }
+//    fun generateRandomNotificationId(): Int {
+//        // Generate a random number for the notification ID
+//        return (0..Int.MAX_VALUE).random()
+//    }
 
 
     private fun createPendingIntent(): PendingIntent {

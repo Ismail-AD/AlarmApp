@@ -11,6 +11,7 @@ import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
 import com.appdev.alarmapp.utils.DaoClasses.AlarmDao
 import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
 import com.appdev.alarmapp.utils.DaoClasses.DismissDao
+import com.appdev.alarmapp.utils.DaoClasses.EmergencyCounterDao
 import com.appdev.alarmapp.utils.DaoClasses.ImageStoreDao
 import com.appdev.alarmapp.utils.DaoClasses.MissionsDao
 import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.DatabaseName
@@ -81,6 +82,12 @@ object RoomModule {
     @Provides
     fun provideDatabaseThePhraseClass(roomDatabase: RoomDB): PhraseDao {
         return roomDatabase.phraseDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideDatabaseTheECounterClass(roomDatabase: RoomDB): EmergencyCounterDao {
+        return roomDatabase.emergencyCounterDao()
     }
 
     @Singleton

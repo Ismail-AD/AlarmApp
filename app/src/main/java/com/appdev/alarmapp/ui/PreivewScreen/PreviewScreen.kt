@@ -241,6 +241,13 @@ fun PreviewScreen(
         loading = false
         loadingLabel = false
     }
+    LaunchedEffect(key1 = Unit) {
+        if (mainViewModel.missionDetails.isSelected) {
+            mainViewModel.missionData(
+                MissionDataHandler.ResetData
+            )
+        }
+    }
     LaunchedEffect(key1 = alarmIdRec, key2 = getId) {
         Log.d("CHKAI", "$alarmIdRec and ${mainViewModel.selectedDataAlarm.id} in LE")
         Log.d("CHKAI", "Button CLicked Status $getId in LE")
@@ -1944,6 +1951,7 @@ fun getImageForSliderValue(value: String): Int {
         else -> R.drawable.easy
     }
 }
+
 fun getImageForSelectedValue(value: String): Int {
     return when (value) {
         "Normal Mode" -> R.drawable.normalnum
@@ -1951,6 +1959,7 @@ fun getImageForSelectedValue(value: String): Int {
         else -> R.drawable.normalnum
     }
 }
+
 fun getAlphaImageForSelectedValue(value: String): Int {
     return when (value) {
         "Normal Mode" -> R.drawable.normalalpha
@@ -1958,7 +1967,6 @@ fun getAlphaImageForSelectedValue(value: String): Int {
         else -> R.drawable.normalalpha
     }
 }
-
 
 
 fun getMathEqForSliderValue(value: String): String {
@@ -2179,8 +2187,8 @@ fun scheduleTheAlarm(
         calculateAlarmTriggerTime(alarmEntity)
     }
 
-    Log.d("CHKW", "At preview on : ${convertMillisToLocalTime(triggerTimeMillis)} ")
-    Log.d("CHKW", "At preview upcome : ${convertMillisToLocalTime(triggerTimeMillis)} ")
+    Log.d("CHKTM", "At preview on : ${convertMillisToLocalTime(triggerTimeMillis)} ")
+    Log.d("CHKTM", "At preview upcome : ${convertMillisToLocalTime(triggerTimeMillis)} ")
     if (!isOld) {
         alarmEntity.id = triggerTimeMillis + (0..19992).random()
         mainViewModel.newAlarmHandler(newAlarmHandler.getMilli(timeInMilli = triggerTimeMillis))
@@ -2196,7 +2204,7 @@ fun scheduleTheAlarm(
     }
 
     alarmEntity.timeInMillis = triggerTimeMillis
-
+    alarmEntity.nextTimeInMillis = triggerTimeMillis
 
     val instant = Instant.ofEpochMilli(triggerTimeMillis)
     val offsetTime = OffsetTime.ofInstant(instant, ZoneId.systemDefault())

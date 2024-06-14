@@ -2,6 +2,9 @@ package com.appdev.alarmapp.ui.MissionDemos
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.VectorDrawable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,9 +26,13 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,8 +50,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.appdev.alarmapp.R
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -55,6 +64,8 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapView
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
@@ -69,9 +80,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @SuppressLint("MissingPermission")
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
+fun showMap(mainViewModel: MainViewModel, navController: NavHostController) {
     val contextFromCompose = LocalContext.current
     val fusedLocationClient: FusedLocationProviderClient by remember {
         mutableStateOf(LocationServices.getFusedLocationProviderClient(contextFromCompose))
@@ -88,6 +99,7 @@ fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
     }
     var uiSettings by remember { mutableStateOf(MapUiSettings()) }
     var mapProperties by remember { mutableStateOf(MapProperties()) }
+    val sheetState = rememberModalBottomSheetState()
 
     var showDialog by remember {
         mutableStateOf(false)
@@ -106,7 +118,8 @@ fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
         }
         if (!loaderState && currentLocation != null) {
             currentLocation?.let {
-                cameraPositionState.position = CameraPosition.fromLatLngZoom(it, 15f)
+                cameraPositionState.position =
+                    CameraPosition.fromLatLngZoom(LatLng(it.latitude, it.longitude), 15f)
             }
         }
     }
@@ -151,7 +164,7 @@ fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
                     }
                 } else {
                     currentLocation?.let {
-                        Box(modifier = Modifier.fillMaxSize()){
+                        Box(modifier = Modifier.fillMaxSize()) {
 
                             GoogleMap(
                                 modifier = Modifier.fillMaxSize(),
@@ -161,7 +174,7 @@ fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
                                     mapToolbarEnabled = true,
                                     tiltGesturesEnabled = true
                                 ), properties = mapProperties.copy(isMyLocationEnabled = true),
-                                onMapLongClick = { latLng ->
+                                onMapClick = { latLng ->
                                     clickedLocCoordinates = latLng
                                     showDialog = true
                                     scope.launch(Dispatchers.IO) {
@@ -175,29 +188,72 @@ fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
                                 cameraPositionState = cameraPositionState
                             ) {
                                 Marker(
-                                    state = MarkerState(position = it),
+                                    state = MarkerState(
+                                        position = LatLng(
+                                            it.latitude,
+                                            it.longitude
+                                        )
+                                    ),
                                     title = "Current Location"
                                 )
+                                clickedLocCoordinates?.let { cLc ->
+                                    Marker(
+                                        state = MarkerState(
+                                            position = LatLng(
+                                                cLc.latitude,
+                                                cLc.longitude
+                                            )
+                                        ),
+                                        title = "Tapped Location", icon = bitmapDescriptorFromVector()
+                                    )
+                                }
                             }
 
-                            Row(modifier = Modifier
-                                .padding(vertical = 10.dp, horizontal = 15.dp),verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Start){
+                            Row(
+                                modifier = Modifier
+                                    .padding(vertical = 10.dp, horizontal = 15.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start
+                            ) {
                                 Card(
                                     onClick = {
                                         navController.popBackStack()
                                     },
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.surfaceTint
+                                    ),
                                     shape = CircleShape,
                                     colors = CardDefaults.cardColors(containerColor = Color.Black)
                                 ) {
-                                    Box(modifier = Modifier.size(27.dp), contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier.size(27.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Icon(
                                             imageVector = Icons.Filled.KeyboardArrowLeft,
                                             contentDescription = "",
                                             tint = Color.White
                                         )
                                     }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .background(Color.Black, shape = RoundedCornerShape(20.dp))
+                                        .padding(
+                                            start = 10.dp,
+                                            top = 5.dp,
+                                            bottom = 5.dp,
+                                            end = 10.dp
+                                        )
+                                ) {
+                                    Text(
+                                        text = "tap on map to add location",
+                                        color = Color.White,
+                                        fontSize = 15.sp,
+                                        textAlign = TextAlign.Center, fontWeight = FontWeight.W500
+                                    )
                                 }
                             }
                         }
@@ -246,111 +302,125 @@ fun showMap(mainViewModel: MainViewModel,navController:NavHostController) {
                 }
             }
             if (showDialog) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
+                ModalBottomSheet(
+                    onDismissRequest = { showDialog = false },
+                    sheetState = sheetState
                 ) {
-                    Dialog(onDismissRequest = {
-                        showDialog = false
-                    }) {
-                        if (nameLoaderState) {
+                    if (nameLoaderState) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             CircularProgressIndicator(color = Color(0xFFF57C00))
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.onBackground,
-                                        shape = RoundedCornerShape(5.dp)
-                                    )
-                            ) {
-                                if ((locationName == "Unknown Location" && clickedLocCoordinates != null) || locationName != "Unknown Location") {
-                                    Text(
-                                        text = if (locationName == "Unknown Location") "Do you want to save location on following Coordinates?" else "Do you want to save following location ?",
-                                        color = MaterialTheme.colorScheme.surfaceTint,
-                                        fontSize = 18.sp,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 20.dp), fontWeight = FontWeight.Medium
-                                    )
-                                }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.onBackground,
+                                    shape = RoundedCornerShape(5.dp)
+                                )
+                                .padding(horizontal = 15.dp, vertical = 10.dp)
+                        ) {
+                            if ((locationName == "Unknown Location" && clickedLocCoordinates != null) || locationName != "Unknown Location") {
                                 Text(
-                                    text = if (locationName == "Unknown Location" && clickedLocCoordinates != null) "Latitude :${
-                                        clickedLocCoordinates!!.latitude.toString().take(10)
-                                    } \n Longitude :${
-                                        clickedLocCoordinates!!.longitude.toString().take(10)
-                                    }" else if (locationName != "Unknown Location") locationName else "Location not found ! \n Make sure your location is turned on and then try again",
+                                    text = if (locationName == "Unknown Location") "Do you want to save location on following Coordinates?" else "Do you want to save following location ?",
                                     color = MaterialTheme.colorScheme.surfaceTint,
-                                    fontSize = 17.sp,
+                                    fontSize = 18.sp,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 20.dp, start = 8.dp, end = 8.dp), fontWeight = FontWeight.Normal
+                                        .padding(top = 20.dp), fontWeight = FontWeight.Medium
                                 )
+                            }
+                            Text(
+                                text = if (locationName == "Unknown Location" && clickedLocCoordinates != null) "Latitude :${
+                                    clickedLocCoordinates!!.latitude.toString().take(10)
+                                } \n Longitude :${
+                                    clickedLocCoordinates!!.longitude.toString().take(10)
+                                }" else if (locationName != "Unknown Location") locationName else "Location not found ! \n Make sure your location is turned on and then try again",
+                                color = MaterialTheme.colorScheme.surfaceTint,
+                                fontSize = 17.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 20.dp, start = 8.dp, end = 8.dp),
+                                fontWeight = FontWeight.Normal
+                            )
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 30.dp),
-                                    contentAlignment = Alignment.Center
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 30.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(bottom = 20.dp)
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier.padding(bottom = 20.dp)
-                                    ) {
-                                        CustomButton(
-                                            onClick = {
-                                                showDialog = false
-                                            },
-                                            text = "No",
-                                            width = 0.40f,
-                                            backgroundColor = Color(0xff3F434F)
-                                        )
-                                        Spacer(modifier = Modifier.width(14.dp))
-                                        CustomButton(
-                                            onClick = {
-                                                showDialog = false
-                                                mainViewModel.updateLocationName(locationName)
-                                                navController.popBackStack()
-                                            },
-                                            text = "Yes",
-                                            width = 0.75f,
-                                        )
-                                    }
+                                    CustomButton(
+                                        onClick = {
+                                            scope.launch {
+                                                sheetState.hide()
+                                            }
+                                            showDialog = false
+                                        },
+                                        text = "No",
+                                        width = 0.40f,
+                                        backgroundColor = Color(0xff3F434F)
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    CustomButton(
+                                        onClick = {
+                                            scope.launch {
+                                                sheetState.hide()
+                                            }
+                                            showDialog = false
+                                            clickedLocCoordinates?.let {
+                                                mainViewModel.updateLocationName(locationName,it.longitude,it.latitude)
+                                            }
+                                            navController.popBackStack()
+                                        },
+                                        text = "Yes",
+                                        width = 0.75f,
+                                    )
                                 }
                             }
                         }
                     }
                 }
+//                Box(
+//                    modifier = Modifier.fillMaxSize()
+//                ) {
+//                    Dialog(onDismissRequest = {
+//                        showDialog = false
+//                    }) {
+//
+//                            }
+//                        }
+//                    }
+//                }
 
             }
         }
     }
+}
+@Composable
+fun bitmapDescriptorFromVector(): BitmapDescriptor {
+    val vectorDrawable = ContextCompat.getDrawable(
+        LocalContext.current,
+        R.drawable.marker // Replace with your vector drawable
+    ) as VectorDrawable
 
 
-//    val singapore = LatLng(latitude, longitude)
-//    val cameraPositionState = rememberCameraPositionState {
-//        position = CameraPosition.fromLatLngZoom(singapore, 10f)
-//    }
-//    var uiSettings by remember { mutableStateOf(MapUiSettings()) }
-//    val properties by remember {
-//        mutableStateOf(MapProperties(mapType = MapType.NORMAL))
-//    }
+    val bitmap = Bitmap.createBitmap(
+        vectorDrawable.intrinsicWidth,
+        vectorDrawable.intrinsicHeight,
+        Bitmap.Config.ARGB_8888
+    )
+    val canvas = Canvas(bitmap)
+    vectorDrawable.setBounds(0, 0, canvas.width, canvas.height)
+    vectorDrawable.draw(canvas)
 
-//    Box(Modifier.fillMaxSize()) {
-//        Goo(
-//
-//        ) {
-////            Marker(
-////                state = MarkerState(position = singapore),
-////                title = "Singapore",
-////                snippet = "Marker in Singapore"
-////            )
-//        }
-//        Switch(
-//            checked = uiSettings.zoomControlsEnabled,
-//            onCheckedChange = {
-//                uiSettings = uiSettings.copy(zoomControlsEnabled = it)
-//            }
-//        )
-//    }
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }

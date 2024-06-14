@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.PowerManager
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -12,6 +13,7 @@ import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -62,6 +64,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
+
 @AndroidEntryPoint
 class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
@@ -71,6 +74,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
     @Inject
     lateinit var textToSpeech: TextToSpeech
+
     @Inject
     lateinit var ringtoneRepository: RingtoneRepository
     private var receivedAlarm: AlarmEntity? = null
@@ -81,11 +85,14 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     lateinit var alarm: AlarmEntity
     lateinit var alarmScheduler: AlarmScheduler
     lateinit var vibrator: Vibrator
+    var volumeUpPressedTime: Long = 0
+    var longPressDuration: Long = 1000L
+    lateinit var handler: Handler
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("CHKSM", "ON CREATE CALLED")
+        handler = Handler()
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
                 getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -118,7 +125,6 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
         setContent {
             AlarmAppTheme {
-                Log.d("CHECKR", "In theme Composable of Alarm Handler")
                 mainViewModel.previewModeUpdate(true)
                 mainViewModel.snoozeUpdate(false)
                 notify = intent.getBooleanExtra("notify", false)
@@ -142,28 +148,61 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         }
     }
 
+    private val volumeUpLongPressRunnable = Runnable {
+        if (System.currentTimeMillis() - volumeUpPressedTime >= longPressDuration) {
+
+        }
+    }
+
+
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         if (event?.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event?.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            // Handle the volume key events here
-            // You can either do nothing to prevent the system from changing the volume
-            // or perform a custom action on volume key press
+            Log.d("CHKED", "Volume up/down captured")
             return true // Consume the event to prevent the system volume change
         }
         if (event?.keyCode == KeyEvent.KEYCODE_POWER) {
-            // Store the last pressed key code
+            Toast.makeText(getApplicationContext(), "Power dispatch", Toast.LENGTH_SHORT).show();
             lastPressedKeyCode = event.keyCode
+            return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+//    override fun onWindowFocusChanged(hasFocus: Boolean) {
+//        super.onWindowFocusChanged(hasFocus)
+//        if (!hasFocus) {
+//            val closeDialog = Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+//            sendBroadcast(closeDialog)
+//            Toast.makeText(this, "Your LongPress Power Button", Toast.LENGTH_SHORT).show()
+//        }
+//    }
+
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
+        return if (keyCode == KeyEvent.KEYCODE_POWER) {
+            Toast.makeText(getApplicationContext(), "Power long press", Toast.LENGTH_SHORT).show();
+            true
+        } else super.onKeyLongPress(keyCode, event)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_POWER) {
+            Log.e("key", "long")
+            Toast.makeText(
+                applicationContext,
+                "Power key donw",
+                Toast.LENGTH_SHORT
+            ).show()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
 
     override fun onStop() {
         val isScreenOnNow = isScreenOn()
-        Log.d("CHKSM", "ON STOP TRIGGERED.............${mainViewModel.getRealUpdate()}")
-        Log.d("CHKSM", "ON STOP TRIGGERED........first list check ${mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()}")
-
-        if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.missionDetailsList.isEmpty())  && mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
+        if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.missionDetailsList.isEmpty()) && mainViewModel.isRealAlarm && KeyEvent.KEYCODE_POWER != lastPressedKeyCode && isScreenOnBeforeAlarm && isScreenOnNow
         ) { // Power button not pressed, bring the app to the foreground
             Log.d("CHKSM", "CODE IN ON STOP TRIGGERED.............")
             Helper.stopStream()
@@ -176,8 +215,8 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             newIntent.putExtra("dismissSet", dismissSettings)
             startActivity(newIntent)
             finish()
-        } else if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.dummyMissionList.isEmpty())  && mainViewModel.isRealAlarm
-        ){
+        } else if (((mainViewModel.missionDetailsList.isNotEmpty() && mainViewModel.dummyMissionList.isNotEmpty()) || mainViewModel.dummyMissionList.isEmpty()) && mainViewModel.isRealAlarm
+        ) {
             Helper.stopStream()
             vibrator.cancel()
             textToSpeech.stop()
@@ -472,14 +511,14 @@ fun AlarmNavGraph(
                 onDismissCallback,
                 onSnoozeCallback,
                 controller,
-                mainViewModel,ringtoneRepository
+                mainViewModel, ringtoneRepository
             )
         }
         composable(route = Routes.AlternativeMissionScreen.route) {
             AlterMissionScreen(
                 intent, textToSpeech,
-                dismissCallback =  onDismissCallback,
-                timerEndsCallback =  object : TimerEndsCallback {
+                dismissCallback = onDismissCallback,
+                timerEndsCallback = object : TimerEndsCallback {
                     override fun onTimeEnds() {
                         TODO("Not yet implemented")
                     }
@@ -533,7 +572,7 @@ fun AlarmNavGraph(
                     else -> 60.dp
                 }
             val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
-                "Normal Mode" -> 4.dp
+                "Normal Mode" -> 7.dp
                 "Hard Mode" -> 3.dp
                 else -> 1.dp
             }
@@ -615,7 +654,7 @@ fun AlarmNavGraph(
                     else -> 60.dp
                 }
             val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
-                "Normal Mode" -> 4.dp
+                "Normal Mode" -> 7.dp
                 "Hard Mode" -> 3.dp
                 else -> 1.dp
             }

@@ -4,6 +4,7 @@ import android.os.Build
 import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,121 +49,70 @@ import kotlin.math.min
 
 @Composable
 fun SettingUpScreen(controller: NavHostController) {
-    var currentStep by remember { mutableIntStateOf(0) }
     var progress by remember { mutableFloatStateOf(0.1f) }
     val animatedProgress = animateFloatAsState(
         targetValue = progress,
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec, label = ""
     ).value
+
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.sharedanim))
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = 2000L // 3 seconds
+        val duration = 2000L
         while (elapsedTime < duration) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
             delay(deltaTime)
             progress += deltaTime.toFloat() / duration
-
-            // Check if the progress has reached a threshold to move to the next step
-            if (progress >= 0.35f && currentStep == 0) {
-                currentStep = 1
-            } else if (progress >= 0.66f && currentStep == 1) {
-                currentStep = 2
-            }
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xff24272E)), contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backColor)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            LinearProgressIndicator(
+                progress = {
+                    animatedProgress
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                color = Color.White,
+                trackColor = backColor,
+            )
+            Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize()) {
+                LottieAnimation(
+                    composition = composition,
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f)
+                )
                 Text(
-                    text = "Be the next one",
-                    color = Color(0xffEFD08E),
-                    fontSize = 18.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 25.dp, vertical = 10.dp)
-                        .background(Color(0xff2F333E), shape = RoundedCornerShape(5.dp))
-                        .fillMaxWidth()
-                        .height(100.dp), contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "4 , 5 1 2 , 4 7 8",
-                        color = Color.White,
-                        fontSize = 35.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.29f)
-                .background(backColor)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                LinearProgressIndicator(
-                    progress = {
-                        animatedProgress
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                    text = "Setting up your alarm…",
                     color = Color.White,
-                    trackColor = backColor,
+                    fontSize = 28.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                    fontWeight = FontWeight.Bold
                 )
-                Column(modifier = Modifier.padding(start = 20.dp, top = 25.dp)) {
-                    Text(
-                        text = "All set!",
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        textAlign = TextAlign.Start, fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-//
-//                    // Call the belowAllSet functions based on the current step
-                    if (currentStep >= 0) {
-                        belowAllSet(text = "Setting up alarm time")
-                    }
-                    if (currentStep >= 1) {
-                        belowAllSet(text = "Setting up brain activating sound")
-                    }
-                    if (currentStep >= 2) {
-                        belowAllSet(text = "Setting up wake-up mission")
-                    }
-                    if (progress >= 1.0f) {
+                if (progress >= 1.0f) {
 
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            Log.d("VECHK","BELOW 12")
-                            controller.navigate(Routes.Notify.route) {
-                                launchSingleTop = true
-                                popUpTo(Routes.Setting.route) {
-                                    inclusive = true
-                                }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        controller.navigate(Routes.Notify.route) {
+                            launchSingleTop = true
+                            popUpTo(Routes.Setting.route) {
+                                inclusive = true
                             }
-                            // Navigate to the Notify screen for Android versions 12 and below
+                        }
+                        // Navigate to the Notify screen for Android versions 12 and below
 
-                        } else {
-                            Log.d("VECHK","NOT BELOW 12")
-                            // Navigate to a different screen for Android versions above 12
-                            // Modify the destination route accordingly
-                            controller.navigate(Routes.MainUIScreen.route) {
-                                launchSingleTop = true
-                                popUpTo(Routes.Setting.route) {
-                                    inclusive = true
-                                }
+                    } else {
+                        // Navigate to a different screen for Android versions above 12
+                        // Modify the destination route accordingly
+                        controller.navigate(Routes.MainUIScreen.route) {
+                            launchSingleTop = true
+                            popUpTo(Routes.Setting.route) {
+                                inclusive = true
                             }
                         }
                     }
@@ -172,27 +122,7 @@ fun SettingUpScreen(controller: NavHostController) {
     }
 }
 
-@Composable
-fun belowAllSet(text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 5.dp, top = 12.dp)
-    ) {
-        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animfile))
-        val progress by animateLottieCompositionAsState(composition)
-        LottieAnimation(
-            composition = composition,
-            progress = { progress },
-            modifier = Modifier.size(25.dp)
-        )
-        Text(
-            text = text,
-            color = Color.White,
-            fontSize = 15.sp, modifier = Modifier.padding(start = 13.dp)
-        )
-    }
-}
+
 //
 //@Preview(showBackground = true)
 //@Composable
@@ -201,3 +131,4 @@ fun belowAllSet(text: String) {
 //        SettingUpScreen()
 //    }
 //}
+

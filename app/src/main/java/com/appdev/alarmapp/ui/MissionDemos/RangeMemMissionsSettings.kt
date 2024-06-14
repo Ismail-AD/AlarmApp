@@ -105,10 +105,10 @@ fun RangeMemoryMissionSetting(
     val timesState =
         rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "RangeNumbers" || mainViewModel.missionDetails.missionName == "RangeAlphabet" || mainViewModel.missionDetails.missionName == "ArrangeShapes" || mainViewModel.missionDetails.missionName == "ArrangeAlphabet" || mainViewModel.missionDetails.missionName == "ArrangeNumbers")) mainViewModel.missionDetails.repeatTimes - 1 else 0)
     val rangeState_312 =
-        rememberLazyListState(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 4 else 0)
+        rememberLazyListState(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 3 else 1)
 
     var currentIndexTimes by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "RangeNumbers")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && mainViewModel.missionDetails.missionName == "RangeAlphabet") mainViewModel.missionDetails.repeatTimes - 1 else 0) }
-    var currentIndexRange_312 by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected) mainViewModel.missionDetails.valuesToPick - 4 else 0) }
+    var currentIndexRange_312 by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected) (mainViewModel.missionDetails.valuesToPick - 3) else 1) }
 
     val scope = rememberCoroutineScope()
 
@@ -163,7 +163,6 @@ fun RangeMemoryMissionSetting(
                 CustomButton(
                     isLock = (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState is BillingResultState.Success,
                     onClick = {
-                        Log.d("CHKMD", "AT BAR CODE DS ${mainViewModel.managingDefault}")
 //                                if ((mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) && currentState !is BillingResultState.Success) {
 //                                    controller.navigate(Routes.Purchase.route) {
 //                                        popUpTo(Routes.CommonMissionScreen.route) {
@@ -433,7 +432,7 @@ fun RangeMemoryMissionSetting(
                                 val animateScale by animateFloatAsState(targetScale)
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .width(70.dp)
                                         .graphicsLayer {
                                             this.alpha = targetAlpha
                                             this.scaleX = animateScale
@@ -448,7 +447,7 @@ fun RangeMemoryMissionSetting(
                                 ) {
                                     mainViewModel.missionData(
                                         MissionDataHandler.NumbersCount(
-                                            noOfValue = currentIndexRange_312 + 4
+                                            noOfValue = currentIndexRange_312 + 3
                                         )
                                     )
                                     Card(
@@ -474,7 +473,7 @@ fun RangeMemoryMissionSetting(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (mainViewModel.whichRangeMission.isNumbers) "${index + 4}" else if (mainViewModel.whichRangeMission.isAlphabets) "${(index + 4)}" else "${(index + 4)}",
+                                                text = if (mainViewModel.whichRangeMission.isNumbers) "${index + 3}" else if (mainViewModel.whichRangeMission.isAlphabets) "${(index + 3)}" else "${(index + 3)}",
                                                 color = if (isDarkMode) if (index == currentIndexRange_312) Color.White else Color.Gray else if (index == currentIndexRange_312) Color.Black else Color.Gray,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.W600
@@ -484,7 +483,6 @@ fun RangeMemoryMissionSetting(
                                 }
                             }
                         }
-
                     }
 
                 }

@@ -11,7 +11,10 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +29,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
@@ -77,6 +83,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RangedAlphabetsMissionHandlerScreen(
     intent: Intent = Intent(),
@@ -117,17 +124,15 @@ fun RangedAlphabetsMissionHandlerScreen(
     val previewMode by remember {
         mutableStateOf(intent.getBooleanExtra("Preview", false))
     }
-
-    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
-    var progress by remember { mutableFloatStateOf(1f) }
-    var countdown by remember { mutableStateOf(5) }
-    var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
-
-    var clickedNumbers by remember { mutableStateOf(emptyList<Char>()) }
-
     val elementsCountToPick by remember {
         mutableIntStateOf(mainViewModel.missionDetails.valuesToPick)
     }
+    val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
+    var progress by remember { mutableFloatStateOf(1f) }
+    var countdown by remember { mutableStateOf(if (elementsCountToPick <= 5) 10 else 20) }
+    var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
+
+    var clickedNumbers by remember { mutableStateOf(emptyList<Char>()) }
 
     var modifiedIndices by remember {
         mutableStateOf(
@@ -796,102 +801,67 @@ fun RangedAlphabetsMissionHandlerScreen(
                     .padding(vertical = 15.dp)
             )
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(if (elementsCountToPick < 5) elementsCountToPick else 5), // Adjust the number of columns as needed
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalArrangement = Arrangement.spacedBy(colPadding),
                     verticalArrangement = Arrangement.spacedBy(colPadding)
                 ) {
                     if (countdown != 0) {
-                        items(modifiedIndices.chunked(if (elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
-                            val numDummyElements =
-                                if (chunk.size < elementsCountToPick && elementsCountToPick < 5) {
-                                    elementsCountToPick - chunk.size
-                                } else if (chunk.size < 5 && elementsCountToPick > 5) {
-                                    5 - chunk.size
-                                } else {
-                                    0
-                                }
-                            Row(
+                        items(modifiedIndices, key = { it }) {
+                            RubikCubeNumberBlock(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(rowHeight),
-                                horizontalArrangement = Arrangement.SpaceAround
-                            ) {
-                                chunk.forEach { alphabets ->
-                                    RubikCubeNumberBlock(
-                                        modifier = Modifier
-                                            .clipToBounds(), cubeHeightWidth, alphabets.toString()
-                                    )
-                                }
-                                if (numDummyElements != 0) {
-                                    repeat(numDummyElements) {
-                                        Spacer(
-                                            modifier = Modifier
-                                                .size(cubeHeightWidth)
-                                        )
-                                    }
-                                }
-                            }
+                                    .size(cubeHeightWidth)
+                                    .clipToBounds(),
+                                cubeHeightWidth = cubeHeightWidth,
+                                data = it.toString()
+                            )
                         }
+//                        addDummyItems(modifiedIndices.size, elementsCountToPick, cubeHeightWidth)
                     } else {
-                        items(finalRangedList.chunked(if (elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
-                            val numDummyElements =
-                                if (chunk.size < elementsCountToPick && elementsCountToPick < 5) {
-                                    elementsCountToPick - chunk.size
-                                } else if (chunk.size < 5 && elementsCountToPick > 5) {
-                                    5 - chunk.size
-                                } else {
-                                    0
-                                }
-                            Row(
+                        items(finalRangedList, key = { it }) {
+                            RubikCubeNumberBlock(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(rowHeight),
-                                horizontalArrangement = Arrangement.SpaceAround
-                            ) {
-                                chunk.forEach { alphabet ->
-                                    RubikCubeAlphaBlock(
-                                        modifier = Modifier
-                                            .clipToBounds()
-                                            .background(
-                                                if ((missionViewModel.missionHandler.notMatched) && alphabet == missionViewModel.missionHandler.clickedChar) {
-                                                    showWrong = true
-                                                    Color.Red
-                                                } else if (modifiedIndices.contains(
-                                                        alphabet
-                                                    ) && missionViewModel.missionHandler.correctAlphabetsList.isNotEmpty()
-                                                ) Color(0xFFF57C00) else Color(0xff1C1F26)
-                                            )
-                                            .clickable {
-                                                if (countdown == 0 && missionViewModel.missionHandler.correctAlphabetsList.size != missionViewModel.missionHandler.preservedAlphabets.size) {
-
-                                                    if (!clickedNumbers.contains(alphabet)) {
-                                                        missionViewModel.missionEventHandler(
-                                                            MissionDemoHandler.CheckCharacterMatches(
-                                                                alphabet
-                                                            )
-                                                        )
-                                                        clickedNumbers += alphabet
-                                                        progress = 1f
-                                                    }
-                                                }
-                                            }, cubeHeightWidth, alphabet.toString()
-                                    )
-                                }
-                                if (numDummyElements != 0) {
-                                    repeat(numDummyElements) {
-                                        Spacer(
-                                            modifier = Modifier
-                                                .size(cubeHeightWidth)
+                                    .animateItemPlacement(
+                                        tween(
+                                            500,
+                                            easing = LinearEasing
                                         )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                                    )
+                                    .size(cubeHeightWidth)
+                                    .clipToBounds()
+                                    .background(
+                                        if ((missionViewModel.missionHandler.notMatched) && it == missionViewModel.missionHandler.clickedChar) {
+                                            showWrong = true
+                                            Color.Red
+                                        } else if (modifiedIndices.contains(
+                                                it
+                                            ) && missionViewModel.missionHandler.correctAlphabetsList.isNotEmpty()
+                                        ) Color(0xFFF57C00) else Color(0xff1C1F26)
+                                    )
+                                    .clickable {
+                                        if (countdown == 0 && missionViewModel.missionHandler.correctAlphabetsList.size != missionViewModel.missionHandler.preservedAlphabets.size) {
 
+                                            if (!clickedNumbers.contains(it)) {
+                                                missionViewModel.missionEventHandler(
+                                                    MissionDemoHandler.CheckCharacterMatches(
+                                                        it
+                                                    )
+                                                )
+                                                clickedNumbers += it
+                                                progress = 1f
+                                            }
+                                        }
+                                    },
+                                cubeHeightWidth = cubeHeightWidth,
+                                data = it.toString()
+                            )
+                        }
+//                        addDummyItems(finalRangedList.size, elementsCountToPick, cubeHeightWidth)
+                    }
                 }
             }
         }

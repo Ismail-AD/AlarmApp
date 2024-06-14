@@ -2,13 +2,14 @@ package com.appdev.alarmapp.ui.MissionViewer
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.hardware.Sensor
-import android.hardware.SensorManager
+import android.content.IntentFilter
 import android.location.Location
 import android.location.LocationManager
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Looper
 import android.os.VibrationEffect
@@ -32,6 +33,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
 import androidx.compose.material3.AlertDialog
@@ -63,8 +66,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavHostController
 import com.appdev.alarmapp.AlarmManagement.DismissCallback
+import com.appdev.alarmapp.AlarmManagement.GeofenceManager
 import com.appdev.alarmapp.AlarmManagement.TimerEndsCallback
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
@@ -80,18 +85,28 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.convertStringToSet
+import com.exyte.animatednavbar.utils.toPxf
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.Circle
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 
 
 @SuppressLint("MissingPermission")
@@ -139,7 +154,21 @@ fun WalkOffMission(
     var isEnd by remember { mutableStateOf(false) }
     var countdown by remember { mutableStateOf(10) }
 
-    val locPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+//    val locPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        )
+    } else {
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    }
+
+    val locPermissionState = rememberMultiplePermissionsState(permissions)
     var showRationale by remember(locPermissionState) {
         mutableStateOf(false)
     }
@@ -149,15 +178,40 @@ fun WalkOffMission(
 
 
     // MutableState for storing the previous location
-    var previousLocation by remember { mutableStateOf<Location?>(null) }
+    var geofenceManager by remember {
+        mutableStateOf(GeofenceManager(context))
+    }
+    var calculatedLocation by remember { mutableStateOf<Location?>(null) }
+
+    // Map elements
+    val singapore = LatLng(1.35, 103.87)
+    var cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(singapore, 30f)
+    }
+    var uiSettings by remember { mutableStateOf(MapUiSettings()) }
+    var mapProperties by remember { mutableStateOf(MapProperties()) }
 
     var progress by remember { mutableFloatStateOf(1f) }
 
     var distanceToCover by remember { mutableStateOf(mainViewModel.missionDetails.repeatTimes.toFloat()) }
-    val permissionState =
-        rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
-    var showDialog by remember(permissionState) {
+
+    var showDialog by remember(locPermissionState) {
         mutableStateOf(false)
+    }
+    var showDialogPermit by remember(locPermissionState) {
+        mutableStateOf(false)
+    }
+
+//    var destination = currentLocation?.let { calculateDestination(it, distanceToCover) }
+
+    LaunchedEffect(locPermissionState.allPermissionsGranted, key2 = loaderState) {
+        if (!loaderState && currentLocation != null) {
+            currentLocation?.let {
+                Log.d("Currt", "Going to update camera with lcoation : ${it}")
+                cameraPositionState.position =
+                    CameraPosition.fromLatLngZoom(LatLng(it.latitude, it.longitude), 18f)
+            }
+        }
     }
 
     val animatedProgress = animateFloatAsState(
@@ -466,7 +520,7 @@ fun WalkOffMission(
 
     LaunchedEffect(animatedProgress) {
         var elapsedTime = 0L
-        val duration = 7500L // 3 seconds
+        val duration = dismissSettings.missionTime * 1000
         while (elapsedTime < duration && progress > 0.00100f) {
             val deltaTime = min(10, duration - elapsedTime)
             elapsedTime += deltaTime
@@ -503,44 +557,115 @@ fun WalkOffMission(
             progress = 1f
         }
     }
+    var emptyList by remember {
+        mutableStateOf(emptyList<LatLng>().toMutableList())
+    }
+    LaunchedEffect(key1 = geofenceManager.geofenceList) {
+        geofenceManager.geofenceList.collect { list ->
+            if (list.isNotEmpty()) {
+                Log.d("Currt", "Geofencing list was not empty anymore going to reg !")
+                geofenceManager.registerGeofence()
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = currentLocation, key2 = calculatedLocation) {
+        currentLocation?.let {
+            if (geofenceManager.geofenceList.value.isEmpty() && calculatedLocation == null) {
+                calculatedLocation =
+                    currentLocation
+                geofenceManager.addGeofence(
+                    System.currentTimeMillis().toString(),
+                    LatLng(it.latitude, it.longitude), distanceToCover
+                )
+            }
+//            if (calculatedLocation == null) {
+//                calculatedLocation = calculateLocation(it, distanceToCover)
+//                calculatedLocation?.let { cL ->
+//                    emptyList.add(LatLng(it.latitude, it.longitude))
+//                    emptyList.add(LatLng(cL.latitude, cL.longitude))
+//
+//                }
+//            }
+        }
+    }
+    var totalDistance by remember {
+        mutableStateOf(0f)
+    }
+    var updateCounter by remember {
+        mutableStateOf(3)
+    }
+    var currentDistance by remember {
+        mutableStateOf(FloatArray(1))
+    }
+    var startPoint by remember {
+        mutableStateOf<Location?>(null)
+    }
 
     DisposableEffect(key1 = Unit, key2 = startUpdating) {
         val locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation.let { location ->
-                    if (previousLocation != null) {
-                        location?.let {
-//                            val distance = calculateDistance(previousLocation!!, it)
-                            val distance = previousLocation!!.distanceTo(it)
-                            Log.d("CHKDIST","$distance")
-                            if (distance > 0.25 && distance <3.0 && startUpdating) {
-                                distanceToCover -= distance
-                                previousLocation = it
+                    location?.let {
+                        if(currentLocation!=null){
+                            mainViewModel.updateCurrentLocation(it)
+                            if (startPoint != null) {
+                                Log.d("CHKDIS", "UP: $updateCounter")
+                                if (updateCounter > 0) {
+                                    updateCounter--
+                                } else {
+                                    Location.distanceBetween(
+                                        startPoint!!.latitude, startPoint!!.longitude,
+                                        it.latitude, it.longitude,
+                                        currentDistance
+                                    )
+                                    totalDistance = currentDistance[0]
+                                    Log.d("CHKDIS", "Dis: $totalDistance")
+
+                                    if (totalDistance > 2f) {
+                                        startPoint = it
+                                        totalDistance = 0f
+                                        currentDistance[0] = 0f
+                                        progress = 1f
+                                        updateCounter = 7
+                                    }
+                                }
                             }
                         }
-                    } else {
-                        // If previous location is null, update it with current location
-                        previousLocation = location
                     }
-
                 }
             }
         }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val idOfMissionGeofence = intent.getStringExtra("idOfGeofence")
+                idOfMissionGeofence?.let {
+                    geofenceManager.deregisterGeofence()
+                    distanceToCover = 0.0F
+                }
+            }
+        }
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+            receiver,
+            IntentFilter("userReached")
+        )
 
         val locationRequest = createLocationRequest()
-        if (locPermissionState.status.shouldShowRationale) {
+        if (locPermissionState.shouldShowRationale) {
             showRationale = true
-        } else if (locPermissionState.status.isGranted) {
+        } else if (locPermissionState.allPermissionsGranted) {
             fusedLocationClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback, Looper.getMainLooper()
             )
         } else {
-            locPermissionState.launchPermissionRequest()
+            locPermissionState.launchMultiplePermissionRequest()
         }
 
         onDispose {
-            fusedLocationClient.removeLocationUpdates(locationCallback)
+                geofenceManager.updateGeofenceList(emptyMap())
+                LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
+                fusedLocationClient.removeLocationUpdates(locationCallback)
         }
     }
     LaunchedEffect(key1 = distanceToCover) {
@@ -562,7 +687,9 @@ fun WalkOffMission(
                             isSelected = singleMission.isSelected,
                             setOfSentences = convertStringToSet(singleMission.selectedSentences),
                             imageId = singleMission.imageId,
-                            codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                            codeId = singleMission.codeId,
+                            locId = singleMission.locId,
+                            valuesToPick = singleMission.valuesToPick
                         )
                     )
                     when (mainViewModel.missionDetails.missionName) {
@@ -623,44 +750,51 @@ fun WalkOffMission(
                                 launchSingleTop = true
                             }
                         }
+
                         "RangeNumbers" -> {
-                            controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                            controller.navigate(Routes.RangeMemoryMissionPreview.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "RangeAlphabet" -> {
-                            controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                            controller.navigate(Routes.RangeAlphabetMissionPreview.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "WalkOff" -> {
-                            controller.navigate(Routes.WalkOffScreen.route){
+                            controller.navigate(Routes.WalkOffScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ReachDestination" -> {
-                            controller.navigate(Routes.AtLocationMissionScreen.route){
+                            controller.navigate(Routes.AtLocationMissionScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ArrangeNumbers" -> {
-                            controller.navigate(Routes.ArrangeNumbersScreen.route){
+                            controller.navigate(Routes.ArrangeNumbersScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ArrangeAlphabet" -> {
-                            controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                            controller.navigate(Routes.ArrangeAlphabetsScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
                         }
+
                         "ArrangeShapes" -> {
-                            controller.navigate(Routes.ArrangeShapesScreen.route){
+                            controller.navigate(Routes.ArrangeShapesScreen.route) {
                                 popUpTo(controller.graph.startDestinationId)
                                 launchSingleTop = true
                             }
@@ -685,8 +819,6 @@ fun WalkOffMission(
                     launchSingleTop
                 }
             }
-        } else {
-            progress = 1f
         }
     }
     Box(
@@ -742,10 +874,10 @@ fun WalkOffMission(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.35f)
+                    .fillMaxHeight()
                     .padding(bottom = 30.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
+                verticalArrangement = Arrangement.Top
             ) {
                 if (loaderState) {
                     Box(
@@ -763,27 +895,67 @@ fun WalkOffMission(
                     }
                 }
                 if (!loaderState && currentLocation != null) {
-                    Text(
-                        text = if (countdown != 0) "1. Don't turn off your location until mission ends ! \n2. Stand up and take your position ! \n\nStarting in $countdown" else "Take steps softly",
-                        color = Color.White,
-                        fontSize = 23.sp,
-                        lineHeight = 32.sp,
-                        fontWeight = FontWeight.W400,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 15.dp)
-                    )
-                    Text(
-                        text = if (countdown != 0) "" else "${"%.2f".format(distanceToCover)} meters",
-                        color = Color.White,
-                        fontSize = 50.sp,
-                        lineHeight = 58.sp,
-                        fontWeight = FontWeight.W700,
-                        modifier = Modifier.padding(top = 20.dp, start = 20.dp, end = 20.dp),
-                        letterSpacing = 3.sp, textAlign = TextAlign.Center
-                    )
+//                    calculatedLocation?.let { cL ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        GoogleMap(
+                            modifier = Modifier.fillMaxSize(),
+                            uiSettings = uiSettings.copy(
+                                scrollGesturesEnabled = true,
+                                zoomControlsEnabled = true,
+                                mapToolbarEnabled = true,
+                                tiltGesturesEnabled = true,
+                            ),
+                            properties = mapProperties.copy(isMyLocationEnabled = true),
+                            cameraPositionState = cameraPositionState,
+                        ) {
+//                                Marker(
+//                                    state = MarkerState(
+//                                        position = LatLng(
+//                                            cL.latitude,
+//                                            cL.longitude
+//                                        )
+//                                    ),
+//                                    title = "Destination Location"
+//                                )
+                            calculatedLocation?.let { cal ->
+                                Circle(
+                                    center = LatLng(
+                                        cal.latitude,
+                                        cal.longitude
+                                    ),
+                                    radius = distanceToCover.toDouble(),
+                                    fillColor = Color(0x30000000), // Semi-transparent color
+                                    strokeColor = Color.Black,
+                                    strokeWidth = 2.dp.toPxf()
+                                )
+                            }
+//                                Polyline(points = emptyList, color = Color.Red)
+                        }
+//                        }
+                    }
+
+
+//                    Text(
+//                        text = if (countdown != 0) "1. Don't turn off your location until mission ends ! \n2. Stand up and take your position ! \n\nStarting in $countdown" else "Take steps softly",
+//                        color = Color.White,
+//                        fontSize = 23.sp,
+//                        lineHeight = 32.sp,
+//                        fontWeight = FontWeight.W400,
+//                        textAlign = TextAlign.Center,
+//                        modifier = Modifier.padding(horizontal = 15.dp)
+//                    )
+//                    Text(
+//                        text = if (countdown != 0) "" else "${"%.2f".format(distanceToCover)} meters",
+//                        color = Color.White,
+//                        fontSize = 50.sp,
+//                        lineHeight = 58.sp,
+//                        fontWeight = FontWeight.W700,
+//                        modifier = Modifier.padding(top = 20.dp, start = 20.dp, end = 20.dp),
+//                        letterSpacing = 3.sp, textAlign = TextAlign.Center
+//                    )
                 } else {
                     Text(
-                        text = "To start the mission,your current location will be fetched !",
+                        text = "1. Reach outside thee circle wait for a while to complete the mission\n2. To start the mission,your current location will be fetched !",
                         color = Color.White,
                         fontSize = 23.sp,
                         lineHeight = 32.sp,
@@ -792,13 +964,19 @@ fun WalkOffMission(
                         modifier = Modifier.padding(horizontal = 15.dp)
                     )
                     Spacer(modifier = Modifier.height(40.dp))
-                    CustomButton(onClick = {
-                        if (!locationEnabled(context)) {
-                            showDialog = true
-                        } else {
-                            mainViewModel.startLocationUpdates(fusedLocationClient)
-                        }
-                    }, text = "Get location")
+                    if (locPermissionState.allPermissionsGranted) {
+                        CustomButton(onClick = {
+                            if (!locationEnabled(context)) {
+                                showDialog = true
+                            } else {
+                                mainViewModel.startLocationUpdates(fusedLocationClient)
+                            }
+                        }, text = "Get location")
+                    } else {
+                        CustomButton(onClick = {
+                            showDialogPermit = true
+                        }, text = "Update Permission State")
+                    }
                 }
             }
         }
@@ -837,6 +1015,76 @@ fun WalkOffMission(
                 }
             )
         }
+
+        if (showDialogPermit) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Dialog(onDismissRequest = {}) {
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.onBackground,
+                                shape = RoundedCornerShape(5.dp)
+                            )
+                    ) {
+                        Text(
+                            text = "Update Instruction",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 20.dp), fontWeight = FontWeight.Medium
+                        )
+
+                        Text(
+                            "App Info -> Permissions -> Location -> Select ' Allow all the time '",
+                            fontSize = 15.sp,
+                            letterSpacing = 0.sp,
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 9.dp, start = 5.dp, end = 5.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 30.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(bottom = 20.dp)
+                            ) {
+                                CustomButton(
+                                    onClick = {
+                                        showDialogPermit = false
+                                    },
+                                    text = "Cancel",
+                                    width = 0.40f,
+                                    backgroundColor = Color(0xff3F434F)
+                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                                CustomButton(
+                                    onClick = {
+                                        showDialogPermit = false
+                                        openPermissionsSettings(context)
+                                    },
+                                    text = "Go to App Settings",
+                                    width = 0.8f,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+
         if (showRationale) {
             AlertDialog(
                 onDismissRequest = {
@@ -844,13 +1092,13 @@ fun WalkOffMission(
                 },
                 title = {
                     Text(
-                        text = "Permissions required by the Application",
+                        text = "Select ' Allow all the time ' for functionality to work ",
                         color = MaterialTheme.colorScheme.surfaceTint
                     )
                 },
                 text = {
                     Text(
-                        text = "The Application requires the permissions to work",
+                        text = "Enable the required settings for Permissions by the Application",
                         color = MaterialTheme.colorScheme.surfaceTint
                     )
                 },
@@ -858,7 +1106,7 @@ fun WalkOffMission(
                     TextButton(
                         onClick = {
                             showRationale = false
-                            locPermissionState.launchPermissionRequest()
+                            locPermissionState.launchMultiplePermissionRequest()
                         },
                     ) {
                         Text("Continue", color = MaterialTheme.colorScheme.surfaceTint)
@@ -878,6 +1126,41 @@ fun WalkOffMission(
     }
 }
 
+private fun calculateLocation(
+    currentLocation: Location,
+    distance: Double
+): Location {
+    val result = Location(currentLocation)
+    val bearing = Math.toRadians(currentLocation.bearing.toDouble())
+    val latitude = Math.toRadians(currentLocation.latitude)
+    val longitude = Math.toRadians(currentLocation.longitude)
+    val distanceInRadians = distance / EARTH_RADIUS_METERS
+
+    val newLatitude = asin(
+        sin(latitude) * cos(distanceInRadians) +
+                cos(latitude) * sin(distanceInRadians) * cos(bearing)
+    )
+    var newLongitude = longitude + atan2(
+        sin(bearing) * sin(distanceInRadians) * cos(latitude),
+        cos(distanceInRadians) - sin(latitude) * sin(newLatitude)
+    )
+
+    result.latitude = Math.toDegrees(newLatitude)
+    result.longitude = Math.toDegrees(newLongitude)
+
+    return result
+}
+
+fun openPermissionsSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.fromParts("package", context.packageName, null)
+    }
+    context.startActivity(intent)
+}
+
+// Constants
+private const val EARTH_RADIUS_METERS = 6371000.0 // Approximate radius of the Earth in meters
+
 private fun locationEnabled(context: Context): Boolean {
     val locationManager: LocationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -887,5 +1170,5 @@ private fun locationEnabled(context: Context): Boolean {
 }
 
 private fun createLocationRequest(): LocationRequest {
-    return LocationRequest.Builder(100, 2500).build()
+    return LocationRequest.Builder(100, 5000).build()
 }

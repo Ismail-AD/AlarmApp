@@ -352,9 +352,6 @@ fun snoozeAlarmNavGraph(
         navController = controller,
         startDestination = Routes.SnoozeScr.route,
     ) {
-
-
-
         composable(route = Routes.SnoozeScr.route) {
             SnoozeScreen(
                 textToSpeech,
@@ -405,7 +402,7 @@ fun snoozeAlarmNavGraph(
                     else -> 60.dp
                 }
             val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
-                "Normal Mode" -> 4.dp
+                "Normal Mode" -> 7.dp
                 "Hard Mode" -> 3.dp
                 else -> 1.dp
             }
@@ -463,7 +460,7 @@ fun snoozeAlarmNavGraph(
                     else -> 60.dp
                 }
             val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
-                "Normal Mode" -> 4.dp
+                "Normal Mode" -> 7.dp
                 "Hard Mode" -> 3.dp
                 else -> 1.dp
             }

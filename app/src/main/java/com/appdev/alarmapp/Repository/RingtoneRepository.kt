@@ -3,11 +3,13 @@ package com.appdev.alarmapp.Repository
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.ModelClass.Emergency_counter
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.utils.CustomPhrase
 import com.appdev.alarmapp.utils.DaoClasses.AlarmBasicSettingDao
 import com.appdev.alarmapp.utils.DaoClasses.DefaultSettingsDao
 import com.appdev.alarmapp.utils.DaoClasses.DismissDao
+import com.appdev.alarmapp.utils.DaoClasses.EmergencyCounterDao
 import com.appdev.alarmapp.utils.ImageData
 import com.appdev.alarmapp.utils.DaoClasses.ImageStoreDao
 import com.appdev.alarmapp.utils.DaoClasses.PhraseDao
@@ -39,6 +41,7 @@ class RingtoneRepository @Inject constructor(
     private val imageStoreDao: ImageStoreDao,
     private val qrCodeDao: QrCodeDao,
     private val defaultSettingsDao: DefaultSettingsDao,
+    private val emergencyCounterDao: EmergencyCounterDao,
     private val alarmBasicSettingDao: AlarmBasicSettingDao,
     private val dismissDao: DismissDao, private val locationNameDao: locationNameDao
 ) {
@@ -64,6 +67,7 @@ class RingtoneRepository @Inject constructor(
     val getDefaultSettings: Flow<DefaultSettings> = defaultSettingsDao.getDefaultSettings()
     val getBasicSettings: Flow<AlarmSetting> = alarmBasicSettingDao.getAlarmSettings()
     val getDismissSettings: Flow<DismissSettings> = dismissDao.getDismissSettings()
+    val getCounter: Flow<Emergency_counter> = emergencyCounterDao.getCounterData()
 
 
     fun sendFeedbackInfo(
@@ -77,6 +81,13 @@ class RingtoneRepository @Inject constructor(
             }
     }
 
+    suspend fun updateCounterSettings(emergencyCounter: Emergency_counter) {
+        emergencyCounterDao.updateCounterById(emergencyCounter)
+    }
+
+    suspend fun insertCounterSettings(emergencyCounter: Emergency_counter) {
+        emergencyCounterDao.insertCounter(emergencyCounter)
+    }
     suspend fun updateDismissSettings(dismissSettings: DismissSettings) {
         dismissDao.updateDismissSettings(dismissSettings)
     }

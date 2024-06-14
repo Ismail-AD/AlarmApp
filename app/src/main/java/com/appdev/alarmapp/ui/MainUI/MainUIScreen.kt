@@ -51,6 +51,7 @@ import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.ModelClass.Emergency_counter
 import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.AlarmCancel.AlarmCancelScreen
@@ -91,7 +92,7 @@ import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.AlarmSettings
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.DefaultAlarmMissions
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.FeedbackScreen
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.GeneralSettings
-import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.SetTheme
+import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.SetAboutUs
 import com.appdev.alarmapp.ui.SettingsScreen.SettingsScreen
 import com.appdev.alarmapp.ui.SettingsScreen.InnerScreens.UsabilityScreen
 import com.appdev.alarmapp.ui.Snooze.SnoozeScreen
@@ -117,6 +118,9 @@ fun MainUiScreen(
         tokenManagement.saveToken(System.currentTimeMillis().toString())
         mainViewModel.insertDefaultSettings(
             DefaultSettings()
+        )
+        mainViewModel.insertCounter(
+            Emergency_counter()
         )
         mainViewModel.basicSettingsInsertion(
             AlarmSetting()
@@ -555,7 +559,7 @@ fun MainUiScreen(
             popExitTransition = {
                     fadeOut(animationSpec = tween(90))
             }) {
-                SetTheme(mainViewModel = mainViewModel, controller = controller)
+                SetAboutUs(mainViewModel = mainViewModel, controller = controller)
             }
             composable(route = Routes.SettingsOfAlarmScreen.route, enterTransition = {
                     fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(
@@ -1302,7 +1306,7 @@ fun MainUiScreen(
                         else -> 60.dp
                     }
                 val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
-                    "Normal Mode" -> 4.dp
+                    "Normal Mode" -> 7.dp
                     "Hard Mode" -> 3.dp
                     else -> 1.dp
                 }
@@ -1484,7 +1488,7 @@ fun MainUiScreen(
                         else -> 60.dp
                     }
                 val columnPadding = when (mainViewModel.missionDetails.difficultyLevel) {
-                    "Normal Mode" -> 4.dp
+                    "Normal Mode" -> 7.dp
                     "Hard Mode" -> 3.dp
                     else -> 1.dp
                 }

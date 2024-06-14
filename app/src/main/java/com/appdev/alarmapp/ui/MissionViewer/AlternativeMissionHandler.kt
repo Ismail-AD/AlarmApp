@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
@@ -88,7 +90,7 @@ fun AlterMissionScreen(
     dismissCallback: DismissCallback,
     missionViewModel: MissionViewModel = hiltViewModel(),
 ) {
-
+    val emergencyCounter = mainViewModel.eCounter.collectAsStateWithLifecycle()
     var colors by remember {
         mutableStateOf(
             listOf(
@@ -98,7 +100,7 @@ fun AlterMissionScreen(
     }
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
     var progress by remember { mutableFloatStateOf(1f) }
-    var remainingTimes by remember { mutableStateOf(100) }
+    var remainingTimes by remember { mutableStateOf(emergencyCounter.value.counter_emer) }
 
     val context = LocalContext.current
     val alarmEntity: AlarmEntity? by remember {
@@ -338,6 +340,15 @@ fun AlterMissionScreen(
 
     LaunchedEffect(key1 = remainingTimes) {
         if ((mainViewModel.isRealAlarm || previewMode) && remainingTimes <= 0) {
+            if (emergencyCounter.value.counter_emer < 400) {
+                val eCounter =
+                    emergencyCounter.value.copy(counter_emer = emergencyCounter.value.counter_emer + 100)
+                mainViewModel.updateCounter(eCounter)
+            } else {
+                val eCounter =
+                    emergencyCounter.value.copy(counter_emer = 100)
+                mainViewModel.updateCounter(eCounter)
+            }
             val mutableList = mainViewModel.dummyMissionList.toMutableList()
             mutableList.removeFirst()
             mainViewModel.dummyMissionList = mutableList
@@ -354,7 +365,9 @@ fun AlterMissionScreen(
                         isSelected = singleMission.isSelected,
                         setOfSentences = convertStringToSet(singleMission.selectedSentences),
                         imageId = singleMission.imageId,
-                        codeId = singleMission.codeId, locId = singleMission.locId, valuesToPick = singleMission.valuesToPick
+                        codeId = singleMission.codeId,
+                        locId = singleMission.locId,
+                        valuesToPick = singleMission.valuesToPick
                     )
                 )
                 when (mainViewModel.missionDetails.missionName) {
@@ -413,44 +426,51 @@ fun AlterMissionScreen(
                             launchSingleTop = true
                         }
                     }
+
                     "RangeNumbers" -> {
-                        controller.navigate(Routes.RangeMemoryMissionPreview.route){
+                        controller.navigate(Routes.RangeMemoryMissionPreview.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
+
                     "RangeAlphabet" -> {
-                        controller.navigate(Routes.RangeAlphabetMissionPreview.route){
+                        controller.navigate(Routes.RangeAlphabetMissionPreview.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
+
                     "WalkOff" -> {
-                        controller.navigate(Routes.WalkOffScreen.route){
+                        controller.navigate(Routes.WalkOffScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
+
                     "ReachDestination" -> {
-                        controller.navigate(Routes.AtLocationMissionScreen.route){
+                        controller.navigate(Routes.AtLocationMissionScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
+
                     "ArrangeNumbers" -> {
-                        controller.navigate(Routes.ArrangeNumbersScreen.route){
+                        controller.navigate(Routes.ArrangeNumbersScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
+
                     "ArrangeAlphabet" -> {
-                        controller.navigate(Routes.ArrangeAlphabetsScreen.route){
+                        controller.navigate(Routes.ArrangeAlphabetsScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
                     }
+
                     "ArrangeShapes" -> {
-                        controller.navigate(Routes.ArrangeShapesScreen.route){
+                        controller.navigate(Routes.ArrangeShapesScreen.route) {
                             popUpTo(controller.graph.startDestinationId)
                             launchSingleTop = true
                         }
@@ -551,11 +571,12 @@ fun AlterMissionScreen(
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
             )
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .padding(vertical = 20.dp, horizontal = 70.dp),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp),
                     verticalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
                     items(colors.size) { index ->
@@ -575,19 +596,17 @@ fun AlterMissionScreen(
                             }
                         )
                     }
-                    item {
-                        Text(
-                            text = if (showWrong) "Tap on green Button !" else "",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.W500,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 15.dp)
-                        )
-                    }
                 }
+                Text(
+                    text = if (showWrong) "Tap on green Button !" else "",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.W500,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp)
+                )
             }
         }
     }
@@ -607,7 +626,7 @@ fun RubikCube(
     Box(
         modifier = modifier
             .background(color)
-            .size(75.dp)
+            .size(80.dp)
             .clickable(onClick = onClick)
     )
 }

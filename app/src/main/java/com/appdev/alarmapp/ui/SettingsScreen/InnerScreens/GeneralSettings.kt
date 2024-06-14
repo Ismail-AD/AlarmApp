@@ -29,9 +29,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -48,9 +50,11 @@ import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun GeneralSettings(mainViewModel: MainViewModel, controller: NavHostController) {
+    val switchState by mainViewModel.themeSettings.collectAsState()
+    val isDarkMode by mainViewModel.themeSettings.collectAsState()
 
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
@@ -95,12 +99,7 @@ fun GeneralSettings(mainViewModel: MainViewModel, controller: NavHostController)
                 Spacer(modifier = Modifier.height(9.dp))
                 Card(
                     onClick = {
-                        controller.navigate(Routes.ThemeChangeScreen.route) {
-                            popUpTo(Routes.GeneralScreen.route) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                        }
+
                     },
                     modifier = Modifier
                         .height(68.dp)
@@ -127,13 +126,25 @@ fun GeneralSettings(mainViewModel: MainViewModel, controller: NavHostController)
                                 .padding(end = 3.dp),
                             contentAlignment = Alignment.BottomEnd
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowForwardIos,
-                                contentDescription = "",
-                                tint = MaterialTheme.colorScheme.surfaceTint.copy(
-                                    alpha = 0.6f
-                                ),
-                                modifier = Modifier.size(15.dp)
+                            Switch(
+                                checked = switchState,
+                                onCheckedChange = { newSwitchState ->
+                                    mainViewModel.updateThemeSettings(newSwitchState)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                        0xff13A7CB
+                                    ), // Color when switch is ON
+                                    checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                        0xff7FCFE1
+                                    ), // Track color when switch is ON
+                                    uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                        0xff656D7D
+                                    ), // Color when switch is OFF
+                                    uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                        0xff9E9E9E
+                                    ) // Track color when switch is OFF
+                                ), modifier = Modifier.scale(0.8f)
                             )
                         }
                     }

@@ -11,7 +11,10 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +29,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
@@ -82,6 +87,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RangedNumbersMissionHandlerScreen(
     intent: Intent = Intent(),
@@ -128,7 +134,6 @@ fun RangedNumbersMissionHandlerScreen(
 
     val dismissSettings by mainViewModel.dismissSettings.collectAsStateWithLifecycle()
     var progress by remember { mutableFloatStateOf(1f) }
-    var countdown by remember { mutableStateOf(5) }
     var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
 
     var clickedNumbers by remember { mutableStateOf(emptyList<Int>()) }
@@ -136,6 +141,7 @@ fun RangedNumbersMissionHandlerScreen(
     val elementsCountToPick by remember {
         mutableIntStateOf(mainViewModel.missionDetails.valuesToPick)
     }
+    var countdown by remember { mutableStateOf(if (elementsCountToPick <= 5) 10 else 20) }
 
     var modifiedIndices by remember {
         mutableStateOf(
@@ -802,103 +808,83 @@ fun RangedNumbersMissionHandlerScreen(
                     .padding(vertical = 15.dp)
             )
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(if (elementsCountToPick < 5) elementsCountToPick else 5), // Adjust the number of columns as needed
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalArrangement = Arrangement.spacedBy(colPadding),
                     verticalArrangement = Arrangement.spacedBy(colPadding)
                 ) {
                     if (countdown != 0) {
-                        items(modifiedIndices.chunked(if (elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
-                            val numDummyElements =
-                                if (chunk.size < elementsCountToPick && elementsCountToPick < 5) {
-                                    elementsCountToPick - chunk.size
-                                } else if (chunk.size < 5 && elementsCountToPick > 5) {
-                                    5 - chunk.size
-                                } else {
-                                    0
-                                }
-                            Row(
+                        items(modifiedIndices, key = { it }) {
+                            RubikCubeNumberBlock(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(rowHeight),
-                                horizontalArrangement = Arrangement.SpaceAround
-                            ) {
-                                chunk.forEach { number ->
-                                    RubikCubeNumberBlock(
-                                        modifier = Modifier
-                                            .clipToBounds(), cubeHeightWidth, number.toString()
-                                    )
-                                }
-                                if (numDummyElements != 0) {
-                                    repeat(numDummyElements) {
-                                        Spacer(
-                                            modifier = Modifier
-                                                .size(cubeHeightWidth)
-                                        )
-                                    }
-                                }
-                            }
+                                    .size(cubeHeightWidth)
+                                    .clipToBounds(),
+                                cubeHeightWidth = cubeHeightWidth,
+                                data = it.toString()
+                            )
                         }
+//                        addDummyItems(modifiedIndices.size, elementsCountToPick, cubeHeightWidth)
                     } else {
-                        items(finalRangedList.chunked(if (elementsCountToPick > 5) 5 else elementsCountToPick)) { chunk ->
-                            val numDummyElements =
-                                if (chunk.size < elementsCountToPick && elementsCountToPick < 5) {
-                                    elementsCountToPick - chunk.size
-                                } else if (chunk.size < 5 && elementsCountToPick > 5) {
-                                    5 - chunk.size
-                                } else {
-                                    0
-                                }
-                            Row(
+                        items(finalRangedList, key = { it }) {
+                            RubikCubeNumberBlock(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(rowHeight),
-                                horizontalArrangement = Arrangement.SpaceAround
-                            ) {
-                                chunk.forEach { number ->
-                                    RubikCubeNumberBlock(
-                                        modifier = Modifier
-                                            .clipToBounds()
-                                            .background(
-                                                if ((missionViewModel.missionHandler.notMatched) && number == missionViewModel.missionHandler.clicked) {
-                                                    showWrong = true
-                                                    Color.Red
-                                                } else if (modifiedIndices.contains(
-                                                        number
-                                                    ) && missionViewModel.missionHandler.correctChoiceList.isNotEmpty()
-                                                ) Color(0xFFF57C00) else Color(0xff1C1F26)
-                                            )
-                                            .clickable {
-                                                if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
-                                                    if (!clickedNumbers.contains(number)) {
-                                                        missionViewModel.missionEventHandler(
-                                                            MissionDemoHandler.checkMatch(number)
-                                                        )
-                                                        clickedNumbers += number
-                                                        progress = 1f
-                                                    }
-                                                }
-                                            }, cubeHeightWidth, number.toString()
-                                    )
-
-                                }
-                                if (numDummyElements != 0) {
-                                    repeat(numDummyElements) {
-                                        Spacer(
-                                            modifier = Modifier
-                                                .size(cubeHeightWidth)
+                                    .animateItemPlacement(
+                                        tween(
+                                            500,
+                                            easing = LinearEasing
                                         )
-                                    }
-                                }
-                            }
+                                    )
+                                    .size(cubeHeightWidth)
+                                    .clipToBounds()
+                                    .background(
+                                        if ((missionViewModel.missionHandler.notMatched) && it == missionViewModel.missionHandler.clicked) {
+                                            showWrong = true
+                                            Color.Red
+                                        } else if (modifiedIndices.contains(
+                                                it
+                                            ) && missionViewModel.missionHandler.correctChoiceList.isNotEmpty()
+                                        ) Color(0xFFF57C00) else Color(0xff1C1F26)
+                                    )
+                                    .clickable {
+                                        if (countdown == 0 && missionViewModel.missionHandler.correctChoiceList.size != missionViewModel.missionHandler.preservedIndexes.size) {
+                                            if (!clickedNumbers.contains(it)) {
+                                                missionViewModel.missionEventHandler(
+                                                    MissionDemoHandler.checkMatch(it)
+                                                )
+                                                clickedNumbers += it
+                                                progress = 1f
+                                            }
+                                        }
+                                    },
+                                cubeHeightWidth = cubeHeightWidth,
+                                data = it.toString()
+                            )
                         }
+//                        addDummyItems(finalRangedList.size, elementsCountToPick, cubeHeightWidth)
                     }
                 }
             }
         }
 
+    }
+}
+
+@Composable
+fun addDummyItems(currentSize: Int, elementsCountToPick: Int, cubeHeightWidth: Dp) {
+    val numDummyElements = if (elementsCountToPick > 5) {
+        5 - currentSize % 5
+    } else {
+        elementsCountToPick - currentSize % elementsCountToPick
+    }
+
+    if (numDummyElements > 0) {
+        repeat(numDummyElements) {
+            Spacer(modifier = Modifier.size(cubeHeightWidth))
+        }
     }
 }
 

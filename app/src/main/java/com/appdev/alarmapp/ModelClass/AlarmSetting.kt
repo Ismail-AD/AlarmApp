@@ -10,5 +10,6 @@ data class AlarmSetting(
     val id: Long = 0,
     val showInNotification: Boolean = false,
     val activeSort: Boolean = true,
-    val preventUninstall: Boolean = false
+    val preventUninstall: Boolean = false,
+    val preventPhoneOff:Boolean = false
 )

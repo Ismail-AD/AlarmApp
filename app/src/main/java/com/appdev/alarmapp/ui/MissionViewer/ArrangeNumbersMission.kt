@@ -11,8 +11,12 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -137,7 +141,7 @@ fun ArrangeNumbersMHScreen(
     val elementsCountToPick by remember {
         mutableIntStateOf(mainViewModel.missionDetails.valuesToPick)
     }
-    var countdown by remember { mutableStateOf(if (elementsCountToPick <= 6) 5 else 10) }
+    var countdown by remember { mutableStateOf(if (elementsCountToPick <= 5) 10 else 20) }
     var showWrong by remember { mutableStateOf(missionViewModel.missionHandler.notMatched) }
 
     var clickedNumbers by remember { mutableStateOf(emptyList<Int>()) }
@@ -500,10 +504,15 @@ fun ArrangeNumbersMHScreen(
             }
         }
     }
-    LaunchedEffect(key1 = showWrong, key2 = missionViewModel.missionHandler.notMatched) {
+    LaunchedEffect(key1 = missionViewModel.missionHandler.notMatched) {
         if (missionViewModel.missionHandler.notMatched) {
-            delay(500)
+            delay(1000)
             missionViewModel.missionEventHandler(MissionDemoHandler.updateMatch(false))
+        }
+    }
+    LaunchedEffect(key1 = showWrong){
+        if(showWrong){
+            delay(1000)
             showWrong = false
         }
     }
@@ -512,7 +521,7 @@ fun ArrangeNumbersMHScreen(
         key2 = shuffledList,
         key3 = correctList
     ) {
-        if (correctList.value.isEmpty() && countdown != 0) {
+        if (correctList.value.isEmpty() && countdown > 0) {
             correctList.value = (1..99).shuffled().take(elementsCountToPick)
             shuffledList.value = correctList.value.shuffled()
         }
@@ -521,13 +530,48 @@ fun ArrangeNumbersMHScreen(
 
     //---------------------------------DESIGN--------------------------------
     Scaffold(bottomBar = {
-        if (countdown == 0) {
+        if(countdown > 0) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 25.dp),
                 contentAlignment = Alignment.Center
             ) {
+                CustomButton(onClick = {
+                    countdown = 0
+                }, text = "Start Mission", width = 0.85f)
+            }
+        }
+        else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 25.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AnimatedVisibility(
+                        visible = showWrong,
+                        enter = slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = tween(700)
+                        ),
+                        exit = slideOutVertically(
+                            targetOffsetY = { it },  // Slide out downwards
+                            animationSpec = tween(700)
+                        )
+                    ) {
+                        Text(
+                            text = "Order is not correct !",
+                            color = Color.Red,
+                            fontSize = 24.sp,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.W500,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 15.dp)
+                        )
+                    }
                 CustomButton(
                     onClick = {
                         if (shuffledList.value.zip(correctList.value)
@@ -542,7 +586,7 @@ fun ArrangeNumbersMHScreen(
                                     mainViewModel.missionDetails.repeatProgress + 1
                                 )
                             )
-                        }  else if (shuffledList.value.zip(correctList.value)
+                        } else if (shuffledList.value.zip(correctList.value)
                                 .all { (a, b) -> a == b } && mainViewModel.missionDetails.repeatProgress == mainViewModel.missionDetails.repeatTimes
                         ) {
                             if (mainViewModel.isRealAlarm || previewMode) {
@@ -696,19 +740,27 @@ fun ArrangeNumbersMHScreen(
                                 }
                             }
                         } else {
+                            vibrator.vibrate(
+                                VibrationEffect.createOneShot(
+                                    500,
+                                    VibrationEffect.DEFAULT_AMPLITUDE
+                                )
+                            )
                             showWrong = true
+                            progress = 1f
                         }
                     },
                     text = "Verify Order",
                     width = 0.85f
                 )
             }
+            }
         }
     }) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (countdown != 0) Color(0xff232E4C) else Color(0xff121315))
+                .background(if (countdown > 0) Color(0xff232E4C) else Color(0xff121315))
                 .padding(it),
             contentAlignment = Alignment.TopCenter
         ) {
@@ -765,7 +817,7 @@ fun ArrangeNumbersMHScreen(
                 }
 
                 Text(
-                    text = if (showWrong && countdown == 0) "Order is not correct ! Try again" else if (countdown != 0) "Memorize!" + if (countdown > 0) " $countdown" else " " else "Arrange numbers in order",
+                    text = if (countdown > 0) "Memorize! $countdown"  else "Arrange numbers in order",
                     color = Color.White,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,
@@ -775,7 +827,7 @@ fun ArrangeNumbersMHScreen(
                         .padding(vertical = 15.dp)
                 )
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                    if (countdown != 0) {
+                    if (countdown > 0) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(3), modifier = Modifier
                                 .padding(16.dp),

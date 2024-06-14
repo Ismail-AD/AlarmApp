@@ -295,7 +295,7 @@ fun AlarmDismissSettings(mainViewModel: MainViewModel, controller: NavHostContro
                                         mainViewModel.updateDismissSettings(
                                             DismissSettings(
                                                 id = mainViewModel.dismissSettings.value.id,
-                                                dismissTime = selectedOption.toInt(),
+                                                dismissTime = selectedOption.trim().toInt(),
                                                 missionTime = mainViewModel.dismissSettings.value.missionTime,
                                                 photoSensitivity = mainViewModel.dismissSettings.value.photoSensitivity,
                                                 muteTone = mainViewModel.dismissSettings.value.muteTone

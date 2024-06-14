@@ -15,6 +15,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
@@ -52,6 +55,8 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.rememberSwipeableState
+import androidx.compose.material.swipeable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +64,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -88,6 +94,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -120,7 +127,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun MainScreen(
     ringtoneRepository: RingtoneRepository,
@@ -136,6 +143,7 @@ fun MainScreen(
     }
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
+    val strictSheetState = rememberModalBottomSheetState()
     var clickAlarmId by remember {
         mutableLongStateOf(0)
     }
@@ -163,12 +171,17 @@ fun MainScreen(
     var showDialog by remember {
         mutableStateOf(false)
     }
+    var showStrictPermitSheet by remember {
+        mutableStateOf(false)
+    }
+
 
     val notificationService by remember { mutableStateOf(NotificationService(context)) }
 
     var upcomingAlarm by remember {
         mutableStateOf(findUpcomingAlarm(alarmList))
     }
+
     var alarmToPreview by remember {
         mutableStateOf(AlarmEntity())
     }
@@ -206,6 +219,8 @@ fun MainScreen(
                     it.nextTimeInMillis
                 }
             }
+
+
         timeUntilNextAlarm = upcomingAlarm?.let {
             if (it.nextTimeInMillis < System.currentTimeMillis()) {
                 Log.d("CHJ", "${it.isOneTime}")
@@ -261,6 +276,14 @@ fun MainScreen(
         }
     })
 
+    val intentNew by remember {
+        mutableStateOf(
+            Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${context.packageName}")
+            )
+        )
+    }
 
     val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -269,13 +292,8 @@ fun MainScreen(
             // Handle the result if needed
         }
 
-        if (!Settings.canDrawOverlays(context)) {
-            Toast.makeText(context, "This feature is crucial to this app", Toast.LENGTH_SHORT)
-                .show()
-        }
+        showStrictPermitSheet = !Settings.canDrawOverlays(context)
     }
-
-
 
     LaunchedEffect(key1 = Unit) {
         mainViewModel.missionData(MissionDataHandler.ResetList)
@@ -290,10 +308,6 @@ fun MainScreen(
             showDialog = true
         }
         if (!Settings.canDrawOverlays(context)) {
-            val intentNew = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${context.packageName}")
-            )
             requestOverlayPermissionLauncher.launch(intentNew)
         }
 
@@ -305,6 +319,8 @@ fun MainScreen(
         }
     }
 
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -314,6 +330,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -786,6 +803,44 @@ fun MainScreen(
 
         }
     }
+
+    if (showStrictPermitSheet) {
+        Dialog(
+            onDismissRequest = { },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        ) {
+            Column(
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.onBackground,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.3f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "To use features of Alarmy app , you need to allow this permission !",
+                    color = MaterialTheme.colorScheme.surfaceTint,
+                    fontSize = 18.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    textAlign = TextAlign.Center, fontWeight = FontWeight.W500
+                )
+
+                CustomButton(
+                    onClick = {
+                        requestOverlayPermissionLauncher.launch(intentNew)
+                    },
+                    text = "Allow permission",
+                    width = 0.75f,
+                )
+            }
+
+        }
+    }
     if (showSheetState) {
         ModalBottomSheet(
             onDismissRequest = { showSheetState = false },
@@ -842,8 +897,16 @@ fun MainScreen(
                                 ) { l, l1 ->
                                     mainViewModel.updateHandler(EventHandlerAlarm.idAlarm(iD = alarmToPreview.id))
                                     mainViewModel.updateHandler(EventHandlerAlarm.getDays(days = alarmToPreview.listOfDays))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.ringtone(ringtone = alarmToPreview.ringtone))
-                                    mainViewModel.updateHandler(EventHandlerAlarm.skipAlarm(skipped = false))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.ringtone(
+                                            ringtone = alarmToPreview.ringtone
+                                        )
+                                    )
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.skipAlarm(
+                                            skipped = false
+                                        )
+                                    )
                                     mainViewModel.updateHandler(
                                         EventHandlerAlarm.LoudEffect(
                                             isLoudEffectOrNot = alarmToPreview.isLoudEffect
@@ -902,7 +965,11 @@ fun MainScreen(
                                             getSnoozeTime = alarmToPreview.snoozeTime
                                         )
                                     )
-                                    mainViewModel.updateHandler(EventHandlerAlarm.isActive(isactive = alarmToPreview.isActive))
+                                    mainViewModel.updateHandler(
+                                        EventHandlerAlarm.isActive(
+                                            isactive = alarmToPreview.isActive
+                                        )
+                                    )
                                     mainViewModel.updateHandler(EventHandlerAlarm.update)
                                 }
 //                                scheduleTheAlarm(
@@ -943,7 +1010,8 @@ fun MainScreen(
                                 val daysUntilNextOccurrence =
                                     nextOccurrence - dayOfWeek
                                 if (daysUntilNextOccurrence < 0) {
-                                    val correctDay = 7 - kotlin.math.abs(daysUntilNextOccurrence)
+                                    val correctDay =
+                                        7 - kotlin.math.abs(daysUntilNextOccurrence)
                                     calendar.timeInMillis =
                                         selectedTimeMillis + TimeUnit.DAYS.toMillis(correctDay.toLong())
                                 } else if (daysUntilNextOccurrence == 0) {
@@ -986,14 +1054,26 @@ fun MainScreen(
                                         getWUTime = alarmToPreview.wakeUpTime
                                     )
                                 )
-                                mainViewModel.updateHandler(EventHandlerAlarm.Vibrator(setVibration = alarmToPreview.willVibrate))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.Vibrator(
+                                        setVibration = alarmToPreview.willVibrate
+                                    )
+                                )
                                 mainViewModel.updateHandler(
                                     EventHandlerAlarm.CustomVolume(
                                         customVolume = alarmToPreview.customVolume
                                     )
                                 )
-                                mainViewModel.updateHandler(EventHandlerAlarm.IsLabel(isLabelOrNot = alarmToPreview.isLabel))
-                                mainViewModel.updateHandler(EventHandlerAlarm.LabelText(getLabelText = alarmToPreview.labelTextForSpeech))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.IsLabel(
+                                        isLabelOrNot = alarmToPreview.isLabel
+                                    )
+                                )
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.LabelText(
+                                        getLabelText = alarmToPreview.labelTextForSpeech
+                                    )
+                                )
                                 mainViewModel.updateHandler(
                                     EventHandlerAlarm.getTime(
                                         time = alarmToPreview.localTime
@@ -1002,13 +1082,21 @@ fun MainScreen(
                                 mainViewModel.updateHandler(
                                     EventHandlerAlarm.isOneTime(isOneTime = alarmToPreview.isOneTime)
                                 )
-                                mainViewModel.updateHandler(EventHandlerAlarm.getMilli(timeInMilli = alarmToPreview.timeInMillis))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.getMilli(
+                                        timeInMilli = alarmToPreview.timeInMillis
+                                    )
+                                )
                                 mainViewModel.updateHandler(
                                     EventHandlerAlarm.getNextMilli(
                                         upcomingMilli = calendar.timeInMillis
                                     )
                                 )
-                                mainViewModel.updateHandler(EventHandlerAlarm.getMissions(missions = alarmToPreview.listOfMissions))
+                                mainViewModel.updateHandler(
+                                    EventHandlerAlarm.getMissions(
+                                        missions = alarmToPreview.listOfMissions
+                                    )
+                                )
                                 mainViewModel.updateHandler(
                                     EventHandlerAlarm.getSnoozeTime(
                                         getSnoozeTime = alarmToPreview.snoozeTime
@@ -1414,6 +1502,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "ArrangeNumbers" -> {
                             Icon(
                                 imageVector = Icons.Filled.RepeatOne,
@@ -1422,6 +1511,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "ArrangeAlphabet" -> {
                             Icon(
                                 imageVector = Icons.Filled.CompareArrows,
@@ -1430,6 +1520,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "ArrangeShapes" -> {
                             Icon(
                                 imageVector = Icons.Filled.Pentagon,
@@ -1438,6 +1529,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "RangeNumbers" -> {
                             Icon(
                                 imageVector = Icons.Filled.LooksOne,
@@ -1446,6 +1538,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "RangeAlphabet" -> {
                             Icon(
                                 imageVector = Icons.Filled.SortByAlpha,
@@ -1454,6 +1547,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "ReachDestination" -> {
                             Icon(
                                 imageVector = Icons.Filled.AddLocationAlt,
@@ -1462,6 +1556,7 @@ fun AlarmBox(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
                         "WalkOff" -> {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,

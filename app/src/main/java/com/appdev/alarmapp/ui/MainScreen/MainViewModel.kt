@@ -3,20 +3,21 @@ package com.appdev.alarmapp.ui.MainScreen
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Geocoder
+import android.location.Location
 import android.util.Log
 import androidx.camera.core.CameraSelector
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.appdev.alarmapp.Hilt.TokenManagement
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DefaultSettings
 import com.appdev.alarmapp.ModelClass.DismissSettings
+import com.appdev.alarmapp.ModelClass.Emergency_counter
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.Repository.AlarmRepository
@@ -31,6 +32,7 @@ import com.appdev.alarmapp.utils.Missions
 import com.appdev.alarmapp.utils.QrCodeData
 import com.appdev.alarmapp.utils.Ringtone
 import com.appdev.alarmapp.utils.Updating
+import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import com.appdev.alarmapp.utils.convertSetToString
 import com.appdev.alarmapp.utils.isOldOrNew
 import com.appdev.alarmapp.utils.motivationalPhrases
@@ -40,10 +42,7 @@ import com.appdev.alarmapp.utils.toSystemRingtoneEntity
 import com.appdev.alarmapp.utils.whichMissionHandler
 import com.appdev.alarmapp.utils.whichRangeMissionHandle
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -54,9 +53,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -81,6 +78,8 @@ class MainViewModel @Inject constructor(
     private var _themeSettings = MutableStateFlow(false)
     val themeSettings: StateFlow<Boolean> get() = _themeSettings
 
+    var _emergencyCounter = MutableStateFlow(Emergency_counter())
+    val eCounter: StateFlow<Emergency_counter> get() = _emergencyCounter
 
     private var _missions = MutableStateFlow(missionsEntity())
     val missions: StateFlow<missionsEntity> get() = _missions
@@ -110,6 +109,11 @@ class MainViewModel @Inject constructor(
                 _themeSettings.value = it
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            ringtoneRepository.getCounter.collect {
+                _emergencyCounter.value = it
+            }
+        }
     }
 
     var selectedDataAlarm by mutableStateOf(AlarmEntity())
@@ -127,7 +131,7 @@ class MainViewModel @Inject constructor(
     var selectedLocationByName by mutableStateOf(
         LocationByName(
             locationName = "",
-            locationString = ""
+            locationString = "", longitude = 0.0, latitude = 0.0
         )
     )
     var flashLight by mutableStateOf(false)
@@ -140,8 +144,8 @@ class MainViewModel @Inject constructor(
     private val _snoozeTime = MutableStateFlow(0L) // Initial value is 0 milliseconds
     val snoozeTime: StateFlow<Long> = _snoozeTime.asStateFlow()
 
-    private val _currentLocation = MutableStateFlow<LatLng?>(null)
-    val currentLocation: StateFlow<LatLng?> = _currentLocation
+    private val _currentLocation = MutableStateFlow<Location?>(null)
+    val currentLocation: StateFlow<Location?> = _currentLocation
 
 
     private val _isFetchingLocation = MutableStateFlow(false)
@@ -180,7 +184,7 @@ class MainViewModel @Inject constructor(
                     Priority.PRIORITY_HIGH_ACCURACY,
                     CancellationTokenSource().token
                 ).addOnSuccessListener { location ->
-                    _currentLocation.value = LatLng(location.latitude, location.longitude)
+                    _currentLocation.value = location
                     _isFetchingLocation.value = false
                 }
             } catch (e: Exception) {
@@ -189,6 +193,12 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
+    fun updateCurrentLocation(location: Location) {
+        _currentLocation.value = location
+        Log.d("Currt", "Updated Location: ${_currentLocation.value}")
+    }
+
 
     fun updateMyCurrentLocationToNull() {
         _currentLocation.value = null
@@ -211,6 +221,8 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<QrScanUIState> = _uiState
     var detectedQrCodeState by mutableStateOf(ProcessingState())
     var locationNameToSave by mutableStateOf("")
+    var longitude by mutableStateOf(0.0)
+    var latitude by mutableStateOf(0.0)
     var newAlarm by mutableStateOf(getAlarmEntityWithDefaultSettings())
     fun sendFeedback(data: String, onComplete: (Boolean, String) -> Unit) {
         ringtoneRepository.sendFeedbackInfo(data) { DoneOrNot, Message ->
@@ -260,6 +272,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun updateCounter(emergencyCounter: Emergency_counter) {
+        _emergencyCounter.value = emergencyCounter
+        viewModelScope.launch {
+            ringtoneRepository.updateCounterSettings(eCounter.value)
+        }
+    }
+
 
     fun updateBasicSettings(alarmSettingEntity: AlarmSetting) {
         _basicSettings.value = alarmSettingEntity
@@ -278,8 +297,10 @@ class MainViewModel @Inject constructor(
         detectedQrCodeState = processingState
     }
 
-    fun updateLocationName(locationName: String) {
+    fun updateLocationName(locationName: String, newlatitude: Double, newlongitude: Double) {
         locationNameToSave = locationName
+        latitude = newlatitude
+        longitude = newlongitude
     }
 
     fun onQrCodeDetected(result: String) {
@@ -328,6 +349,12 @@ class MainViewModel @Inject constructor(
     fun insertDefaultSettings(defaultSettings: DefaultSettings) {
         viewModelScope.launch {
             ringtoneRepository.insertDefaultSettings(defaultSettings)
+        }
+    }
+
+    fun insertCounter(emergencyCounter: Emergency_counter) {
+        viewModelScope.launch {
+            ringtoneRepository.insertCounterSettings(emergencyCounter)
         }
     }
 
@@ -581,6 +608,7 @@ class MainViewModel @Inject constructor(
                 newAlarm.copy(isActive = newAlarmHandler.isactive)
 
             com.appdev.alarmapp.utils.newAlarmHandler.insert -> {
+                Log.d("CHKTM", "My alarm is: ${newAlarm} ")
                 insertAlarm(newAlarm)
             }
 
@@ -645,7 +673,10 @@ class MainViewModel @Inject constructor(
                 repeatProgress = missionDataHandler.repeatProgress,
                 isSelected = missionDataHandler.isSelected,
                 selectedSentences = convertSetToString(missionDataHandler.setOfSentences),
-                imageId = missionDataHandler.imageId, codeId = missionDataHandler.codeId, locId = missionDataHandler.locId, valuesToPick = missionDataHandler.valuesToPick
+                imageId = missionDataHandler.imageId,
+                codeId = missionDataHandler.codeId,
+                locId = missionDataHandler.locId,
+                valuesToPick = missionDataHandler.valuesToPick
             )
 
             is MissionDataHandler.MissionLevel -> missionDetails =
@@ -691,7 +722,12 @@ class MainViewModel @Inject constructor(
                     repeatProgress = 1,
                     missionLevel = "Very Easy",
                     missionName = "",
-                    isSelected = false, selectedSentences = "", codeId = 0, imageId = 0, locId = 0, difficultyLevel = "Normal Mode"
+                    isSelected = false,
+                    selectedSentences = "",
+                    codeId = 0,
+                    imageId = 0,
+                    locId = 0,
+                    difficultyLevel = "Normal Mode"
                 )
                 sentencesList = emptySet()
             }
@@ -862,11 +898,6 @@ class MainViewModel @Inject constructor(
     data class ProcessingState(
         val qrCode: String = "",
         val startProcess: Boolean = true
-    )
-
-    data class FeedbackUpdate(
-        val msg: String = "",
-        val completeOrNot: Boolean = false
     )
 
     data class QrScanUIState(

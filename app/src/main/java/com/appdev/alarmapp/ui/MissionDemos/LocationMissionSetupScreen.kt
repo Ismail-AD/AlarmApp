@@ -176,6 +176,12 @@ fun LocationMissionSetup(
     var filename by remember {
         mutableStateOf(mainViewModel.locationNameToSave)
     }
+    var longi by remember {
+        mutableStateOf(mainViewModel.longitude)
+    }
+    var lait by remember {
+        mutableStateOf(mainViewModel.latitude)
+    }
     var codeName by remember {
         mutableStateOf(mainViewModel.locationNameToSave)
     }
@@ -213,11 +219,14 @@ fun LocationMissionSetup(
             bottomSheetState = true
             filename = mainViewModel.locationNameToSave
             codeName = mainViewModel.locationNameToSave
+            longi = mainViewModel.longitude
+            lait = mainViewModel.latitude
+            Log.d("LOCCHECK","long , lat ${longi} , ${lait}")
         }
     }
     LaunchedEffect(key1 = bottomSheetState) {
         if (!bottomSheetState && mainViewModel.locationNameToSave.trim().isNotEmpty()) {
-            mainViewModel.updateLocationName("")
+            mainViewModel.updateLocationName("", longi,lait)
         }
     }
     BackHandler {
@@ -587,14 +596,19 @@ fun LocationMissionSetup(
                                         LocationByName(
                                             locId = System.currentTimeMillis(),
                                             locationString = filename,
-                                            locationName = mainViewModel.locationNameToSave
+                                            locationName = mainViewModel.locationNameToSave,
+                                            longitude = mainViewModel.longitude,
+                                            latitude = mainViewModel.latitude
                                         )
                                     )
                                 } else {
                                     mainViewModel.insertLocationByName(
                                         LocationByName(
                                             locId = System.currentTimeMillis(),
-                                            locationString = filename, locationName = codeName
+                                            locationString = filename,
+                                            locationName = codeName,
+                                            longitude = mainViewModel.longitude,
+                                            latitude = mainViewModel.latitude
                                         )
                                     )
                                 }
@@ -634,7 +648,9 @@ fun LocationMissionSetup(
                                                     LocationByName(
                                                         locId = System.currentTimeMillis(),
                                                         locationString = filename,
-                                                        locationName = mainViewModel.locationNameToSave
+                                                        locationName = mainViewModel.locationNameToSave,
+                                                        longitude = mainViewModel.longitude,
+                                                        latitude = mainViewModel.latitude
                                                     )
                                                 )
                                             } else {
@@ -642,7 +658,8 @@ fun LocationMissionSetup(
                                                     LocationByName(
                                                         locId = System.currentTimeMillis(),
                                                         locationString = filename,
-                                                        locationName = codeName
+                                                        locationName = codeName,
+                                                        longitude = longi, latitude = lait
                                                     )
                                                 )
                                             }
@@ -706,7 +723,8 @@ fun LocationMissionSetup(
                                                     LocationByName(
                                                         locId = clickedElement,
                                                         locationString = filename,
-                                                        locationName = codeName
+                                                        locationName = codeName,
+                                                        longitude = longi, latitude = lait
                                                     )
                                                 )
                                             } else {
@@ -714,7 +732,8 @@ fun LocationMissionSetup(
                                                     LocationByName(
                                                         locId = System.currentTimeMillis(),
                                                         locationString = filename,
-                                                        locationName = codeName
+                                                        locationName = codeName,
+                                                        longitude = longi, latitude = lait
                                                     )
                                                 )
                                             }

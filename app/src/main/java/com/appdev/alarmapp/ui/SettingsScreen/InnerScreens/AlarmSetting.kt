@@ -96,6 +96,9 @@ fun AlarmSettings(
     var showDialog by remember {
         mutableStateOf(false)
     }
+    var showDialog_two by remember {
+        mutableStateOf(false)
+    }
     val deviceAdminComponent by remember {
         mutableStateOf(ComponentName(context, DeviceAdminReceiver::class.java))
     }
@@ -114,6 +117,11 @@ fun AlarmSettings(
             alarmSettings.value.preventUninstall && devicePolicyManager.isAdminActive(
                 deviceAdminComponent
             )
+        )
+    }
+    var switchScreenOffPrevention by remember {
+        mutableStateOf(
+            alarmSettings.value.preventPhoneOff
         )
     }
 
@@ -232,7 +240,8 @@ fun AlarmSettings(
                     AlarmSetting(
                         id = mainViewModel.basicSettings.value.id,
                         showInNotification = it,
-                        activeSort = mainViewModel.basicSettings.value.activeSort
+                        activeSort = mainViewModel.basicSettings.value.activeSort,preventUninstall = mainViewModel.basicSettings.value
+                            .preventUninstall,preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
                     )
                 )
                 if (it) {
@@ -257,7 +266,8 @@ fun AlarmSettings(
                     AlarmSetting(
                         id = mainViewModel.basicSettings.value.id,
                         showInNotification = mainViewModel.basicSettings.value.showInNotification,
-                        activeSort = it
+                        activeSort = it,preventUninstall = mainViewModel.basicSettings.value
+                            .preventUninstall,preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
                     )
                 )
             }
@@ -269,10 +279,71 @@ fun AlarmSettings(
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, top = 30.dp)
+                    .padding(start = 20.dp, top = 30.dp, bottom = 10.dp)
             )
-            Column {
-                Spacer(modifier = Modifier.height(9.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Card(
+                    onClick = {},
+                    modifier = Modifier
+                        .height(68.dp)
+                        .padding(horizontal = 15.dp),
+                    shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.inverseOnSurface
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Prevent phone turn-off during alarm",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
+                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Switch(
+                                checked = switchScreenOffPrevention,
+                                onCheckedChange = { newSwitchState ->
+                                    if (newSwitchState) {
+                                        showDialog_two = true
+                                    } else {
+                                        switchScreenOffPrevention = newSwitchState
+                                        mainViewModel.updateBasicSettings(
+                                            AlarmSetting(
+                                                id = mainViewModel.basicSettings.value.id,
+                                                showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                                                activeSort = mainViewModel.basicSettings.value.activeSort,
+                                                preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
+                                                preventPhoneOff = false
+                                            )
+                                        )
+                                    }
+                                    // Handle the new switch state
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                        0xff13A7CB
+                                    ), // Color when switch is ON
+                                    checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                        0xff7FCFE1
+                                    ), // Track color when switch is ON
+                                    uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                        0xff656D7D
+                                    ), // Color when switch is OFF
+                                    uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                        0xff9E9E9E
+                                    ) // Track color when switch is OFF
+                                ), modifier = Modifier.scale(0.8f)
+                            )
+                        }
+                    }
+                }
                 Card(
                     onClick = {},
                     modifier = Modifier
@@ -312,7 +383,8 @@ fun AlarmSettings(
                                                 id = mainViewModel.basicSettings.value.id,
                                                 showInNotification = mainViewModel.basicSettings.value.showInNotification,
                                                 activeSort = mainViewModel.basicSettings.value.activeSort,
-                                                preventUninstall = false
+                                                preventUninstall = false,
+                                                preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
                                             )
                                         )
                                     }
@@ -333,6 +405,85 @@ fun AlarmSettings(
                                     ) // Track color when switch is OFF
                                 ), modifier = Modifier.scale(0.8f)
                             )
+                        }
+                    }
+                }
+            }
+        }
+        if (showDialog_two) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Dialog(onDismissRequest = {
+                }) {
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.onBackground,
+                                shape = RoundedCornerShape(5.dp)
+                            )
+                    ) {
+                        Text(
+                            text = "Caution",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 20.dp), fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            "If you set this on, app doesn't turned off during ringing.",
+                            fontSize = 16.sp,
+                            letterSpacing = 0.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 18.dp, end = 18.dp)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 30.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(bottom = 20.dp)
+                            ) {
+                                CustomButton(
+                                    onClick = {
+                                        switchScreenOffPrevention = false
+                                        showDialog_two = false
+                                    },
+                                    text = "Cancel",
+                                    width = 0.40f,
+                                    backgroundColor = Color(0xffC5CDDA), textColor = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                                CustomButton(
+                                    onClick = {
+                                        mainViewModel.updateBasicSettings(
+                                            AlarmSetting(
+                                                id = mainViewModel.basicSettings.value.id,
+                                                showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                                                activeSort = mainViewModel.basicSettings.value.activeSort,
+                                                preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
+                                                preventPhoneOff = true
+                                            )
+                                        )
+                                        switchScreenOffPrevention = true
+                                        showDialog_two = false
+                                    },
+                                    text = "Ok",
+                                    width = 0.75f,
+                                    backgroundColor = Color(0xffC5CDDA), textColor = Color.Black
+                                )
+                            }
                         }
                     }
                 }

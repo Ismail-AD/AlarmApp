@@ -13,8 +13,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
 import com.appdev.alarmapp.R
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
-import com.appdev.alarmapp.utils.ObjectsGlobal
-import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.CHANNEL_ID
 import com.appdev.alarmapp.utils.ObjectsGlobal.Companion.CHANNEL_ID_SNOOZE
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope

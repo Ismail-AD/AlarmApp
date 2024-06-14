@@ -95,9 +95,9 @@ fun MemoryMissionScreen(
     }
     val context = LocalContext.current
     val state =
-        rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if(mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1  else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) (mainViewModel.missionDetails.repeatTimes / 10) - 8  else 0)
+        rememberLazyListState(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if(mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1  else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) (mainViewModel.missionDetails.repeatTimes / 10) - 6 else if (!mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) 2  else 0)
 
-    var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) (mainViewModel.missionDetails.repeatTimes / 10) - 8  else 0) }
+    var currentIndex by remember { mutableStateOf(if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Math" || mainViewModel.missionDetails.missionName == "Memory")) mainViewModel.missionDetails.repeatTimes - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Shake")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Step")) (mainViewModel.missionDetails.repeatTimes / 10) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "Squat")) (mainViewModel.missionDetails.repeatTimes / 5) - 1 else if (mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) (mainViewModel.missionDetails.repeatTimes / 10) - 6 else if (!mainViewModel.missionDetails.isSelected && (mainViewModel.missionDetails.missionName == "WalkOff")) 2  else 0) }
 
     val scope = rememberCoroutineScope()
     val defaultSettings = mainViewModel.defaultSettings.collectAsStateWithLifecycle()
@@ -353,12 +353,13 @@ fun MemoryMissionScreen(
                                 onScrollFinish = { currentIndex = it }
                             ) { index ->
                                 val isFocus = index == currentIndex
+                                Log.d("ISF","$isFocus is value which means ${(currentIndex + 6) * 10} and ind is $index")
                                 val targetAlpha = if (isFocus) 1.0f else 0.3f
                                 val targetScale = if (isFocus) 1.0f else 0.8f
                                 val animateScale by animateFloatAsState(targetScale)
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .width(70.dp)
                                         .graphicsLayer {
                                             this.alpha = targetAlpha
                                             this.scaleX = animateScale
@@ -386,7 +387,7 @@ fun MemoryMissionScreen(
                                     } else if (mainViewModel.whichMission.isWalk) {
                                         mainViewModel.missionData(
                                             MissionDataHandler.RepeatTimes(
-                                                repeat = (currentIndex + 8) * 10
+                                                repeat = (currentIndex + 6) * 10
                                             )
                                         )
                                     }
@@ -420,7 +421,7 @@ fun MemoryMissionScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else if (mainViewModel.whichMission.isWalk) "${(index + 8) * 10}" else "${(index + 1) * 5}",
+                                                text = if (mainViewModel.whichMission.isMath || mainViewModel.whichMission.isMemory) "${index + 1}" else if (mainViewModel.whichMission.isSteps || mainViewModel.whichMission.isSquat) "${(index + 1) * 5}" else if (mainViewModel.whichMission.isWalk) "${(index + 6) * 10}" else "${(index + 1) * 5}",
                                                 color = if (isDarkMode) if (index == currentIndex) Color.White else Color.Gray else if (index == currentIndex) Color.Black else Color.Gray,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.W600

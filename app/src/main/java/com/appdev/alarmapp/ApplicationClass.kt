@@ -25,7 +25,7 @@ class ApplicationClass: Application(){
             val mChannel = NotificationChannel(
                 ObjectsGlobal.CHANNEL_ID,
                 "Alarmy Notifications",
-                NotificationManager.IMPORTANCE_HIGH // Set importance to LOW for silent notifications
+                NotificationManager.IMPORTANCE_DEFAULT// Set importance to LOW for silent notifications
             )
 
             mChannel.description =
