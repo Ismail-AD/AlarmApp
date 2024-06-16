@@ -21,11 +21,13 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.appdev.alarmapp.MainActivity
+import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClass.DismissSettings
 import com.appdev.alarmapp.ModelClass.SnoozeTimer
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
@@ -56,6 +58,7 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.OffsetTime
 import java.time.ZoneId
@@ -83,10 +86,9 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     private var lastPressedKeyCode: Int = -1
     private var isScreenOnBeforeAlarm = false
     lateinit var alarm: AlarmEntity
+    var alarmSetting: AlarmSetting? = null
     lateinit var alarmScheduler: AlarmScheduler
     lateinit var vibrator: Vibrator
-    var volumeUpPressedTime: Long = 0
-    var longPressDuration: Long = 1000L
     lateinit var handler: Handler
 
 
@@ -115,11 +117,15 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
         if (!previewMode) {
             Log.d("CHKMUS", "---ALARM STATE UPDATED REAL TO TRUE FROM MAIN ALARM---")
-
             mainViewModel.updateIsReal(true)
             window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
             window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+            lifecycleScope.launch {
+                mainViewModel.basicSettings.collect {
+                    alarmSetting = it
+                }
+            }
 
         }
 
@@ -148,12 +154,6 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         }
     }
 
-    private val volumeUpLongPressRunnable = Runnable {
-        if (System.currentTimeMillis() - volumeUpPressedTime >= longPressDuration) {
-
-        }
-    }
-
 
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
@@ -162,43 +162,22 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             return true // Consume the event to prevent the system volume change
         }
         if (event?.keyCode == KeyEvent.KEYCODE_POWER) {
-            Toast.makeText(getApplicationContext(), "Power dispatch", Toast.LENGTH_SHORT).show();
             lastPressedKeyCode = event.keyCode
-            return true
         }
         return super.dispatchKeyEvent(event)
     }
 
-//    override fun onWindowFocusChanged(hasFocus: Boolean) {
-//        super.onWindowFocusChanged(hasFocus)
-//        if (!hasFocus) {
-//            val closeDialog = Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
-//            sendBroadcast(closeDialog)
-//            Toast.makeText(this, "Your LongPress Power Button", Toast.LENGTH_SHORT).show()
-//        }
-//    }
-
-
-    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
-        return if (keyCode == KeyEvent.KEYCODE_POWER) {
-            Toast.makeText(getApplicationContext(), "Power long press", Toast.LENGTH_SHORT).show();
-            true
-        } else super.onKeyLongPress(keyCode, event)
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_POWER) {
-            Log.e("key", "long")
-            Toast.makeText(
-                applicationContext,
-                "Power key donw",
-                Toast.LENGTH_SHORT
-            ).show()
-            return true
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+            alarmSetting?.let { a ->
+                if (a.preventPhoneOff) {
+                    val closeDialog = Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                    sendBroadcast(closeDialog)
+                }
+            }
         }
-        return super.onKeyDown(keyCode, event)
     }
-
 
     override fun onStop() {
         val isScreenOnNow = isScreenOn()

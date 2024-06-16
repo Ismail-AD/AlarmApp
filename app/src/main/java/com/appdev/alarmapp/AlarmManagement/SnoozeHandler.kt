@@ -16,6 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -47,6 +48,7 @@ import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -188,6 +190,19 @@ class SnoozeHandler : ComponentActivity(), DismissCallback, TimerEndsCallback {
         return super.dispatchKeyEvent(event)
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        lifecycleScope.launch {
+            mainViewModel.basicSettings.collect{
+                if(it.preventPhoneOff){
+                    if (!hasFocus) {
+                        val closeDialog = Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                        sendBroadcast(closeDialog)
+                    }
+                }
+            }
+        }
+    }
 
     override fun onDismissClicked() {
         alarmScheduler.cancel(alarm)

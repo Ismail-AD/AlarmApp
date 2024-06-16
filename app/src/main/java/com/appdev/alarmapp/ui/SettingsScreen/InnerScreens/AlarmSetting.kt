@@ -1,24 +1,19 @@
 package com.appdev.alarmapp.ui.SettingsScreen.InnerScreens
 
-import android.Manifest
 import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -61,24 +58,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat.startActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.appdev.alarmapp.BillingResultState
+import androidx.navigation.NavHostController
 import com.appdev.alarmapp.DeviceAdminManage.DeviceAdminReceiver
 import com.appdev.alarmapp.ModelClass.AlarmSetting
 import com.appdev.alarmapp.ModelClasses.AlarmEntity
+import com.appdev.alarmapp.R
 import com.appdev.alarmapp.checkOutViewModel
 import com.appdev.alarmapp.navigation.Routes
 import com.appdev.alarmapp.ui.CustomButton
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
 import com.appdev.alarmapp.ui.MainScreen.getAMPM
 import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
-import com.appdev.alarmapp.ui.theme.backColor
 import com.appdev.alarmapp.utils.DefaultSettingsHandler
-import com.appdev.alarmapp.utils.MissionDataHandler
-import com.google.accompanist.permissions.rememberPermissionState
 import java.time.LocalDate
 import java.time.LocalTime
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +96,9 @@ fun AlarmSettings(
     var showDialog_two by remember {
         mutableStateOf(false)
     }
+    var showDialog_instruction by remember {
+        mutableStateOf(false)
+    }
     val deviceAdminComponent by remember {
         mutableStateOf(ComponentName(context, DeviceAdminReceiver::class.java))
     }
@@ -111,7 +111,11 @@ fun AlarmSettings(
     val devicePolicyManager by remember {
         mutableStateOf(context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager)
     }
-
+    val serviceIntent by remember {
+        mutableStateOf(
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        )
+    }
     var switchStatePrevention by remember {
         mutableStateOf(
             alarmSettings.value.preventUninstall && devicePolicyManager.isAdminActive(
@@ -124,6 +128,26 @@ fun AlarmSettings(
             alarmSettings.value.preventPhoneOff
         )
     }
+
+    val accessibilityServicePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (isAccessServiceEnabled(context)) {
+            switchScreenOffPrevention = true
+            mainViewModel.updateBasicSettings(
+                AlarmSetting(
+                    id = mainViewModel.basicSettings.value.id,
+                    showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                    activeSort = mainViewModel.basicSettings.value.activeSort,
+                    preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
+                    preventPhoneOff = true
+                )
+            )
+        } else {
+            switchScreenOffPrevention = false
+        }
+    }
+
 
     val requestOverlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -240,8 +264,10 @@ fun AlarmSettings(
                     AlarmSetting(
                         id = mainViewModel.basicSettings.value.id,
                         showInNotification = it,
-                        activeSort = mainViewModel.basicSettings.value.activeSort,preventUninstall = mainViewModel.basicSettings.value
-                            .preventUninstall,preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
+                        activeSort = mainViewModel.basicSettings.value.activeSort,
+                        preventUninstall = mainViewModel.basicSettings.value
+                            .preventUninstall,
+                        preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
                     )
                 )
                 if (it) {
@@ -266,8 +292,10 @@ fun AlarmSettings(
                     AlarmSetting(
                         id = mainViewModel.basicSettings.value.id,
                         showInNotification = mainViewModel.basicSettings.value.showInNotification,
-                        activeSort = it,preventUninstall = mainViewModel.basicSettings.value
-                            .preventUninstall,preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
+                        activeSort = it,
+                        preventUninstall = mainViewModel.basicSettings.value
+                            .preventUninstall,
+                        preventPhoneOff = mainViewModel.basicSettings.value.preventPhoneOff
                     )
                 )
             }
@@ -282,65 +310,73 @@ fun AlarmSettings(
                     .padding(start = 20.dp, top = 30.dp, bottom = 10.dp)
             )
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Card(
-                    onClick = {},
-                    modifier = Modifier
-                        .height(68.dp)
-                        .padding(horizontal = 15.dp),
-                    shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.inverseOnSurface
-                    )
-                ) {
-                    Row(
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R || Build.VERSION.SDK_INT > Build.VERSION_CODES.TIRAMISU) {
+                    Card(
+                        onClick = {},
                         modifier = Modifier
-                            .fillMaxSize()
+                            .height(68.dp)
                             .padding(horizontal = 15.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Prevent phone turn-off during alarm",
-                            color = MaterialTheme.colorScheme.surfaceTint,
-                            fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
+                        shape = RoundedCornerShape(8.dp), // Adjust the corner radius as needed ,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.inverseOnSurface
                         )
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 15.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Switch(
-                                checked = switchScreenOffPrevention,
-                                onCheckedChange = { newSwitchState ->
-                                    if (newSwitchState) {
-                                        showDialog_two = true
-                                    } else {
-                                        switchScreenOffPrevention = newSwitchState
-                                        mainViewModel.updateBasicSettings(
-                                            AlarmSetting(
-                                                id = mainViewModel.basicSettings.value.id,
-                                                showInNotification = mainViewModel.basicSettings.value.showInNotification,
-                                                activeSort = mainViewModel.basicSettings.value.activeSort,
-                                                preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
-                                                preventPhoneOff = false
-                                            )
-                                        )
-                                    }
-                                    // Handle the new switch state
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = if (isDarkMode) Color.White else Color(
-                                        0xff13A7CB
-                                    ), // Color when switch is ON
-                                    checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
-                                        0xff7FCFE1
-                                    ), // Track color when switch is ON
-                                    uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
-                                        0xff656D7D
-                                    ), // Color when switch is OFF
-                                    uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
-                                        0xff9E9E9E
-                                    ) // Track color when switch is OFF
-                                ), modifier = Modifier.scale(0.8f)
+                            Text(
+                                text = "Prevent phone turn-off during alarm",
+                                color = MaterialTheme.colorScheme.surfaceTint,
+                                fontSize = 16.sp, modifier = Modifier.fillMaxWidth(0.85f)
                             )
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Switch(
+                                    checked = switchScreenOffPrevention,
+                                    onCheckedChange = { newSwitchState ->
+                                        if (newSwitchState) {
+                                            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.TIRAMISU && !isAccessServiceEnabled(
+                                                    context
+                                                )){
+                                                    showDialog_instruction = true
+                                                } else {
+                                                showDialog_two = true
+                                            }
+                                        } else {
+                                            switchScreenOffPrevention = newSwitchState
+                                            mainViewModel.updateBasicSettings(
+                                                AlarmSetting(
+                                                    id = mainViewModel.basicSettings.value.id,
+                                                    showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                                                    activeSort = mainViewModel.basicSettings.value.activeSort,
+                                                    preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
+                                                    preventPhoneOff = false
+                                                )
+                                            )
+                                        }
+                                        // Handle the new switch state
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = if (isDarkMode) Color.White else Color(
+                                            0xff13A7CB
+                                        ), // Color when switch is ON
+                                        checkedTrackColor = if (isDarkMode) Color(0xff7358F5) else Color(
+                                            0xff7FCFE1
+                                        ), // Track color when switch is ON
+                                        uncheckedThumbColor = if (isDarkMode) Color(0xff949495) else Color(
+                                            0xff656D7D
+                                        ), // Color when switch is OFF
+                                        uncheckedTrackColor = if (isDarkMode) Color(0xff343435) else Color(
+                                            0xff9E9E9E
+                                        ) // Track color when switch is OFF
+                                    ), modifier = Modifier.scale(0.8f)
+                                )
+                            }
                         }
                     }
                 }
@@ -410,6 +446,74 @@ fun AlarmSettings(
                 }
             }
         }
+        if (showDialog_instruction) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Dialog(onDismissRequest = {
+                }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 22.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onBackground,
+                                shape = RoundedCornerShape(5.dp)
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Basic Instructions",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 20.dp), fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "1. Long press on Alarmy app then click on App info or details \n\n2. Tap on 3 dots ( \u22EE ) at top right corner \n\n3. Allow Restricted Settings",
+                            color = MaterialTheme.colorScheme.surfaceTint,
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Start,
+                            fontWeight = FontWeight.W400,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
+                        )
+                        Row( modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp)) {
+                            Text(
+                                text = "Note: ",
+                                color = MaterialTheme.colorScheme.surfaceTint,
+                                fontSize = 17.sp,
+                                textAlign = TextAlign.Start,
+                                fontWeight = FontWeight.W600
+                            )
+                            Text(
+                                text = "( ⋮ ) 3-dots will not appear if restricted settings are allowed for application",
+                                color = MaterialTheme.colorScheme.surfaceTint,
+                                fontSize = 17.sp,
+                                textAlign = TextAlign.Start,
+                                fontWeight = FontWeight.W400
+                            )
+                        }
+                        CustomButton(
+                            onClick = {
+                                showDialog_instruction = false
+                                showDialog_two = true
+                            },
+                            text = "Next",
+                            width = 0.90f,
+                            backgroundColor = Color(0xffC5CDDA), textColor = Color.Black
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                }
+            }
+        }
         if (showDialog_two) {
             Box(
                 modifier = Modifier.fillMaxSize()
@@ -424,7 +528,10 @@ fun AlarmSettings(
                             )
                     ) {
                         Text(
-                            text = "Caution",
+                            text = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.TIRAMISU && !isAccessServiceEnabled(
+                                    context
+                                )
+                            ) "Permission for Accessibility Service" else "Caution",
                             color = MaterialTheme.colorScheme.surfaceTint,
                             fontSize = 22.sp,
                             textAlign = TextAlign.Center,
@@ -435,7 +542,13 @@ fun AlarmSettings(
 
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
-                            "If you set this on, app doesn't turned off during ringing.",
+                            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.TIRAMISU && !isAccessServiceEnabled(
+                                    context
+                                )
+                            ) "Find the Alarmy in downloaded apps list and grant the permission.\nBy enabling the Accessibility Service, you agree to allowing Alarmy to " +
+                                    "detect the system Ul of turning the device off.\n" +
+                                    "The sole purpose is to prevent you from turning the device off while your alarm is ringing and won't be " +
+                                    "used or shared for any other purpose" else "If you set this on, app doesn't turned off during ringing.",
                             fontSize = 16.sp,
                             letterSpacing = 0.sp,
                             color = Color.Gray,
@@ -467,16 +580,25 @@ fun AlarmSettings(
                                 Spacer(modifier = Modifier.width(14.dp))
                                 CustomButton(
                                     onClick = {
-                                        mainViewModel.updateBasicSettings(
-                                            AlarmSetting(
-                                                id = mainViewModel.basicSettings.value.id,
-                                                showInNotification = mainViewModel.basicSettings.value.showInNotification,
-                                                activeSort = mainViewModel.basicSettings.value.activeSort,
-                                                preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
-                                                preventPhoneOff = true
+                                        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.TIRAMISU && !isAccessServiceEnabled(
+                                                context
                                             )
-                                        )
-                                        switchScreenOffPrevention = true
+                                        ) {
+                                            accessibilityServicePermissionLauncher.launch(
+                                                serviceIntent
+                                            )
+                                        } else {
+                                            mainViewModel.updateBasicSettings(
+                                                AlarmSetting(
+                                                    id = mainViewModel.basicSettings.value.id,
+                                                    showInNotification = mainViewModel.basicSettings.value.showInNotification,
+                                                    activeSort = mainViewModel.basicSettings.value.activeSort,
+                                                    preventUninstall = mainViewModel.basicSettings.value.preventUninstall,
+                                                    preventPhoneOff = true
+                                                )
+                                            )
+                                            switchScreenOffPrevention = true
+                                        }
                                         showDialog_two = false
                                     },
                                     text = "Ok",
@@ -703,4 +825,19 @@ fun findUpcomingAlarm(alarms: List<AlarmEntity>): AlarmEntity? {
                 alarm.isActive
     }
     return filteredAlarms.minByOrNull { it.timeInMillis }
+}
+
+fun isAccessServiceEnabled(context: Context): Boolean {
+    val enabledOrNot = Settings.Secure.getInt(
+        context.contentResolver,
+        Settings.Secure.ACCESSIBILITY_ENABLED
+    );
+    if (enabledOrNot == 1) {
+        val enabledServices = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return !(enabledServices == null || !enabledServices.contains(context.packageName))
+    }
+    return false
 }

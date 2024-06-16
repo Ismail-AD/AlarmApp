@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">AlarmApp</string>
+    <string name="access_service_name">.AlarmManagement.PowerOffAccessibilityService</string>
+
+    <string name="accessibility_service_description">
+        This service detects the device turn off menu and prevent accidental turn-offs if prevent turn-off feature of application is enabled.
+    </string>
 
 
     <string name="lorem_ipsum">

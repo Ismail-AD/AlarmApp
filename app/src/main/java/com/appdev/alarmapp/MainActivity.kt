@@ -9,24 +9,13 @@ import android.os.Bundle
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import com.appdev.alarmapp.AlarmManagement.AlarmScheduler
+import com.appdev.alarmapp.AlarmManagement.PowerOffAccessibilityService
 import com.appdev.alarmapp.AlarmManagement.SnoozeHandler
 import com.appdev.alarmapp.AlarmManagement.Utils
 import com.appdev.alarmapp.Hilt.TokenManagement
@@ -34,11 +23,9 @@ import com.appdev.alarmapp.ModelClasses.missionsEntity
 import com.appdev.alarmapp.Repository.RingtoneRepository
 import com.appdev.alarmapp.navigation.navGraph
 import com.appdev.alarmapp.ui.MainScreen.MainViewModel
-import com.appdev.alarmapp.ui.NotificationScreen.NotificationService
 import com.appdev.alarmapp.ui.theme.AlarmAppTheme
 import com.appdev.alarmapp.utils.EventHandlerAlarm
 import com.appdev.alarmapp.utils.MissionDataHandler
-import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -263,7 +250,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
 }
 //
 //@Preview(showBackground = true)
