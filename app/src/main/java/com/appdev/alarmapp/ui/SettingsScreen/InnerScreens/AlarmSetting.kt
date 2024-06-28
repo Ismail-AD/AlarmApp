@@ -125,7 +125,9 @@ fun AlarmSettings(
     }
     var switchScreenOffPrevention by remember {
         mutableStateOf(
-            alarmSettings.value.preventPhoneOff
+            alarmSettings.value.preventPhoneOff && isAccessServiceEnabled(
+                context
+            )
         )
     }
 

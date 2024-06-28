@@ -1,4 +1,5 @@
 package com.appdev.alarmapp.AlarmManagement
+
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.util.Log
@@ -8,16 +9,20 @@ import com.appdev.alarmapp.Repository.RingtoneRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class PowerOffAccessibilityService : AccessibilityService() {
+class PowerOffAccessibilityService : AccessibilityService(){
 
     @Inject
     lateinit var ringtoneRepository: RingtoneRepository
+
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+
 
         // Check if the event type is relevant
         if ((event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) ||
@@ -27,11 +32,13 @@ class PowerOffAccessibilityService : AccessibilityService() {
             val rootNode = rootInActiveWindow ?: return
             CoroutineScope(Dispatchers.IO).launch {
                 ringtoneRepository.getBasicSettings.collect { alarmSet ->
-                    if(alarmSet.preventPhoneOff){
+                    if (alarmSet.preventPhoneOff && Utils(applicationContext).getObserver()) {
                         // Traverse the node tree to find the "Power off" button or similar indicators
+
                         if (findPowerOffNode(rootNode)) {
                             performGlobalAction(GLOBAL_ACTION_HOME)
                         }
+
                     }
                 }
             }
@@ -59,12 +66,15 @@ class PowerOffAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        Log.d("CHKACC","Service connected !")
+        Log.d("CHKACC", "Service connected !")
         val info = AccessibilityServiceInfo().apply {
-            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            eventTypes =
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 100
         }
         this.serviceInfo = info
     }
+
+
 }

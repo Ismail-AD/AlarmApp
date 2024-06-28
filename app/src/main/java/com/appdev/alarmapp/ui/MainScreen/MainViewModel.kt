@@ -689,7 +689,6 @@ class MainViewModel @Inject constructor(
                 missionDetails.copy(missionName = missionDataHandler.missionName)
 
             is MissionDataHandler.MissionProgress -> {
-                Log.d("CHKVM", "New Value to be assigned ${missionDataHandler.repeatProgress}")
                 missionDetails =
                     missionDetails.copy(repeatProgress = missionDataHandler.repeatProgress)
             }

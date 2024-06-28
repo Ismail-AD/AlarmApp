@@ -8,11 +8,12 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 
-
 class Utils(private val context: Context) {
 
     private val PREFS_NAME = "snooze_timers"
     private val SNOOZE_TIMERS_KEY = "snooze_timers_set"
+
+    private val OB_KEY = "observer"
 
 
     fun startOrUpdateSnoozeTimer(snoozeTimer: SnoozeTimer) {
@@ -51,6 +52,18 @@ class Utils(private val context: Context) {
         )
     }
 
+    fun saveObserver(newValue: Boolean) {
+        val sharedPref = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putBoolean(OB_KEY, newValue)
+        editor.apply()
+    }
+
+    fun getObserver(): Boolean {
+        val sharedPref = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        return sharedPref.getBoolean(OB_KEY, false)
+    }
+
     fun getSnoozeTimers(): Set<SnoozeTimer> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val jsonTimers = prefs.getString(SNOOZE_TIMERS_KEY, null)
@@ -60,6 +73,7 @@ class Utils(private val context: Context) {
             emptySet()
         }
     }
+
     fun clearSnoozeTimers() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val editor = prefs.edit()
@@ -69,7 +83,7 @@ class Utils(private val context: Context) {
 
     fun findClosestSnoozeTimer(): SnoozeTimer? {
         val timers = getSnoozeTimers()
-        Log.d("CHJ","CALLED TO GET SHORT")
+        Log.d("CHJ", "CALLED TO GET SHORT")
         return timers.minByOrNull { it.remainingTimeMillis }
     }
 

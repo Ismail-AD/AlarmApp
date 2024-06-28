@@ -179,6 +179,19 @@ fun PreviewScreen(
             )
         )
     }
+    var daysOfWeek by remember {
+        mutableStateOf(
+            listOf(
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+            )
+        )
+    }
 
     val billingState = checkOutViewModel.billingUiState.collectAsStateWithLifecycle()
     val isDarkMode by mainViewModel.themeSettings.collectAsState()
@@ -226,6 +239,10 @@ fun PreviewScreen(
     val selectedOptions =
         rememberSaveable { mutableStateOf(if (mainViewModel.whichAlarm.isOld) mainViewModel.selectedDataAlarm.listOfDays else mainViewModel.newAlarm.listOfDays) }
     var remainingTime by remember { mutableStateOf(0L) }
+
+    var myEmptySet by remember {
+        mutableStateOf(emptySet<String>())
+    }
 
     LaunchedEffect(key1 = showRemaining) {
         if (showRemaining) {
@@ -1463,15 +1480,7 @@ fun PreviewScreen(
                         )
                     }
                     // Replace this with your logic to get the list of days
-                    val daysOfWeek = listOf(
-                        "Monday",
-                        "Tuesday",
-                        "Wednesday",
-                        "Thursday",
-                        "Friday",
-                        "Saturday",
-                        "Sunday"
-                    )
+
 
                     val dayPairs = daysOfWeek.chunked(2)
 
@@ -1492,6 +1501,9 @@ fun PreviewScreen(
                                         } else {
                                             selectedOptions.value - day
                                         }
+                                        myEmptySet = selectedOptions.value
+                                        selectedOptions.value = emptySet()
+                                        selectedOptions.value = myEmptySet.sortedBy { daysOfWeek.indexOf(it) }.toSet()
                                     }, colors = CheckboxDefaults.colors(
                                         uncheckedColor = Color(0xffB6BDCA),
                                         checkmarkColor = Color.White,

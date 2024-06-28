@@ -58,6 +58,7 @@ import com.appdev.alarmapp.utils.Helper
 import com.appdev.alarmapp.utils.MissionDataHandler
 import com.appdev.alarmapp.utils.convertMillisToLocalTime
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.OffsetTime
@@ -118,6 +119,7 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
         if (!previewMode) {
             Log.d("CHKMUS", "---ALARM STATE UPDATED REAL TO TRUE FROM MAIN ALARM---")
             mainViewModel.updateIsReal(true)
+            Utils(this).saveObserver(true)
             window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
             window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
@@ -219,6 +221,9 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
 
     override fun onSnoozeClicked() {
         mainViewModel.updateIsReal(false)
+        Utils(this).saveObserver(false)
+
+
         if (Utils(this).areSnoozeTimersEmpty()) {
             Log.d(
                 "CHKSM",
@@ -249,6 +254,8 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
     override fun onDismissClicked() {
         alarmScheduler.cancel(alarm)
         mainViewModel.snoozeUpdate(false)
+        Utils(this).saveObserver(false)
+
         if (mainViewModel.dummyMissionList.isEmpty() && mainViewModel.isRealAlarm) {
             if (alarm.isOneTime && !mainViewModel.hasSnoozed) {
                 mainViewModel.updateHandler(
@@ -387,10 +394,6 @@ class AlarmCancelAccess : ComponentActivity(), SnoozeCallback, DismissCallback {
             vibrator.cancel()
             textToSpeech.stop()
             startActivity(Intent(this, EndingHandler::class.java))
-            Log.d(
-                "CHKSM",
-                "FINISHING ACTIVITY LASTLY ON CREATE.............and real state is ${mainViewModel.isRealAlarm}"
-            )
             finish()
         } else if (previewMode) {
             finish()

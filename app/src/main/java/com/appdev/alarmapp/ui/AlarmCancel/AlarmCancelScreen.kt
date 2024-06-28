@@ -523,6 +523,7 @@ fun AlarmCancelScreen(
                         Helper.stopStream()
                         textToSpeech.stop()
                         vibrator.cancel()
+                        mainViewModel.dummyMissionList = emptyList()
                         onDismissCallback.onDismissClicked()
                         break
                     }
@@ -537,8 +538,6 @@ fun AlarmCancelScreen(
             .fillMaxSize()
             .background(backColor), contentAlignment = Alignment.TopCenter
     ) {
-        Log.d("GOINGTO", "In COMPOSABLE ${Helper.isPlaying()}")
-
         Column(
             modifier = Modifier
                 .fillMaxHeight(0.9f)
