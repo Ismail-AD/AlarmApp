@@ -6,8 +6,6 @@
 
 ## 🎥 Demo
 
-### 📽️ **Watch Alarmo in Action**
-
 [![Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://github.com/user-attachments/assets/cb5ae2c3-f11b-42c6-b6a1-e61ee5091c9b)
 
 *See all features in action - from setting alarms to completing missions!*
