@@ -62,17 +62,13 @@ Make waking up fun with **10+ different tasks**:
 
 ---
 
-## 🏗️ What's Inside
-
 ### 🔧 **Built With**
-```kotlin
-// Core Technologies
-🎯 Language: Kotlin
-🖼️ UI Framework: Jetpack Compose
-🏛️ Architecture: MVVM (Model-View-ViewModel)
-💾 Local Database: Room
-☁️ Backend Services: Firebase
-```
+
+**🎯 Language:** Kotlin  
+**🖼️ UI Framework:** Jetpack Compose  
+**🏛️ Architecture:** MVVM (Model-View-ViewModel)  
+**💾 Local Database:** Room  
+**☁️ Backend Services:** Firebase
 
 ---
 
