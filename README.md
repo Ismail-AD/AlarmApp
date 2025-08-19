@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Alarmo Logo](https://via.placeholder.com/200x200/FF6B6B/FFFFFF?text=ALARMO)
+**Never oversleep again! Smart missions ensure you're fully awake before dismissing your alarm**
 
 ## 🎥 Demo
 
@@ -11,8 +11,6 @@
 [![Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://github.com/user-attachments/assets/cb5ae2c3-f11b-42c6-b6a1-e61ee5091c9b)
 
 *See all features in action - from setting alarms to completing missions!*
-
-**Never oversleep again! Smart missions ensure you're fully awake before dismissing your alarm**
 
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
