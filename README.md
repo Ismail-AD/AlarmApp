@@ -41,8 +41,8 @@ Make waking up fun with **10+ different tasks**:
 | 🔢 **Order Numbers** | Put numbers in right order | Different levels |
 | ➕ **Math Problems** | Solve simple math to stop alarm | Easy, Normal, Hard |
 | 📱 **Scan QR Code** | Use camera to scan special code | One level |
-| 🎨 **Remember Colors** | Remember which boxes were colored | Gets harder |
-| 🌈 **Match Colored Letters** | Find letters that were colored before | Gets harder |
+| 🎨 **Remember Colors** | Remember which boxes were colored | Easy, Normal, Hard |
+| 🌈 **Match Colored Letters** | Find letters that were colored before | Easy, Normal, Hard |
 | 📱 **Shake Phone** | Shake your phone several times | You choose how much |
 | ⌨️ **Type Sentence** | Type words correctly | Different lengths |
 
