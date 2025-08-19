@@ -46,15 +46,15 @@ Make waking up fun with **10+ different tasks**:
 | 📱 **Shake Phone** | Shake your phone several times | You choose how much |
 | ⌨️ **Type Sentence** | Type words correctly | Different lengths |
 
-### 🎨 **Make It Look Good**
-- **Change Backgrounds** - Pick different pictures for alarm screen
-- **Organize Pictures** - Make groups of your favorite backgrounds
-- **Light/Dark Mode** - Switch between bright and dark themes
+### 🎨 **Visual Customization**
+- **Dynamic Wallpapers** - Personalize alarm screen backgrounds
+- **Category Management** - Create and organize custom wallpaper categories
+- **Theme Support** - Day/Night theme switching
 
-### ⚙️ **Easy Setup**
-- **Save Favorites** - Set your favorite tasks for all alarms
-- **Time Limits** - Choose how long to solve tasks
-- **Pick Days** - Choose exactly which days alarms repeat
+### ⚙️ **Advanced Configuration**
+- **Global Defaults** - Set consistent mission preferences across all alarms
+- **Mission Timeout** - Configurable time limits for mission completion
+- **Flexible Scheduling** - Complete control over alarm repetition patterns
 
 ---
 
